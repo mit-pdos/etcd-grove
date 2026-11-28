@@ -221,6 +221,11 @@ noncomputable def ClusterDowngradeKeyName [GooseExts] [GoGlobalContext] : GoStri
 noncomputable def MetaStorageVersionName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MetaStorageVersionName"
 
+noncomputable def MetaConsistentIndexRaftTermName [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/schema.MetaConsistentIndexRaftTermName"
+
+opaque MetaConsistentIndexRaftTermName.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def schemaChanges [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.schemaChanges"
 
@@ -280,6 +285,15 @@ noncomputable def UnsafeReadConsistentIndex [GooseExts] [GoGlobalContext] : GoSt
 
 noncomputable def ReadConsistentIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ReadConsistentIndex"
+
+noncomputable def UnsafeReadConsistentIndexRaftTerm [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeReadConsistentIndexRaftTerm"
+
+noncomputable def ReadConsistentIndexRaftTerm [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/schema.ReadConsistentIndexRaftTerm"
+
+noncomputable def UnsafeUpdateConsistentIndexRaftTerm [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeUpdateConsistentIndexRaftTerm"
 
 noncomputable def UnsafeUpdateConsistentIndexForce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeUpdateConsistentIndexForce"
@@ -1644,7 +1658,7 @@ noncomputable def bucket.IsSafeRangeBucket.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: bucket.go:106:6 -/
+/-- go: bucket.go:111:6 -/
 noncomputable def BackendMemberKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -1854,7 +1868,7 @@ noncomputable def ReadConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Var "tx"))) (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res1")))))))
 
-/-- go: cindex.go:61:6 -/
+/-- go: cindex.go:93:6 -/
 noncomputable def UnsafeUpdateConsistentIndexForce.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "index"
@@ -1871,7 +1885,7 @@ noncomputable def UnsafeUpdateConsistentIndexForce.impl [GooseExts] [GoGlobalCon
   (App (App (App (App (App (Val (GoInstruction (FuncResolve unsafeUpdateConsistentIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))
   (Val #())))))
 
-/-- go: cindex.go:65:6 -/
+/-- go: cindex.go:97:6 -/
 noncomputable def UnsafeUpdateConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "index"
@@ -1888,7 +1902,7 @@ noncomputable def UnsafeUpdateConsistentIndex.impl [GooseExts] [GoGlobalContext]
   (App (App (App (App (App (Val (GoInstruction (FuncResolve unsafeUpdateConsistentIndex []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))
   (Val #())))))
 
-/-- go: cindex.go:69:6 -/
+/-- go: cindex.go:101:6 -/
 noncomputable def unsafeUpdateConsistentIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "index"
@@ -2301,6 +2315,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"storageVersion")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$k0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.version.V3_6))) (Val #())))
@@ -2318,6 +2333,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty (go.GoType.SliceType schemaChange.ty))))) (Pair (App (Val (GoInstruction (GlobalVarAddr schemaChanges))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr emptyStorageVersion))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val MetaConsistentIndexRaftTermName.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetaStorageVersionName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
