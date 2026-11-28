@@ -556,7 +556,7 @@ theorem github_com.hashicorp.raft.leader.dispatch_gen
     imodintro
     wp_apply HSL $$ %lsl %(DFrac.own 1) %(ds.map (fun d => d.f.[logFuture, go!"log"]))
       %(s.log.length + 1) %(ds.map DItem.e) [] [$Hlsl] [] [Hwin]
-    · ipureintro; exact ⟨by simp, by omega⟩
+    · ipureintro; exact ⟨by omega, by simp, by omega⟩
     · iexact Hptrs
     · iexact Hwin
     iintro Hwin Hnc

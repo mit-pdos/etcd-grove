@@ -89,7 +89,7 @@ def mainRest (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (a : 
     (∃ m : Nat, pubOwn γ i s.term m ∗ ⌜m ≤ a⌝) ∗
     verifyRegistry γ rc i ∗ fsmProd γ rc a ∗
     ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-    monoNatAuthOwn rc.dur.comp 1 c ∗ ⌜c ≤ a⌝ ∗
+    monoNatAuthOwn rc.dur.comp (1 : Qp).half c ∗ ⌜c ≤ a⌝ ∗
     r.[Raft, go!"leaderCh"] ↦□ lch ∗ isChan lch γl Bool ∗ ownChan γl Bool (.Buffered bs) ∗
     ⌜sint.Z γl.chanCap = 1 ∧ bs.length ≤ 1⌝)
 
