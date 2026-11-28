@@ -638,7 +638,7 @@ instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.Se
 /-- **The boot apply thread on a fresh file** (2026-11-01, "bootOk's boot metadata"): `bootOk`'s
 `Hthr`, at `consInv_alloc`'s state, is at `⟨0, 0, 0, false⟩` when `γA.m0 = (0, 0)`. -/
 theorem thr_fresh (γA : ApplyNames) (h : γA.m0 = (W64 0, W64 0)) :
-    applyThread (GF := GF) γA ⟨W64 0, γA.m0.1, W64 0, false⟩ ⊢
+    applyThread (GF := GF) γA ⟨γA.m0.1, γA.m0.1, W64 0, false⟩ ⊢
       applyThread γA ⟨W64 0, W64 0, W64 0, false⟩ := by
   rw [h]
 

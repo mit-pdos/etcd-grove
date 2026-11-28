@@ -462,7 +462,7 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
     Hmsmeta
   -- (2026-11-01, "bootOk's boot metadata") the fresh file's meta keys: `γA.m0 = (0, 0)`, no
   -- compaction recorded, the apply thread at `0`
-  replace Hci : bk.ci' = ciIface cil ∧ γA.m0 = (W64 0, W64 0) := ⟨Hci, m0_of_metaEmpty HmEmpty Hm0⟩
+  replace Hci : bk.ci' = ciIface cil ∧ γA.m0 = (W64 0, W64 0) := ⟨Hci, m0_of_metaEmpty HmEmpty Hm0.1⟩
   have HnoCmp : mvcc.noCmpData D := noCmpData_of_metaEmpty HmEmpty
   ihave Hthr := thr_fresh γA Hci.2 $$ Hthr
   iStructNamed Hbc
