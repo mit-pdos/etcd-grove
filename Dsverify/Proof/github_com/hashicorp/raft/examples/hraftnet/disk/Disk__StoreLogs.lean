@@ -51,7 +51,7 @@ theorem dk_stored_all (first : Nat) (es : RLog) (ds : List DEnt) (h : dkStoredPr
     (hl : ds.length = es.length) : StoredAs first es ds := ⟨hl, h⟩
 
 theorem dk_store_img (I : DiskImg) (stg : w64) (first : Nat) (es : RLog) (ds : List DEnt) (hok : I.Ok)
-    (h : StoredAs first es ds) (hb : first + es.length < 2 ^ 64) (hf : 1 ≤ first) :
+    (h : StoredAs first es ds) (hb : first + es.length ≤ 2 ^ 64) (hf : 1 ≤ first) :
     (storeImg I ds stg).Pre ∧
     DiskAbs.of (storeImg I ds stg) stg = (DiskOp.log (.store first es)).apply (DiskAbs.of I stg) := by
   have hd : ∀ d ∈ ds, 1 ≤ uint.nat d.idx := by

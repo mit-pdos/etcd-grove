@@ -29,7 +29,7 @@ abbrev github_com.hashicorp.raft.examples.hraftnet.disk.Disk.StoreLogs.spec : Pr
   ∀ (g : DiskGen) (d : Loc) (Wl : LogOp → IProp GF) (Ws : StableOp → IProp GF) (Wf : IProp GF)
     (sl : GoSlice) (dq : DFrac) (ptrs : List Loc) (first : Nat) (es : RLog),
   ⊢ ∀ Φ : val → IProp GF,
-    ⌜1 ≤ first ∧ ptrs.length = es.length ∧ first + es.length < 2 ^ 64⌝ -∗
+    ⌜1 ≤ first ∧ ptrs.length = es.length ∧ first + es.length ≤ 2 ^ 64⌝ -∗
     isDisk g d Wl Ws Wf -∗ sl ↦*{dq} ptrs -∗
     ([∗list] k ↦ p ∈ ptrs, ∃ e, ⌜es[k]? = some e⌝ ∗ logPtr p (first + k) e) -∗
     Wl (.store first es) -∗

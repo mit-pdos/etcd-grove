@@ -344,7 +344,7 @@ def storeImg (I : DiskImg) (ds : List DEnt) (stg : w64) : DiskImg :=
   { I with ents := insAll I.ents ds, commit := stg }
 
 theorem storeImg_absL (I : DiskImg) (stg : w64) (first : Nat) (es : RLog) (ds : List DEnt)
-    (hok : IdxOk I.ents) (h : StoredAs first es ds) (hb : first + es.length < 2 ^ 64) (hd : ∀ d ∈ ds, 1 ≤ uint.nat d.idx) :
+    (hok : IdxOk I.ents) (h : StoredAs first es ds) (hb : first + es.length ≤ 2 ^ 64) (hd : ∀ d ∈ ds, 1 ≤ uint.nat d.idx) :
     (storeImg I ds stg).absL stg = (I.absL stg).store first es ∧ IdxOk (storeImg I ds stg).ents := by
   have hok' := insAll_ok I.ents ds hd hok
   refine ⟨?_, hok'⟩
