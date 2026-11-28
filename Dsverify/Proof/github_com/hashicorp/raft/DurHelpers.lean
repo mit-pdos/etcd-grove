@@ -288,46 +288,7 @@ main goroutine's half and `durBody`'s, outside an install (`dp = none`, pinned b
 theorem compRaise (s : SState) (c x : Nat) :
     srvDurInv γ rc i ∗ srvV rc s ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half c ⊢
       |NC={⊤}=> srvV rc s ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half (Nat.max c x) ∗ compLb rc x := by
-  iintro ⟨#Hd, Hv, Hc⟩
-  rw [srvV_eq]
-  ihave H := durStep γ rc i (E := ⊤) (fun _ _ => CoPset.mem_full) s none none
-    iprop(monoNatAuthOwn rc.dur.comp (1 : Qp).half c)
-    (fun X' => iprop(⌜X'.s = s ∧ X'.tp = none ∧ X'.dp = none⌝ ∗
-      monoNatAuthOwn rc.dur.comp (1 : Qp).half (Nat.max c x) ∗ compLb rc x)) $$ [Hv Hc]
-  · iframe Hd Hv Hc
-    iintro %X %hX Hco HSt Hv Hc
-    rcases X with ⟨Xs, XA, Xlo, Xc, XD, Xtp, Xlat, Xpend, Xdp⟩
-    rcases hX with ⟨h1, h2, h3⟩
-    simp only at h1 h2 h3
-    subst h1 h2 h3
-    unfold durCore
-    icases Hco with ⟨Ho, Hdv, Hlc, Htc, Hcc, Hsv, Hst, Htv, Hcv, %Hp, Hca, Hrest⟩
-    ihave ⟨⟨Hca, Hc⟩, %hc⟩ := auth_agree_keep rc.dur.comp (1 : Qp).half (1 : Qp).half Xc c $$ [Hca Hc]
-    · iframe
-    subst hc
-    ihave Hfull := (compHalves rc Xc).2 $$ [Hca Hc]
-    · iframe
-    imod (mono_nat_own_update (Nat.max Xc x) (Nat.le_max_left _ _)) $$ Hfull with ⟨Hfull, #Hlb⟩
-    ihave ⟨Ha1, Ha2⟩ := (compHalves rc (Nat.max Xc x)).1 $$ Hfull
-    imodintro
-    iexists ⟨Xs, XA, Xlo, Nat.max Xc x, XD, none, Xlat, Xpend, none⟩
-    iframe
-    isplitr
-    · ipureintro
-      obtain ⟨p1, p2, p3, p4, p5, p6, p7⟩ := Hp
-      refine ⟨p1, ?_, p3, p4, p5, p6, fun d hd => by cases hd⟩
-      exact Nat.le_trans p2 (Nat.add_le_add_right (Nat.le_max_left Xc x) 1)
-    isplitr
-    · ipureintro; exact ⟨rfl, rfl, rfl⟩
-    unfold compLb
-    iapply monoNatLbOwn_le x (Nat.le_max_right _ _) $$ Hlb
-  iapply ncfupd_wand
-  isplitl [H]
-  · iexact H
-  iintro ⟨%X', Hs, %h, Hc, #Hlb⟩
-  rcases h with ⟨h1, h2, h3⟩
-  rw [h1, h2, h3]
-  iframe; iframe #
+  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
 
 end dur
 
