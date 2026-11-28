@@ -1292,9 +1292,10 @@ def stWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : StableOp) : IProp GF :=
 
 /-- (hraft_robust) **Raft's close obligation for its snapshot store** (`isSnapStore`'s `Qc`): the closed
 snapshot's facts (`latestOk`) and its index durable at `i` or installed while `i` followed (what
-`latestDur` keeps). Persistent facts only, so the FSM's `Persist` can be given it from `snapP`. -/
+`latestDur` keeps), given the bytes' bound (the store has it from its Go slice: its commit and its crash
+lemma; R4b). Persistent facts only, so the FSM's `Persist` can be given it from `snapP`. -/
 def snapWin (γ : GNames) (rc : RCtx GF) (i : SID) (m : SnapshotMeta) (b : List w8) : IProp GF :=
-  iprop(latestOk γ rc (some (m, b)) ∗
+  iprop(⌜b.length < 2 ^ 63⌝ -∗ latestOk γ rc (some (m, b)) ∗
     (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term')))
 
 /-- `isRaft`'s interface values and their contracts. (Stage 3: the log store over a partial map,
