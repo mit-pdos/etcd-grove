@@ -707,3 +707,28 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   errors in `Equal` — fix the first error first.
 - Build of record (fk-lean2, targets `etcd3.Link` and `etcd3.Seeded__SharedModel`) at `6100d553e9`: passed,
   12262 jobs, the one `sorry` above its only warning of note.
+
+## Handoff K9-13 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **`Seeded.SharedModel.wp_proof` is done, no `sorry`** (`e5fb5c9bb3`), and **linked** (`63b7bd2c0e`:
+  `Seeded__SharedModel: histOf histHashes__canonical histHashes__skipTo target bound stepIdx settle
+  cfgSet__add storeEqual pendEqual` in `etc/link-lean-first-k8setcd3.txt`; `Link.lean` regenerated: the
+  generator reorders some theorems, its output on the old list reproduces the old file exactly).
+  - Shape of the Step's body: `by_cases hm : mode = W64 0`; the lazy branch rewrites only the `if`'s
+    condition (`rw [show decide (mode = W64 0) = true …]`, not `subst`, so that both branches keep
+    `mode`), `wp_target`/`wp_skipTo`/`wp_stepIdx`, `wp_if_destruct` on `len > 0`: the add loop then
+    `continue`. Its `len = 0` goal and the `mode ≠ 0` goal are brought to the same `settle` call with a
+    `Hns : ¬(uint.nat mode = 0 ∧ lazy ≠ [])` (`rotate_left` between them), then one `all_goals` script:
+    `wp_settle`, the loop over its slice (invariant: `ngs' ↔ ngs ∨ ∃ d ∈ dgs.take m, e ∈ stepL …`), the
+    inner add loop, and at its end `goStep_settle` + `Hfull : decide (mode = W64 2) = decide (uint.nat
+    mode = 2)`. The loop's end: `decIO_box`, `Hstep` (`sharedM`'s step as an `if`), `by_cases ngs = []`.
+  - New lemmas in the file: `goStep_lazy`, `goStep_settle`, `decIO_box`. The theorem needs
+    `set_option maxHeartbeats 3200000 in` (the whole proof exceeds 200000; the Step is one closure, so
+    it was not split).
+  - Pitfalls: `ipersist` fails on a `[∗list]` of `cfgOwn` (use `icases H with #H`); a theorem using
+    `Input_intoVal_inj` needs `include sem package_sem in` (before its docstring).
+- Check: `lean-check -a` (not `--fast`) on the file: 0 errors, 38 s.
+- **Build of record** (fk-lean2, target `etcd3.Link`) at `63b7bd2c0e`: passed, 12262 jobs, no `sorry` in
+  `Seeded__SharedModel` or `Link`.
+- **Left**: step 4 (`HistoryRevs`: no spec yet, `Spec/…/HistoryRevs.lean` to write from §2.7; its Go
+  function is `export.go:193`, closures over three maps), then step 5.
