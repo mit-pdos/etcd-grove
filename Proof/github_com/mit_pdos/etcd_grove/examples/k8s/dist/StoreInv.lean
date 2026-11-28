@@ -782,6 +782,14 @@ etcd's revisions. A named premise of the catch-up and of the firings, never assu
 discharges it by the client law from time receipts (`srvLogCert`'s `⧖`, as K9's revision bound). -/
 def RevBoundD (σ : KVState) : Prop := σ.rev + 1 < 2 ^ 63
 
+/-- **The revision bound, from the share's history** (K8-9, coordinator's decision on K8-8's point 3): at
+every state whose changes the share's history authority `γsh` holds, one more revision fits. The one
+place this bound is assumed: a premise of the firings that need it (a read's, `kvPfxP_readAuH`, whose
+step learns no `kvRoom`); a write's firing gets it from `kvRoom` instead. K10 proves it from time
+receipts. -/
+def revBoundD_law (γsh : GName) : IProp GF :=
+  iprop(□ ∀ σ : KVState, monoListAuthOwn γsh 1 σ.changes -∗ ⌜RevBoundD σ⌝)
+
 /-- **Two states equal up to the lessor's table** (decision 2): what a foreign lease grant, which moves no
 revision, changes. -/
 def SameL (σc σ : KVState) : Prop :=
