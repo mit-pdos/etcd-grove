@@ -19,7 +19,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Start
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Store
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.ClusterStartD
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Boot
 
 @[expose] public section
 

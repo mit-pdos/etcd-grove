@@ -12,17 +12,14 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
-public import Perennial.Proof.time.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
-public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
-public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init
 public import Proof.go_etcd_io.etcd.server.v3.config.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Init
 public import Proof.go_etcd_io.etcd.server.v3.features.Init
 public import Proof.go_uber_org.zap.Init
-public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 

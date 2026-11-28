@@ -28,7 +28,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Collect
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.CollectPlan
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWrites
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Boot
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Spec.context.ErrAny

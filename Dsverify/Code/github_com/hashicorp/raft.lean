@@ -124,6 +124,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ValidateConfig_unfold : FuncUnfold ValidateConfig [] ValidateConfig.impl
   hasVote_unfold : FuncUnfold hasVote [] hasVote.impl
   inConfiguration_unfold : FuncUnfold inConfiguration [] inConfiguration.impl
+  formatServer_unfold : FuncUnfold formatServer [] formatServer.impl
+  formatConfiguration_unfold : FuncUnfold formatConfiguration [] formatConfiguration.impl
   checkConfiguration_unfold : FuncUnfold checkConfiguration [] checkConfiguration.impl
   nextConfiguration_unfold : FuncUnfold nextConfiguration [] nextConfiguration.impl
   encodePeers_unfold : FuncUnfold encodePeers [] encodePeers.impl
@@ -279,6 +281,8 @@ attribute [instance] Assumptions.Raft_instance
   Assumptions.ValidateConfig_unfold
   Assumptions.hasVote_unfold
   Assumptions.inConfiguration_unfold
+  Assumptions.formatServer_unfold
+  Assumptions.formatConfiguration_unfold
   Assumptions.checkConfiguration_unfold
   Assumptions.nextConfiguration_unfold
   Assumptions.encodePeers_unfold

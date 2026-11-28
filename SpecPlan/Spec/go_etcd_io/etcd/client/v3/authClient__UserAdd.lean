@@ -1,7 +1,7 @@
 /-
 `(*clientv3.authClient).UserAdd` (`client/v3/auth.go`).
 
-Users: `examples/etcd/auth/authkv.go` (`SetUp`: `root`, `u`, `v`), snippet `clientv3client/auth.go` (`ReqAdminSetUp`); through the `Auth` bundle (and the promoted `Client.UserAdd`) (`authAt_methods`, `authHandle_authAt`).
+Users: `examples/lib/authwork/authkv.go` (`SetUp`: `root`, `u`, `v`), snippet `clientv3client/auth.go` (`ReqAdminSetUp`); through the `Auth` bundle (and the promoted `Client.UserAdd`) (`authAt_methods`, `authHandle_authAt`).
 
 Proof sketch: allocates the request message (`reqOwn`, 3h's `protoRest_zero` and field writes), calls
 `auth.remote.UserAdd(ctx, req, auth.callOpts...)` (`authHandle` over a ready client: `remote` a `remoteAuthAt` value,

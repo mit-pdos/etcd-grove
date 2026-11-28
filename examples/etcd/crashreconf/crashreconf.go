@@ -44,9 +44,9 @@ import (
 	"go.etcd.io/etcd/server/v3/features"
 	"go.etcd.io/etcd/server/v3/storage/wal"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/examples/lib/txnwork"
 )
 
 // The cluster: NSlots member slots, the first NInitial of them the initial cluster, with the
@@ -437,10 +437,10 @@ func MemberNode(i int) {
 // ---------------------------------------------------------------------------------------------
 // The client node
 
-// Apply runs one operation through a client of clis picked at random (txnlin.Apply).
+// Apply runs one operation through a client of clis picked at random (txnwork.Apply).
 func Apply(clis []*clientv3.Client, input any) any {
 	j := primitive.RandomUint64() % uint64(len(clis))
-	return txnlin.Apply(clis[j], input)
+	return txnwork.Apply(clis[j], input)
 }
 
 // Connect returns NKVClients clients for the workload and one for the membership changes, each of
@@ -626,7 +626,7 @@ func RunClient(clients int, ops int, timeout time.Duration, lg *zap.Logger) porc
 	done := new(atomic.Bool)
 	go Reconfigure(admin, kvs, done, lg)
 	apply := func(input any) any { return Apply(kvs, input) }
-	r := lintest.Run(txnlin.Model(), apply, txnlin.Gen, lintest.CounterClock(), clients, ops, timeout)
+	r := lintest.Run(txnwork.Model(), apply, txnwork.Gen, lintest.CounterClock(), clients, ops, timeout)
 	done.Store(true)
 	if r == porcupine.Illegal {
 		panic("crashreconf: porcupine found the history not linearizable")

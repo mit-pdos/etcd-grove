@@ -1,0 +1,35 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --authkv-main`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The driver's start, `Run` and `Main`;
+# the set-up, workload and checks are the library `authwork`'s (`--authkv`, moved there on 2026-11-27).
+#
+authwork_SetUp: @
+authwork_Work: @
+authwork_Principals: @
+authwork_CheckHistory: @
+authwork_LastIn: @
+authwork_Permitted: @
+# (reused from the library's Link, `REUSES`)
+context_ErrAny: @
+context_WithTimeoutBackground:
+etcdstart_Collect: @
+v3_watcher__Watch: @
+getPrefix:
+WithPrefix: getPrefix
+WithRev:
+WithRange:
+# the skeleton's stubs (notes/authkv-main-plan.md, 2026-10-29: S3, S2; `sorry`s)
+client_v3_New: @
+auth_newUserClient: client_v3_New
+# `Main`'s start (2026-10-30): the logger, the member with auth on (`startServer`, pending here:
+# its proof takes the named premise `authSchemaSrv` (until auth-schema-fix S1 also the false `auth.ValidSpec`), `Results.lean`'s
+# `auth_startServer`), `Serve` (its one spec, at the server's mode since the auth component's stage 5), the
+# client, and the auth store's `BcryptCost` (the server's `Link.lean`)
+zap_NewNop:
+auth_startServer: ?
+etcdstart_Serve: @
+etcdstart_NewClient: @
+# `Run` (the auth3 Scope's Q6, 2026-11-14): `Main` after the member's start, shared with auth3
+auth_Run: etcdstart_Serve etcdstart_NewClient =auth.authStore.wp_BcryptCost context_ErrAny authwork_SetUp auth_newUserClient authwork_Work authwork_Principals authwork_CheckHistory authwork_LastIn context_WithTimeoutBackground etcdstart_Collect v3_watcher__Watch WithPrefix WithRev WithRange authwork_Permitted =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds
+# `Main`: the start, then `Run`
+auth_Main: zap_NewNop auth_startServer auth_Run =mvcc.api.mvccApi_names_nonempty_law_holds =_root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof

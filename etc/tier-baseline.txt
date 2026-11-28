@@ -5,11 +5,11 @@ KvRaft.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1 KvRaft.Proof.go_etc
 KvRaft.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV2 KvRaft.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1  # proof->proof
 ManualProof.github_com.mit_pdos.etcd_grove.examples.lib.durable Proof.DurablePrelude  # base->defs
 Net.Proof.net.OpError__Temporary Net.Proof.net.OpError__Timeout  # proof->proof
-Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetupWrite Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Writer  # proof->proof
-Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.absent Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # proof->linking
-Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # proof->linking
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetupWrite Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Writer  # proof->proof
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.absent Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn  # proof->linking
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier Proof.go_etcd_io.etcd.client.v3.AuthnServedOn  # proof->linking
-Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.grantPut Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # proof->linking
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.grantPut Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.grantPut Proof.go_etcd_io.etcd.client.v3.ResultsOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.run Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.run Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseOnLinked  # proof->linking

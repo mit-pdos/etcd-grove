@@ -46,7 +46,7 @@ answers there as the parent does: every context `Start` returns is a `WithValue`
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Calls
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import Proof.k8s_io.component_base.tracing.Defs
 public import Proof.k8s_io.apiserver.pkg.audit.CtxKeys

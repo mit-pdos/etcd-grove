@@ -107,6 +107,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `runtime/debug.SetMaxStack`'s default on 64-bit, over the 8-byte minimum frame), still any `n` below it;
   Go evidence beside `goose/model/runtime/callers_test.go` (a deep recursion's `Callers` with a buffer
   larger than its depth). A trusted-model change: for upamanyus's review.
+### `io.Discard`'s value and `discard.ReadFrom` (2026-11-27, hraft-iocopy)
+
+- **Limitation.** Perennial's `io.isInit` said only that `Discard` holds some fixed `Writer`, and nothing of
+  `blackHolePool`; `discard.ReadFrom` was a name only. So `io.Copy(io.Discard, r)` (copyBuffer's `ReaderFrom`
+  branch) was stuck.
+- **Who needs it.** `io.Copy_Discard.spec` (`Spec/io/Copy.lean`), a callee of hashicorp/raft's
+  `Raft__installSnapshot` (drains the snapshot stream).
+- **Change.** Perennial `148615524` (landed, no review needed: proofs and a translation): `io.toml` translates
+  `discard.ReadFrom` with its body; `io.isInit` gains `"#HDiscardV"` (`Discard` holds `discard{}`) and
+  `"#HblackHolePool"` (`sync.isPool` of 8192-byte buffers, `New` not nil), proved from the translated initializer.
+  Existing users are unaffected (new conjuncts before `"_"`). Needs the pin bump (#9).
+
 ### `io.WriteString` names only (2026-11-24, phase 7 S5)
 
 - **Limitation.** Perennial's `io` translates `WriteString` as a name only (`Perennial/Code/io.toml`), so a
@@ -4877,4 +4889,17 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
 - **Proposed change.** `io.isInit`'s `"#HDiscard"` names the value (`Discard ↦□ interface.mk discard.ty
   #(discard.mk)`; raft's initializer, which loads it, is unaffected), and specs of `discard.Write`,
   `WriteString` and `ReadFrom` (`Write` returns `(len p, nil)` and reads nothing of `p`).
+- **Status.** Open.
+
+## `strconv.Atoi`'s spec does not give the number (2026-11-27, hraft S5, #48)
+
+- **Limitation.** Perennial's `strconv.Atoi.spec` (and `internal.strconv.Atoi.spec`) give only the error
+  (nil, `ErrSyntax` or `ErrRange`), not the number parsed. A parser of what `strconv.Itoa` wrote cannot show
+  it gets the number back: the hraft kit's FSM (`examples/dsverify/hraft/examples/hraftnet/service`,
+  `Store.Restore`) panics unless `Atoi` of its snapshot's index succeeds with a non-negative number.
+- **Workaround.** `Spec/strconv/Atoi_dec.lean` (`strconv.Atoi_dec.spec`: `Atoi(fmtInt n 10)` of `n ≥ 0`
+  returns `(n, nil)`), a hypothesis of `service.Store.Restore.wp_proof`, unproved: no axiom.
+- **Proposed change.** A functional spec of `internal.strconv.Atoi`: its result is `parseInt s 10 64`'s
+  (the slow path is `ParseInt`'s, already functional; the fast path, 1 to 18 bytes, a digit loop), so that
+  `Atoi(Itoa(n)) = (n, nil)` follows from `parseInt_fmtInt10`. Mechanical (a proof over the translated body).
 - **Status.** Open.

@@ -15,7 +15,7 @@ premise until auth-schema-srv A7, which proved it).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Model
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Defs
 
 @[expose] public section

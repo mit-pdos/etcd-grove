@@ -444,30 +444,41 @@ theorem eof_ne_nil (eof : GoInterface) :
   icombine Heof Hx gives %h
   ipureintro; rw [h]; simp [interface.mkOk]
 
-instance streamReader_persistent (src : GoInterface) (R : List w8 → IProp GF) (eof : GoInterface) :
-    Persistent (io.streamReader (GF := GF) src R eof) := by
-  unfold io.streamReader; infer_instance
+/-- `io.EOF`'s value is pointer-typed (an `errors.New` error, an `*errors.errorString`). -/
+theorem eof_ptrTyped (eof : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.io ∗ globalAddr io.EOF ↦□ eof ⊢
+      ⌜_root_.Perennial.io.ptrTyped eof⌝ := by
+  iintro ⟨#Hinit, #Heof⟩
+  ihave #Hn := io.eof_of_init $$ Hinit
+  unfold errors.newVar
+  icases Hn with ⟨%x, #Hx, -⟩
+  icombine Heof Hx gives %h
+  ipureintro; rw [h]
+  intro ii T h' _; cases h'; exact ⟨x, rfl⟩
 
-instance streamWriter_persistent (dst : GoInterface) (W : List w8 → IProp GF) :
-    Persistent (io.streamWriter (GF := GF) dst W) := by
-  unfold io.streamWriter; infer_instance
+/-- A `streamReaderOk` error (`nil` or `io.EOF`) is pointer-typed when `io.EOF`'s value is. -/
+theorem streamReaderOk_err_ptrTyped {eof err : GoInterface} {n : w64} {cs : List w8}
+    (hpt : _root_.Perennial.io.ptrTyped eof)
+    (h : err = interface.nil ∨ (err = eof ∧ sint.nat n = cs.length)) :
+    _root_.Perennial.io.ptrTyped err := by
+  rcases h with h | ⟨h, _⟩
+  · subst h; exact _root_.Perennial.io.ptrTyped_nil
+  · subst h; exact hpt
 
 /-- A reader that never fails is a byte stream for `io.Copy` (`io.streamReader`). -/
 theorem streamReader_of_ok (rd : GoInterfaceOk) (R : List w8 → IProp GF) (eof : GoInterface)
-    (heof : eof ≠ interface.nil) :
-    streamReaderOk rd R eof ⊢ io.streamReader (GoInterface.ok rd) R eof := by
+    (heof : eof ≠ interface.nil) (hpt : _root_.Perennial.io.ptrTyped eof) :
+    streamReaderOk rd R eof ⊢ io.streamReader rd R eof := by
   unfold streamReaderOk io.streamReader
   iintro #H
-  iintro !> %p %buf %cs %Hbuf %Φ !> ⟨HR, Hp⟩ HΦ
-  wp_auto
+  iintro !> %p %buf %cs %Φ %Hbuf HR Hp HΦ
   iapply H $$ %p %buf %cs %Φ [] HR Hp
   · ipureintro; exact Hbuf
   iintro %n %err %Hn Hp HR
-  iapply HΦ
-  iframe
-  ipureintro
   obtain ⟨h1, h2, h3, h4⟩ := Hn
-  refine ⟨h1, h2, h3, fun he => ?_⟩
+  iapply HΦ $$ %n %err [] Hp HR
+  ipureintro
+  refine ⟨h1, h2, h3, fun he => ?_, streamReaderOk_err_ptrTyped hpt h4⟩
   rcases h4 with h | ⟨_, h⟩
   · subst h; exact absurd he.symm heof
   · exact h
@@ -476,21 +487,19 @@ theorem streamReader_of_ok (rd : GoInterfaceOk) (R : List w8 → IProp GF) (eof 
 theorem streamReader_counting
     (wp_cr_Read : github_com.hashicorp.raft.countingReader.Read.spec (GF := GF) (hG := hG))
     (cr : Loc) (rd : GoInterfaceOk) (R : List w8 → IProp GF) (eof : GoInterface)
-    (heof : eof ≠ interface.nil) :
+    (heof : eof ≠ interface.nil) (hpt : _root_.Perennial.io.ptrTyped eof) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗
       countingReaderIs cr (GoInterface.ok rd) ∗ streamReaderOk rd R eof ⊢
-    io.streamReader (interface.mkOk (go.GoType.PointerType countingReader.ty) #cr) R eof := by
+    io.streamReader (interface.mk (go.GoType.PointerType countingReader.ty) #cr) R eof := by
   unfold io.streamReader
   iintro ⟨#Hpkg, #Hcr, #H⟩
-  iintro !> %p %buf %cs %Hbuf %Φ !> ⟨HR, Hp⟩ HΦ
-  wp_auto
+  iintro !> %p %buf %cs %Φ %Hbuf HR Hp HΦ
   wp_apply wp_cr_Read cr rd R eof p buf cs $$ [$Hcr $H $HR $Hp] as %n %err ⟨%Hn, Hp, HR⟩
   · ipureintro; exact Hbuf
-  iapply HΦ
-  iframe
-  ipureintro
   obtain ⟨h1, h2, h3, h4⟩ := Hn
-  refine ⟨h1, h2, h3, fun he => ?_⟩
+  iapply HΦ $$ %n %err [] Hp HR
+  ipureintro
+  refine ⟨h1, h2, h3, fun he => ?_, streamReaderOk_err_ptrTyped hpt h4⟩
   rcases h4 with h | ⟨_, h⟩
   · subst h; exact absurd he.symm heof
   · exact h
@@ -498,24 +507,23 @@ theorem streamReader_counting
 /-- A sink is a byte stream writer for `io.Copy` (its owner's state `own (some ws)`). -/
 theorem streamWriter_sink (k : GoInterfaceOk) (id : GoString) (own : Option (List w8) → IProp GF)
     (Q R : List w8 → IProp GF) :
-    isSink k id own Q R ⊢ io.streamWriter (GoInterface.ok k) (fun ws => own (some ws)) := by
+    isSink k id own Q R ⊢ io.streamWriter k (fun ws => own (some ws)) := by
   unfold io.streamWriter isSink
   iintro ⟨-, #HW, -⟩
-  iintro !> %p %c %ws %dq %Φ !> ⟨Hown, Hp⟩ HΦ
+  iintro !> %p %c %ws %dq %Φ Hown Hp HΦ
   ihave %Hlen := ownSlice_len _ _ _ $$ Hp
-  wp_auto
   iapply HW $$ %p %dq %ws %c %Φ Hown Hp
   iintro Hown Hp
-  iapply HΦ
-  have hl : sint.nat (W64 c.length) = c.length := by
-    obtain ⟨h1, h2⟩ := Hlen; rw [h1]; word
-  rw [hl, List.take_length]
-  iframe
-  ipureintro
   obtain ⟨h1, h2⟩ := Hlen
-  constructor
-  · rw [h1]; word
-  · omega
+  have hl : sint.nat (W64 c.length) = c.length := by rw [h1]; word
+  iapply HΦ $$ [] [Hown] [Hp]
+  · ipureintro
+    constructor
+    · rw [h1]; word
+    · omega
+  · rw [hl, List.take_length]
+    iexact Hown
+  · iexact Hp
 
 /-- (SNAP-1) The install's response (`Term` an existing term; no header: nil `ID`/`Addr`). -/
 theorem isResp_intro (γ : GNames) (rp : InstallSnapshotResponse) (h : rp.RPCHeader' = zeroValDef) :

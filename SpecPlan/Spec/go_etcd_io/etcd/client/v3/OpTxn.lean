@@ -1,7 +1,7 @@
 /-
 `clientv3.OpTxn` (`client/v3/op.go`).
 
-Users: leasing (`leasing/txn.go`: nested transactions), `examples/etcd/auth/authkv.go`.
+Users: leasing (`leasing/txn.go`: nested transactions), `examples/lib/authwork/authkv.go`.
 
 Proof sketch: the comparisons cloned into a fresh slice (`Cmp.Clone.spec`), the branches' slices kept (read-only, `opsAt`).
 
