@@ -31,7 +31,7 @@ namespace k8s_etcd3
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -62,7 +62,8 @@ theorem newStore.wp_proof
     (wp_cDecode : codec.Decode.spec (GF := GF) (hG := hG))
     (wp_Annotate : storage.AnnotateInitialEventsEndBookmark.spec (GF := GF) (hG := hG))
     (wp_GetAnn : Obj.GetAnnotations.spec (GF := GF) (hG := hG))
-    (wp_SetAnn : Obj.SetAnnotations.spec (GF := GF) (hG := hG)) :
+    (wp_SetAnn : Obj.SetAnnotations.spec (GF := GF) (hG := hG))
+    (h_inproc : k8s.inProcEtcd_laws.law (GF := GF) (hG := hG)) :
     newStore.spec (GF := GF) (hG := hG) := by
   intro _ _ kc cl ms V γs γh hAs hmsne Htb
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
@@ -124,7 +125,9 @@ theorem newStore.wp_proof
       GoInterface.ok versionerI := rfl
   rw [e1, e2, e3, e4]
   have hpc : path.PathCleanAbs go!"/registry" := by unfold path.PathCleanAbs; decide
-  wp_apply (wp_sNew DObj driverSpec kc cl ms V γh _ codecI _ func.nil func.nil go!"/registry"
+  ihave #HK := k8s.k8sClient_inProc ms V (h_inproc ms V) cl $$ [Hnc Hone Hregs]
+  · iframe #
+  wp_apply (wp_sNew DObj driverSpec kc cl (k8s.inProcEtcd ms V) γh _ codecI _ func.nil func.nil go!"/registry"
       go!"/objs" ⟨[], go!"objs"⟩ versionerI identityI decoderI lmc hpc (by decide) (by decide)
       (by rfl) (by rfl) Htb (by rfl))
     as %sp %err Hnew

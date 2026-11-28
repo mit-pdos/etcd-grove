@@ -3,7 +3,7 @@
 spec it copies (M1, 2026-11-26; `notes/axiom-review/dist-axiom-diff.md`).
 
 The interim trust-boundary axioms of the distributed deployment (`*_dist`: `NewServer_dist`,
-`KV_Put_dist`, `bootstrap.wp_proof_dist`, ...) restate a proved in-process spec with a few changes
+`KV_PutOn_dist`, `bootstrap.wp_proof_dist`, ...) restate a proved in-process spec with a few changes
 (a network fact replaced by the peer addresses', the client's handle by `kvClientAt`, ...). A copy
 drifts when its source changes later: `NewServer.specG` took `etcdURLsFit` (2026-11-24) after
 `NewServer.specG_dist` had been copied from it, and the copy, without the premise, claimed more than

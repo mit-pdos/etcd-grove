@@ -40,8 +40,7 @@ theorem store.processListItem.wp_proof
   ihave #Pr : isPkgInit (PROP := IProp GF) pkg_id.reflect $$ []
   · iPkgInit
   iunfold isStore at Hst
-  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon, -⟩
+  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨%Hty, -, -, #Htr, -, -, -⟩
   iunfold transformerOk at Htr

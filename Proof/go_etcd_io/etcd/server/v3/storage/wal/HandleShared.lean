@@ -82,7 +82,7 @@ theorem noErr_ioNone {A : Prop} : (∀ st i, ioNone.ino st i) → A := fun h => 
 
 instance fsStepSat_ioNone [ExtSemantics fsExt] : FsStepSat (NoIoErr ioNone) where
   sat := by
-    intro _ _ o v _ st _ e' _ _ _ _ hc
+    intro _ _ _ o v _ st _ e' _ _ _ _ hc
     exfalso
     unfold IoCovers at hc
     split at hc <;> simp_all [ioNone]
@@ -91,7 +91,7 @@ instance fsStepSat_ioNone [ExtSemantics fsExt] : FsStepSat (NoIoErr ioNone) wher
 `Create`'s `SaveSnapshot` call) takes the specs that assume it. -/
 instance fsStepSat_ioNoneL [ExtSemantics fsExt] : FsStepSat (NoMapLockErr ioNone) where
   sat := by
-    intro _ _ o v _ st _ e' _ _ _ _ hc
+    intro _ _ _ o v _ st _ e' _ _ _ _ hc
     exfalso
     unfold MapLockCovers at hc
     split at hc <;> simp_all [ioNone]

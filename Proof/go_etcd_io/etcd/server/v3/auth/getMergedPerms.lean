@@ -28,6 +28,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
+/-- The value `getMergedPerms` inserts, `struct{}{}` as `any`, is `permVal`. -/
+theorem auth.permVal_eq [GoLocalContext] [go.Semantics] : interface.mkOk (go.StructType []) #(zero_val Unit) = permVal := by
+  unfold permVal; rw [go.intoVal_unfold Unit] <;> rfl
+
 theorem auth.getMergedPerms.wp_proof
     (h_NewIntervalTree : adt.NewIntervalTree.spec (GF := GF) (hG := hG))
     (h_NewBytesAffineInterval : adt.NewBytesAffineInterval.spec (GF := GF) (hG := hG))
@@ -78,32 +82,31 @@ theorem auth.getMergedPerms.wp_proof
       subst Hurr
       wp_apply h_NewIntervalTree as %tr Htr
       wp_apply h_NewIntervalTree as %tw Htw
-      ihave Htr := adt.ownIvtB_of_empty tr $$ Htr
-      ihave Htw := adt.ownIvtB_of_empty tw $$ Htw
+      ihave Htr := adt.ownIvtTB_of_empty tr $$ Htr
+      ihave Htw := adt.ownIvtTB_of_empty tw $$ Htw
       (try wp_auto)
       iclear Hu
-      -- the roles loop: the trees hold the permissions of the roles seen so far
-      ihave IH : iprop(∃ (n : w64) (rn : GoString) (Lr Lw : List adt.Entry),
+      -- the roles loop: the trees are those built from the permissions of the roles seen so far
+      ihave IH : iprop(∃ (n : w64) (rn : GoString) (Lr Lw : adt.RbT adt.Entry),
           "i" ∷ i_ptr ↦ n ∗
           "roleName" ∷ roleName_ptr ↦ rn ∗
           "readPerms" ∷ readPerms_ptr ↦
             interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tr ∗
           "writePerms" ∷ writePerms_ptr ↦
             interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tw ∗
-          "Htr" ∷ adt.ownIvtB tr Lr (DFrac.own 1) ∗
-          "Htw" ∷ adt.ownIvtB tw Lw (DFrac.own 1) ∗
+          "Htr" ∷ adt.ownIvtTB tr Lr (DFrac.own 1) ∗
+          "Htw" ∷ adt.ownIvtTB tw Lw (DFrac.own 1) ∗
           "Htok" ∷ Hs st ∗
           "tx" ∷ tx_ptr ↦ GoInterface.ok ti ∗
           "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ur.roles.length ∧
-            (Lr.map Prod.fst).Perm (ivlsOf .read (userPerms st (ur.roles.take (sint.nat n)))) ∧
-            (Lw.map Prod.fst).Perm (ivlsOf .write (userPerms st (ur.roles.take (sint.nat n))))⌝)
+            Lr = treeOf .read (userPerms st (ur.roles.take (sint.nat n))) ∧
+            Lw = treeOf .write (userPerms st (ur.roles.take (sint.nat n)))⌝)
         $$ [i roleName readPerms writePerms Htr Htw Htok tx]
-      · iexists W64 0, _, [], []
+      · iexists W64 0, _, .leaf, .leaf
         iframe
         ipureintro
-        have h0 : sint.nat (W64 0) = 0 := rfl
         refine ⟨by word, by word, ?_, ?_⟩ <;>
-          (rw [show List.take (sint.nat (W64 0)) ur.roles = [] from rfl]; simp [ivlsOf, userPerms])
+          (rw [show List.take (sint.nat (W64 0)) ur.roles = [] from rfl]; rfl)
       iapply wp_fupd
       wp_for IH
       cleanup_bool_decide
@@ -159,7 +162,7 @@ theorem auth.getMergedPerms.wp_proof
             icases Hrole with ⟨%rr, %Hrr, Hr⟩
             iunfold ownRole at Hr
             icases Hr with ⟨%ms', %nm', %kp, %pps, %sc', Hr, -, #Hkp, %Hplen, #Hperms⟩
-            obtain ⟨-, Hrrps⟩ := Hrr
+            obtain ⟨-, Hrrps, -⟩ := Hrr
             ihave %Hkl := ownSlice_len _ _ _ $$ Hkp
             -- the outer counter, renamed before the inner loop's shadows it
             obtain ⟨io, hio⟩ : ∃ io, io = i_ptr := ⟨_, rfl⟩
@@ -168,30 +171,30 @@ theorem auth.getMergedPerms.wp_proof
             (try wp_auto)
             iclear Hr
             -- the permissions loop: the trees hold the roles so far and this role's permissions so far
-            ihave IH2 : iprop(∃ (m : w64) (pp : Loc) (Lr' Lw' : List adt.Entry),
+            ihave IH2 : iprop(∃ (m : w64) (pp : Loc) (Lr' Lw' : adt.RbT adt.Entry),
                 "i" ∷ i_ptr ↦ m ∗
                 "perm" ∷ perm_ptr ↦ pp ∗
                 "readPerms" ∷ readPerms_ptr ↦
                   interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tr ∗
                 "writePerms" ∷ writePerms_ptr ↦
                   interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tw ∗
-                "Htr" ∷ adt.ownIvtB tr Lr' (DFrac.own 1) ∗
-                "Htw" ∷ adt.ownIvtB tw Lw' (DFrac.own 1) ∗
+                "Htr" ∷ adt.ownIvtTB tr Lr' (DFrac.own 1) ∗
+                "Htw" ∷ adt.ownIvtTB tw Lw' (DFrac.own 1) ∗
                 "Htok" ∷ Hs st ∗
                 "tx" ∷ tx_ptr ↦ GoInterface.ok ti ∗
                 "Hio" ∷ io ↦ n ∗
                 "roleName" ∷ roleName_ptr ↦ rn' ∗
                 "%Hm" ∷ ⌜0 ≤ sint.Z m ∧ sint.nat m ≤ pps.length ∧
-                  (Lr'.map Prod.fst).Perm (ivlsOf .read (userPerms st (ur.roles.take (sint.nat n)) ++
-                    (rr.perms.take (sint.nat m)).filterMap permOfWire)) ∧
-                  (Lw'.map Prod.fst).Perm (ivlsOf .write (userPerms st (ur.roles.take (sint.nat n)) ++
-                    (rr.perms.take (sint.nat m)).filterMap permOfWire))⌝)
+                  Lr' = treeOf .read (userPerms st (ur.roles.take (sint.nat n)) ++
+                    (rr.perms.take (sint.nat m)).map permOfWire) ∧
+                  Lw' = treeOf .write (userPerms st (ur.roles.take (sint.nat n)) ++
+                    (rr.perms.take (sint.nat m)).map permOfWire)⌝)
               $$ [i perm readPerms writePerms Htr Htw Htok tx Hio roleName]
             · iexists W64 0, _, Lr, Lw
               iframe
               ipureintro
               rw [show List.take (sint.nat (W64 0)) rr.perms = [] from rfl]
-              simp only [List.filterMap_nil, List.append_nil]
+              simp only [List.map_nil, List.append_nil]
               exact ⟨by word, by word, Hn.2.2.1, Hn.2.2.2⟩
             wp_for IH2
             cleanup_bool_decide
@@ -280,7 +283,7 @@ theorem auth.getMergedPerms.wp_proof
               -- `ivl`: the interval `[Key, rangeEnd)`, or the point when `RangeEnd` is empty
               wp_join iprop(∃ (e' : GoSlice) (es' : GoString) (dq : DFrac), ivl_ptr ↦ adt.bytesIvl kk e' ∗
                   perm_ptr ↦ pp' ∗ rangeEnd_ptr ↦ re' ∗ e' ↦*{dq} es' ∗
-                  ⌜(w.key, es') = permIvl ⟨w.key, w.rangeEnd, .read⟩⌝)
+                  ⌜(w.key, es') = permIvl ⟨w.key, w.rangeEnd, w.ty⟩⌝)
                 at next with [ivl perm rangeEnd] as ⟨%e', %es', %dq, ivl, perm, rangeEnd, He', %Hes'⟩
               · (try wp_auto)
                 wp_if_destruct
@@ -311,97 +314,94 @@ theorem auth.getMergedPerms.wp_proof
                   · simp only [ho, ↓reduceIte]; rw [permIvl_range _ _ _ hne ho]
               -- the permission's type: the trees it goes to
               (try wp_auto)
-              wp_join iprop(∃ (Lr'' Lw'' : List adt.Entry),
-                  adt.ownIvtB tr Lr'' (DFrac.own 1) ∗ adt.ownIvtB tw Lw'' (DFrac.own 1) ∗
+              wp_join iprop(∃ (Lr'' Lw'' : adt.RbT adt.Entry),
+                  adt.ownIvtTB tr Lr'' (DFrac.own 1) ∗ adt.ownIvtTB tw Lw'' (DFrac.own 1) ∗
                   readPerms_ptr ↦
                     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tr ∗
                   writePerms_ptr ↦
                     interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tw ∗
                   ivl_ptr ↦ adt.bytesIvl kk e' ∗
-                  ⌜(Lr''.map Prod.fst).Perm (ivlsOf .read (userPerms st (ur.roles.take (sint.nat n)) ++
-                      ((rr.perms.take (sint.nat m)).filterMap permOfWire ++ (permOfWire w).toList))) ∧
-                    (Lw''.map Prod.fst).Perm (ivlsOf .write (userPerms st (ur.roles.take (sint.nat n)) ++
-                      ((rr.perms.take (sint.nat m)).filterMap permOfWire ++ (permOfWire w).toList)))⌝)
+                  ⌜Lr'' = treeOf .read (userPerms st (ur.roles.take (sint.nat n)) ++
+                      ((rr.perms.take (sint.nat m)).map permOfWire ++ [permOfWire w])) ∧
+                    Lw'' = treeOf .write (userPerms st (ur.roles.take (sint.nat n)) ++
+                      ((rr.perms.take (sint.nat m)).map permOfWire ++ [permOfWire w]))⌝)
                 with [Htr Htw readPerms writePerms ivl He']
                 as ⟨%Lr'', %Lw'', Htr, Htw, readPerms, writePerms, ivl, %Hnew⟩
               · -- READWRITE: both trees
-                have hpw := permOfWire_readwrite Hif
+                have hk : permKind (permOfWire w).ty = some .readwrite := permKind_readwrite Hif
                 imod ownSlice_persist _ _ _ $$ He' with #He'
                 (try wp_auto)
                 wp_apply (h_Insert_bytes tr Lr' kk e' w.key es' _) $$ [$Htr $Hkk $He']
                   as Htr
                 · ipureintro
-                  exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ hpw _ Hm.2.2.1
+                  exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ (by rw [Hm.2.2.1]; exact (treeOf_ok _ _).2)
                 (try wp_auto)
                 wp_apply (h_Insert_bytes tw Lw' kk e' w.key es' _) $$ [$Htw $Hkk $He']
                   as Htw
                 · ipureintro
-                  exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ hpw _ Hm.2.2.2
+                  exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ (by rw [Hm.2.2.2]; exact (treeOf_ok _ _).2)
                 (try wp_auto)
                 wp_join_done
                 iexists _, _
                 iframe
                 ipureintro
-                rw [hpw]
-                simp only [Option.toList, ← List.append_assoc]
-                rw [ivlsOf_append _ _ [_], ivlsOf_append _ _ [_], ivlsOf_singleton, ivlsOf_singleton]
+                have Hes'' : (w.key, es') = permIvl (permOfWire w) := Hes'
+                rw [← List.append_assoc, treeOf_snoc, treeOf_snoc, grants_of_kind hk, grants_of_kind hk]
                 simp only [PermType.grants, PermType.grantsRead, PermType.grantsWrite,
-                  Bool.false_eq_true, ↓reduceIte, List.append_nil]
-                rw [permIvl_ty w.key w.rangeEnd _ .read, ← Hes']
-                exact ⟨perm_insert_snoc Hm.2.2.1 _, perm_insert_snoc Hm.2.2.2 _⟩
+                  Bool.false_eq_true, ↓reduceIte]
+                rw [← Hm.2.2.1, ← Hm.2.2.2, ← Hes'', permVal_eq]
+                exact ⟨rfl, rfl⟩
               · have Hif2 := Hif
                 wp_if_destruct
                 · -- READ
-                  have hpw := permOfWire_read Hif
+                  have hk : permKind (permOfWire w).ty = some .read := permKind_read Hif
                   imod ownSlice_persist _ _ _ $$ He' with #He'
                   (try wp_auto)
                   wp_apply (h_Insert_bytes tr Lr' kk e' w.key es' _) $$ [$Htr $Hkk $He']
                     as Htr
                   · ipureintro
-                    exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ hpw _ Hm.2.2.1
+                    exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ (by rw [Hm.2.2.1]; exact (treeOf_ok _ _).2)
                   (try wp_auto)
                   wp_join_done
                   iexists _, _
                   iframe
                   ipureintro
-                  rw [hpw]
-                  simp only [Option.toList, ← List.append_assoc]
-                  rw [ivlsOf_append _ _ [_], ivlsOf_append _ _ [_], ivlsOf_singleton, ivlsOf_singleton]
+                  have Hes'' : (w.key, es') = permIvl (permOfWire w) := Hes'
+                  rw [← List.append_assoc, treeOf_snoc, treeOf_snoc, grants_of_kind hk, grants_of_kind hk]
                   simp only [PermType.grants, PermType.grantsRead, PermType.grantsWrite,
-                    Bool.false_eq_true, ↓reduceIte, List.append_nil]
-                  rw [permIvl_ty w.key w.rangeEnd _ .read, ← Hes']
-                  exact ⟨perm_insert_snoc Hm.2.2.1 _, Hm.2.2.2⟩
+                    Bool.false_eq_true, ↓reduceIte]
+                  rw [← Hm.2.2.1, ← Hm.2.2.2, ← Hes'', permVal_eq]
+                  exact ⟨rfl, rfl⟩
                 · have Hif1 := Hif
                   wp_if_destruct
                   · -- WRITE
-                    have hpw := permOfWire_write Hif
+                    have hk : permKind (permOfWire w).ty = some .write := permKind_write Hif
                     imod ownSlice_persist _ _ _ $$ He' with #He'
                     (try wp_auto)
                     wp_apply (h_Insert_bytes tw Lw' kk e' w.key es' _) $$ [$Htw $Hkk $He']
                       as Htw
                     · ipureintro
-                      exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ hpw _ Hm.2.2.2
+                      exact insert_count_ok st ur.roles _ _ rn' hfit hrn ps hps rr Hrrps w hw _ (by rw [Hm.2.2.2]; exact (treeOf_ok _ _).2)
                     (try wp_auto)
                     wp_join_done
                     iexists _, _
                     iframe
                     ipureintro
-                    rw [hpw]
-                    simp only [Option.toList, ← List.append_assoc]
-                    rw [ivlsOf_append _ _ [_], ivlsOf_append _ _ [_], ivlsOf_singleton, ivlsOf_singleton]
+                    have Hes'' : (w.key, es') = permIvl (permOfWire w) := Hes'
+                    rw [← List.append_assoc, treeOf_snoc, treeOf_snoc, grants_of_kind hk, grants_of_kind hk]
                     simp only [PermType.grants, PermType.grantsRead, PermType.grantsWrite,
-                      Bool.false_eq_true, ↓reduceIte, List.append_nil]
-                    rw [permIvl_ty w.key w.rangeEnd _ .read, ← Hes']
-                    exact ⟨Hm.2.2.1, perm_insert_snoc Hm.2.2.2 _⟩
+                      Bool.false_eq_true, ↓reduceIte]
+                    rw [← Hm.2.2.1, ← Hm.2.2.2, ← Hes'', permVal_eq]
+                    exact ⟨rfl, rfl⟩
                   · -- an unknown type: nothing
-                    have hpw := permOfWire_none Hif1 Hif Hif2
+                    have hk : permKind (permOfWire w).ty = none := permKind_none Hif1 Hif Hif2
                     (try wp_auto)
                     wp_join_done
                     iexists Lr', Lw'
                     iframe
                     ipureintro
-                    rw [hpw]
-                    simp only [Option.toList, List.append_nil]
+                    rw [← List.append_assoc, treeOf_snoc, treeOf_snoc, grants_of_none hk, grants_of_none hk]
+                    simp only [Bool.false_eq_true, ↓reduceIte]
                     exact ⟨Hm.2.2.1, Hm.2.2.2⟩
               -- the next permission
               wp_for_post
@@ -411,7 +411,7 @@ theorem auth.getMergedPerms.wp_proof
               ipureintro
               have hsucc : sint.nat (m + W64 1) = sint.nat m + 1 := by
                 have := Hkl.1; have := Hkl.2; word
-              rw [hsucc, filterMap_take_succ permOfWire rr.perms (sint.nat m) w hw]
+              rw [hsucc, map_take_succ permOfWire rr.perms (sint.nat m) w hw]
               exact ⟨by word, by omega, Hnew.1, Hnew.2⟩
             · -- the role's permissions are in the trees
               have hge2 : ¬ sint.Z m < sint.Z kp.len := by
@@ -425,14 +425,11 @@ theorem auth.getMergedPerms.wp_proof
               ipureintro
               have hsucc : sint.nat (n + W64 1) = sint.nat n + 1 := by
                 have := Hrl.1; have := Hrl.2; word
-              have hall : ((rr.perms.take (sint.nat m)).filterMap permOfWire).Perm ps := by
+              have hall : (rr.perms.take (sint.nat m)).map permOfWire = ps := by
                 rw [hmlen, Hplen, List.take_length]; exact Hrrps
-              have hiv : ∀ op, (ivlsOf op (userPerms st (ur.roles.take (sint.nat n)) ++
-                  (rr.perms.take (sint.nat m)).filterMap permOfWire)).Perm
-                  (ivlsOf op (userPerms st (ur.roles.take (sint.nat n)) ++ ps)) := fun op =>
-                ((hall.append_left _).filter _).map _
+              rw [hall] at Hm
               rw [hsucc, userPerms_take_succ st ur.roles (sint.nat n) rn' hrn, hps, Option.getD_some]
-              exact ⟨by word, by omega, Hm.2.2.1.trans (hiv _), Hm.2.2.2.trans (hiv _)⟩
+              exact ⟨by word, by omega, Hm.2.2.1, Hm.2.2.2⟩
       · have hge : ¬ sint.Z n < sint.Z rs.len := by
           first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
         ihave %Hrl := ownSlice_len _ _ _ $$ Hroles
@@ -440,8 +437,8 @@ theorem auth.getMergedPerms.wp_proof
           have := Hn.2.1; rw [Hrl.1] at this ⊢; word
         rw [hlen, List.take_length] at Hn
         -- the trees are complete: read-only from now on
-        imod (adt.ownIvtB_persist tr Lr) $$ Htr with #Htr
-        imod (adt.ownIvtB_persist tw Lw) $$ Htw with #Htw
+        imod (adt.ownIvtTB_persist tr Lr) $$ Htr with #Htr
+        imod (adt.ownIvtTB_persist tw Lw) $$ Htw with #Htw
         irename «$r0» => Hp
         generalize «$r0_ptr» = p at *
         ihave %Hpnn := typedPointsto_not_null _ _ _ $$ Hp

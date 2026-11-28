@@ -32,8 +32,8 @@ cluster's KV `Γ.kv` instead of the members' server facts:
   keeps the slice: the lock gets the token in its place).
 * `checkOkK_of`: `Check`'s premise from what `Collect` returns and the Puts' facts
   (`partition/MainWatch.lean`'s, copied: that file is a proof module).
-* `watchShare WS addrs ns`: the orchestrator's share (global, at `GooseGlobalGS`): a view `Γ`, every
-  endpoint serving a member of it, the cluster's client half at a state with no change after the
+* `watchShare WS addrs ns`: the orchestrator's share (global, at `GooseGlobalGS`): a view `Γ` with auth off,
+  every endpoint serving a member of it, the cluster's client half at a state with no change after the
   boot's, and the writer machines' share `WS Γ ns` (the remote writer service at their addresses:
   `remoteWriters.specWith`'s, plan §24).
 -/
@@ -279,11 +279,12 @@ variable [GoLocalContext] [go.Semantics] [go_etcd_io.etcd.client.v3.Assumptions]
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS .hasLC GF] [π : NetProtoGS]
 
 /-- **The watch workload's orchestrator share** at the endpoints `addrs` and the writer machines
-`ns` (see the file header): a view `Γ` of the cluster, every endpoint serving a member of it, the
+`ns` (see the file header): a view `Γ` of the cluster with auth off (stage B′: the client's KV calls need
+etcd's KV entries, which the table has for an auth-off view), every endpoint serving a member of it, the
 cluster's client half at a state with no change after the boot's, and the writer machines' share
 `WS Γ ns`. -/
 def watchShare (WS : DistView → List GoString → IProp GF) (addrs ns : List GoString) : IProp GF :=
-  iprop(∃ (Γ : DistView) (σ₀ : KVState), ⌜σ₀.changes = [[]]⌝ ∗ membersAt addrs Γ ∗
+  iprop(∃ (Γ : DistView) (σ₀ : KVState), ⌜σ₀.changes = [[]]⌝ ∗ ⌜Γ.auth = false⌝ ∗ membersAt addrs Γ ∗
     etcdKV Γ.kv σ₀ ∗ WS Γ ns)
 
 end shares

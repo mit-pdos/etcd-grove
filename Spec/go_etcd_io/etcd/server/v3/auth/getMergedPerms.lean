@@ -24,10 +24,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- `getMergedPerms(tx, userName)`, `tx` an `UnsafeAuthReader` holding the state `st`
 (`authReaderOk`): `nil` when the state has no such user; else a new `unifiedRangePermissions`
-(`permsAt`, read-only) whose read tree holds the intervals of the user's permissions granting
-reads and whose write tree those granting writes (`cacheEntryIs`: a missing role contributes
-nothing, a permission of an unknown type nothing); the user's permissions fit the trees'
-counts (`permsFit`). -/
+(`permsAt`, read-only) whose read tree is the one built by inserting, in order, the intervals of
+the user's permissions granting reads and whose write tree the one of those granting writes
+(`cacheEntryIs`, `treeOf`: the trees themselves, their shape included; a missing role contributes
+nothing, a permission of an unknown type nothing); the user's permissions fit the trees' counts
+(`permsFit`). -/
 abbrev auth.getMergedPerms.spec : Prop :=
   ∀ (ti : GoInterfaceOk) (Hs : auth.AuthState → IProp GF) (st : auth.AuthState) (name : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authReaderOk ti Hs ∗

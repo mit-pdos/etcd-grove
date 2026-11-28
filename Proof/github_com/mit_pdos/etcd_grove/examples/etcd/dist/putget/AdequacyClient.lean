@@ -1,13 +1,12 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/dist/putget`: the client machine's boot, over the interim cross-machine axioms (`notes/putget-dist-plan.md` §12)
+# `etcd/dist/putget`: the client machine's boot, (`notes/putget-dist-plan.md` §12)
 
 `client_boot`: the client machine's boot program (`putget.initialize' #()`, then `putget.Client(client)`,
 its result discarded) is safe from the client's share of the distributed start (`clientShare` at the
 cluster's view) and its whole start (`DistBootWpST`); the registration rights of its packages' metric
 IDs are allocated here, the machine's own registry ghost state (prom-registry, as `member_boot`). Linked: `Client.wp_proof` at its callees' linked results (`zap.NewNop`'s, `etcdstart`'s `Link`,
-`context`'s, and `etcd_dist.Client_Put_dist.wp_proof`/`Client_Get_dist.wp_proof` over the interim
-trust-boundary axioms `etcd_dist.KV_Put_dist.wp_proof`/`KV_Get_dist.wp_proof`), `putget`'s `wp_initialize'`. The client touches no file: its
+`context`'s, and the client's linked `client.v3.kv.wp_Put`/`wp_Get`), `putget`'s `wp_initialize'`. The client touches no file: its
 files' and listeners' start resources are unused. `Client` checks its address (`AddrOk`), and
 that a valid address is a plain endpoint is proved (`etcd_dist.addrOk_plainEndpoint`); `errors.As`'s target `rpctypes.EtcdError` from the package's
 method sets (`rpctypesEtcdError_asTarget`).
@@ -16,10 +15,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Client
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AdequacyMember
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientPutDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientGetDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetDist
+public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -91,8 +87,8 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   -- `putget.Client(client)`, its result discarded
   wp_apply (Client.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClient context.wp_Background
       context.WithTimeoutBackground.wp_proof context.wp_ErrAny
-      (etcd_dist.Client_Put_dist.wp_proof etcd_dist.KV_Put_dist.wp_proof)
-      (etcd_dist.Client_Get_dist.wp_proof etcd_dist.KV_Get_dist.wp_proof)
+      EtcdGrove.client.v3.kv.wp_Put
+      EtcdGrove.client.v3.kv.wp_Get
       (AddrOk.wp_proof decimal.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
       client Γ mid hlc
       EtcdGrove.rpctypesEtcdError_asTarget) $$ [Hl0 Hshare] as %b -

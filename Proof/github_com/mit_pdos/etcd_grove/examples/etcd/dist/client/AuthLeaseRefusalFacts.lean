@@ -48,8 +48,10 @@ theorem not_permitted_setupSt (r : Nat) (info : go_etcd_io.etcd.server.v3.auth.A
     ¬ auth.permitted (setupSt r) (auth.authInfoM info) k [] .read := by
   have hs : auth.reqShape k [] := ⟨hk, Or.inl rfl⟩
   intro hp
-  rcases hp with hen | ⟨-, u', hus, hc⟩
+  rcases hp with hen | hg
   · simp [setupSt] at hen
+  rw [auth.granted_iff_covers _ _ _ _ _ (setupSt_permKeysOk r) hs] at hg
+  obtain ⟨-, u', hus, hc⟩ := hg
   simp only [auth.authInfoM] at hus
   rcases hu with ⟨hu', hnk⟩ | hv
   · rw [hu', setupSt_users_u] at hus; cases hus

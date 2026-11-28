@@ -70,7 +70,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section addrs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 abbrev srvApplyWaitAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"applyWait" s
 abbrev srvLeaderChangedAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"leaderChanged" s

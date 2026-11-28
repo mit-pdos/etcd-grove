@@ -156,7 +156,7 @@ theorem verdictL_one (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.A
         exact this
     · intro herr stl hl
       refine ⟨(k, e, op), List.mem_singleton.2 rfl, ?_⟩
-      obtain ⟨-, hr⟩ := hv stl hl
+      obtain ⟨-, hr, -⟩ := hv stl hl
       have hrv := hr herr
       have hen : stl.enabled = true := hrv.1
       have hs1 := hsh stl hl hen (k, e, op) (List.mem_singleton.2 rfl)

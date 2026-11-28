@@ -48,7 +48,7 @@ def pipeN : Namespace := nroot.@"rafthttp_pipe"
 /-- **A method-set premise** (as `EtcdGrove.ErrorStringLeaf`): an `errors.New` error (a
 `*errorString`, whose methods are `Error` only) is not a `writerToResponse` (no `WriteTo`): what
 the pipeline handler's `errors.As(err, &writerErr)` reads of `Process`'s `ErrStopped`. -/
-class ErrorStringNotWriter [GoSemanticsFunctions] : Prop where
+class ErrorStringNotWriter [GoLocalContext] [GoSemanticsFunctions] : Prop where
   notIn : go.typeSetContains (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.writerToResponse.ty = false
 

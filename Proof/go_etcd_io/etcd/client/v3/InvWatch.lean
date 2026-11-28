@@ -231,7 +231,7 @@ theorem WEnv.atEps_addrs (V : WEnv GF) (eps : List GoString) :
 end envs
 
 section addrs
-variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The stub as a `pb.WatchClient` interface value. -/
 abbrev wcIface (wc : Loc) : GoInterface :=

@@ -55,7 +55,7 @@ abbrev call.spec : Prop :=
     (QL : w64 → KVState → IProp GF) (PL : KVState → KVState → IProp GF),
   c.S = driverSpec → c.resourcePrefix = go!"/objs" → c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
-  threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  threadBound GF ≤ 2 ^ 30 - 1 → c.K.live →
   prepareKeyM c.resourcePrefix (storeKeyL x.Key') false = some (storeKeyL x.Key') →
   c.pathPrefix ++ storeKeyL x.Key' = mkeyL x.Key' →
   InOk x → x.Val'.length ≤ 2 ^ 20 → CachedNoRV x →

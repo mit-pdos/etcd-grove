@@ -50,15 +50,15 @@ theorem store.deleteOnce.wp_proof
     (wp_txnError : txnError.spec (GF := GF) (hG := hG))
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
     (wp_V : klog.V.spec (GF := GF) (hG := hG))
-    (wp_Infof : klog.Verbose.Infof.spec (GF := GF) (hG := hG))
-    (wp_kDel : kubernetes.Client.OptimisticDelete.spec (GF := GF) (hG := hG)) :
+    (wp_Infof : klog.Verbose.Infof.spec (GF := GF) (hG := hG)) :
     store.deleteOnce.spec (GF := GF) (hG := hG) := by
   intro _ Obj _ E _ sp c ci cd key out o0 rv0 st s v p pre validate W Φu hk hkl hr hpre hval
   wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, Hos, #Hfrom, Hout, %Hv, HW, #Hau⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, #Hlst⟩
+  iunfold k8sClient at Hkcl
+  icases Hkcl with ⟨%hK, #Hkh⟩
   iunfold storeListOk at Hlst
   icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
   iunfold contractOk at Hcon
@@ -83,7 +83,7 @@ theorem store.deleteOnce.wp_proof
   (try wp_auto)
   wp_apply _root_.Perennial.time.wp_Now as %t0 -
   (try wp_auto)
-  ihave Hau' := (k8sAusRW_kvAu1 c.ms c (delStep key pre validate) W Φu
+  ihave Hau' := (k8sAusRW_kvAu1 c.K.kvs c (delStep key pre validate) W Φu
     (.txn (kubernetes.optDelTxn key s.rev true)) trivial
     (fun σ => (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
       (kubernetes.optDelTxn key s.rev true)).1)
@@ -99,9 +99,9 @@ theorem store.deleteOnce.wp_proof
     (m := go!"OptimisticDelete")]
   wp_call
   (try wp_auto)
-  wp_apply (wp_kDel (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+  wp_apply (hK.optimisticDelete (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
-        #c.kc)) c.ms c.V ci cd key s.rev ⟨true⟩ _) $$ [Hlt Hau']
+        #c.kc)) ci cd key s.rev ⟨true⟩ _) $$ [Hlt Hau']
     as %resp %derr ⟨Hlt, Hdel⟩
   · iframe #
     iframe Hlt

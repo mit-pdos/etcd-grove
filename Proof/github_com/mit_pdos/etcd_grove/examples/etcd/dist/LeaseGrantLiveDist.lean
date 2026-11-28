@@ -31,9 +31,9 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- **INTERIM: `(*lessor).Grant(ctx, ttl)` at a member, revocable lease mode** (trust boundary until #24's S2 client side; see the spec). What it asserts of
 clientv3 v3.6 and grpc-go v1.84 (the model) over the net extension.
 
-**Why it is an axiom** (the standing rule's order, as `KV_Put_dist`): the real Go is translated and in one
+**Why it is an axiom** (the standing rule's order): the real Go is translated and in one
 process it is proved (`lessor.Grant.spec` at `etcdLeaseGrantSpecLive γl` (`etcdLeaseGrantSpecLiveW`), over `Invoke`'s registration); across machines the call goes through grpc's
-`Invoke` over the net extension, where no proof establishes the protocols of any bytes and `etcdSvc` has no
+`Invoke` over the net extension, where no proof establishes the protocols of any bytes and `etcdSvc`'s entry is `etcdSvcRest`'s, with no
 law. A Go model with the same behaviour is the grpc model itself (the same gap); a trusted stand-in would
 trust more than a contract per function.
 

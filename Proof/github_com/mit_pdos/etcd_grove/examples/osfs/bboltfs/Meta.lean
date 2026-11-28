@@ -82,7 +82,7 @@ end pick
 
 /-- `[56]byte`, the bytes `sum64` views (`(*[unsafe.Offsetof(Meta{}.checksum)]byte)(...)`), is
 plain. -/
-instance byteArray56.isPlain [GooseExts] [GoSemanticsFunctions] :
+instance byteArray56.isPlain [GooseExts] [GoLocalContext] [GoSemanticsFunctions] :
     go.IsPlain (go.ArrayType 56 go.byte) 56 :=
   ⟨1, .array 56 go.byte 1 1 (.scalar _ _ .isPlainScalar_uint8) (by decide)⟩
 

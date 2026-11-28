@@ -487,6 +487,62 @@ theorem visit_stab (q : IvlS) (hq : q.1 = go!"" ∨ affLt q.1 q.2) : ∀ (t : Rb
       simp only [h0, ↓reduceIte, Int.lt_irrefl, gt_iff_lt]
       rw [ihl, ihr]
 
+/-- **`visit` of an empty query `[k, k)` visits exactly the entries holding `k`, in order**, in a
+sorted tree whose intervals are non-empty (nomode X-a4: the auth cache's, from valid permission
+ranges). -/
+theorem visit_stab_empty (q : IvlS) (hq : q.2 = q.1) : ∀ (t : RbT Entry),
+    IvSorted t.inorder → (∀ z ∈ t.inorder, affLt z.1.1 z.1.2) → t.visitL q = stab q t.inorder
+  | .leaf, _, _ => rfl
+  | .node c l e r, hs, hv => by
+    obtain ⟨hl, hr, hle, her⟩ := ivSorted_node hs
+    have ihl := visit_stab_empty q hq l hl (fun z hz => hv z (by simp [hz]))
+    have ihr := visit_stab_empty q hq r hr (fun z hz => hv z (by simp [hz]))
+    unfold RbT.visitL
+    rw [RbT.inorder_node, stab_append, stab_cons]
+    by_cases hneg : ivlCmp q e.1 < 0
+    · have h0 : ¬ ivlCmp q e.1 = 0 := by omega
+      simp only [hneg, h0, ↓reduceIte]
+      rw [ihl]
+      have hn := (ivlCmp_neg_iff q e.1).1 hneg
+      have : stab q r.inorder = [] := by
+        rw [stab_eq_nil_iff]
+        intro z hz
+        have hb : ¬ affLt z.1.1 e.1.1 := ivlLe_begin_le (her z hz)
+        exact no_ovl_of_left (affLt_of_lt_of_le hn.1 hb) (affLe_trans hn.2 hb)
+      rw [this]; simp
+    by_cases hpos : ivlCmp q e.1 > 0
+    · have h0 : ¬ ivlCmp q e.1 = 0 := by omega
+      have hall : ¬ ivlCmp (e.1.1, nodeMax l e r) q = 0 →
+          ∀ z ∈ (RbT.node c l e r).inorder, ivlCmp q z.1 ≠ 0 := by
+        intro hm z hz
+        have hmax : ¬ affLt (nodeMax l e r) z.1.2 :=
+          maxEnd_ge (.node c l e r) _ (maxEnd_node c l e r) z hz
+        have hp := (ivlCmp_pos_iff q e.1).1 hpos
+        by_cases hneg' : ivlCmp (e.1.1, nodeMax l e r) q < 0
+        · have hn := (ivlCmp_neg_iff _ _).1 hneg'
+          exact no_ovl_of_end_le (affLe_trans hmax hn.2)
+        · -- the node's begin at or above `k`, and `k` at or above its end: an empty interval
+          have hp' : ivlCmp (e.1.1, nodeMax l e r) q > 0 := by omega
+          have hn := ((ivlCmp_pos_iff _ _).1 hp').2
+          exfalso
+          have hkb : ¬ affLt q.1 e.1.1 := fun h => hp.1 ⟨h, hn⟩
+          have hve : affLt e.1.1 e.1.2 := hv e (by simp)
+          rcases affLt_trichotomy q.1 e.1.1 with h | h | h
+          · exact hkb h
+          · exact hp.2 (by rw [h]; exact hve)
+          · exact hn (by rw [hq]; exact h)
+      simp only [hneg, hpos, h0, ↓reduceIte]
+      by_cases hm : ivlCmp (e.1.1, nodeMax l e r) q = 0
+      · simp only [hm, ↓reduceIte]; rw [ihl, ihr]
+      · simp only [hm, ↓reduceIte]
+        have hst := (stab_eq_nil_iff q _).2 (hall hm)
+        rw [RbT.inorder_node, stab_append, stab_cons] at hst
+        simp only [h0, ↓reduceIte] at hst
+        rw [hst]
+    · have h0 : ivlCmp q e.1 = 0 := by omega
+      simp only [h0, ↓reduceIte, Int.lt_irrefl, gt_iff_lt]
+      rw [ihl, ihr]
+
 end entries
 
 /-! ## The red-black invariant -/

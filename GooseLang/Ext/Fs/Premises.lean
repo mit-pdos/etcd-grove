@@ -36,7 +36,7 @@ abbrev StepPrem := ∀ [GooseExts] [GoGlobalContext], String → val → OsState
 satisfying `Q`. -/
 @[instance_reducible] def fsSemWithS (SQ : StepPrem) (Q : OsState → OsState → Prop) :
     ExtSemantics fsExt where
-  step o v h st g e' h' st' g' := FsStep o v h st g e' h' st' g' ∧ SQ o v st e' st'
+  step _ o v h st g e' h' st' g' := FsStep o v h st g e' h' st' g' ∧ SQ o v st e' st'
   crash st st' := OsCrash st st' ∧ Q st st'
 
 /-- **SectorWhole** for the files at the paths `covers` holds, at a crash from `st` to `st'`: each

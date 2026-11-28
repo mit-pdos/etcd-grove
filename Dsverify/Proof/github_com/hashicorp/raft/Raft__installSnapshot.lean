@@ -129,7 +129,9 @@ theorem github_com.hashicorp.raft.Raft.installSnapshot.wp_proof
   ihave #Heof0 := snapProof.eof_ne_nil eof $$ [$Heof]
   · iPkgInit
   icases Heof0 with %Heofnn
-  ihave #HRs := snapProof.streamReader_of_ok rd R eof Heofnn $$ HRd
+  ihave %Heofpt := snapProof.eof_ptrTyped eof $$ [$Heof]
+  · iPkgInit
+  ihave #HRs := snapProof.streamReader_of_ok rd R eof Heofnn Heofpt $$ HRd
   ihave ⟨%dw, #Hdw⟩ : (∃ w : GoInterface, globalAddr io.Discard ↦□ w) $$ []
   · ihave Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
     · iPkgInit
@@ -319,14 +321,16 @@ theorem github_com.hashicorp.raft.Raft.installSnapshot.wp_proof
   wp_apply wp_startMonitor as %mon #Hmon
   have HnWTc : go.typeSetContains (go.GoType.PointerType countingReader.ty) io.WriterTo.ty = false := by
     go_type_set
-  ihave #HRc := snapProof.streamReader_counting wp_cr_Read cr rd R eof Heofnn $$ [$Hpkg $Hcr $HRd]
+  have HnLRc : go.GoType.PointerType countingReader.ty ≠ go.GoType.PointerType io.LimitedReader.ty := by
+    unfold countingReader.ty io.LimitedReader.ty; simp
+  ihave #HRc := snapProof.streamReader_counting wp_cr_Read cr rd R eof Heofnn Heofpt $$ [$Hpkg $Hcr $HRd]
   ihave #HWs := snapProof.streamWriter_sink k sid own _ _ $$ Hsink
   ihave #Hsink' := Hsink
   unfold isSink
   icases Hsink' with ⟨%HnRF, -, #HClose, #HClose2, #HCancel, #HID⟩
   rw [show GoInterface.ok k = interface.mkOk k.ty k.v from rfl] at *
   wp_apply (wp_Copy k.ty (go.GoType.PointerType countingReader.ty) k.v #cr R
-    (fun ws => own (some ws)) b [] eof HnWTc HnRF Hb63) $$ [$Heof $HR $Hown $HRc $HWs]
+    (fun ws => own (some ws)) b [] eof HnWTc HnLRc HnRF Hb63) $$ [$Heof $HR $Hown $HRc $HWs]
     as %nw %cerr ⟨%kr, %kw, %Hk, HR, Hown⟩
   wp_apply wp_StopAndWait mon $$ [$Hmon]
   obtain ⟨Hkwr, Hkrb, Hnw, Hcok⟩ := Hk

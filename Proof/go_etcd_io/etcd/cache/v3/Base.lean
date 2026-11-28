@@ -60,7 +60,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 namespace go_etcd_io.etcd.cache.v3
 
 section grpcStatus
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- **`err` carries a gRPC status** (pure; grpc-trusted-T, T3, 2026-11-24): a non-nil error whose
 dynamic type has grpc's `GRPCStatus() *Status` method, so that `status.FromError` takes it as a status
@@ -103,13 +103,13 @@ not an `rpctypes.EtcdError` and without an `Is(error) bool` method, as Go's `con
 `*errors.errorString`) and `context.DeadlineExceeded` (a `deadlineExceededError`) are
 (`examples/axiomcx/incomingof-real` `TestRealTypes`). A fact of the type only, the same in every run:
 what rules a context error out of `errors.Is(err, <an EtcdError>)` (`errors.IsStatusErr.spec`). -/
-def ctxErrShape [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (e : GoInterfaceOk) : Prop :=
+def ctxErrShape [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] (e : GoInterfaceOk) : Prop :=
   e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty ∧
     methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])
 
 /-- **The type `t` has no grpc `GRPCStatus() *Status` method** (incomingof T8): `status.FromError`
 of a leaf error of such a type is no status error (`ok = false`). -/
-def noGRPCStatus [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (t : go.GoType) : Prop :=
+def noGRPCStatus [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] (t : go.GoType) : Prop :=
   methodSet t !! go!"GRPCStatus" ≠
     some (go.Signature [] false [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
 

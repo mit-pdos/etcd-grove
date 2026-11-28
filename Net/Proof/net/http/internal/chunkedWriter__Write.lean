@@ -23,7 +23,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 namespace net.http.internal
 
 section pure
-variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions] [go.IntoValInj w64]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] [go.IntoValInj w64]
 
 /-- `fmt.Sprintf("%x\r\n", n)` of an `int` is `n` in hexadecimal and `"\r\n"`. -/
 theorem sprintf_hex_crlf (n : w64) (s : GoString)

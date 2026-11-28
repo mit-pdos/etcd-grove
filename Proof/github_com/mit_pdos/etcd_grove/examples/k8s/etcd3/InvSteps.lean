@@ -1125,14 +1125,14 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt
 
 /-- **The maker `Get` takes** (a `Get` whose prophecy says it answers): for the pair the client
 prophesies, the revision recorded (`γp`) and each member's read update for it. -/
-theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (ms : List (client.SrvAt GF))
+theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (ms : List KVNames)
     (eD eU : GoInterface) (γc γt γp : GName) (x : Input) (hx : InOk x) (hval : x.Val'.length ≤ 2 ^ 20) (hk : x.Kind' = W64 3)
     (Φ : val → IProp GF) :
-    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv) ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗
       dghostVar γp (DFrac.own 1) (none : Option w64) ⊢
       (iprop(∀ (R m : w64), |==> □ [∧list] sv ∈ ms,
         ⌜(fun σ => readQ c γc R σ) = fun _ => iprop(True)⌝ ∨
-          kvReadAu sv.γr.kv (fun σ => readQ c γc R σ)) : IProp GF) := by
+          kvReadAu sv (fun σ => readQ c γc R σ)) : IProp GF) := by
   iintro ⟨#Hinvs, #Hc, Hp⟩ %R %m
   imod dghostVar_update (some R) γp none $$ Hp with Hp
   imod dghostVar_persist γp 1 _ $$ Hp with #Hp
@@ -1142,17 +1142,17 @@ theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) 
   have hsv : sv ∈ ms := List.mem_of_getElem? hj
   iintro ⟨⟨#Hinvs, #Hc⟩, #Hp⟩
   iright
-  iapply get_read_au γ c hc g0 sv.γr.kv eD eU γc γt γp x hx hval hk R Φ
+  iapply get_read_au γ c hc g0 sv eD eU γc γt γp x hx hval hk R Φ
   iframe Hc Hp
-  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : KVNames => kInv γ c g0 sv)
     hsv) $$ Hinvs
 
 /-- **The maker of plain reads** (a `Get` whose prophecy says `EOther`). -/
 theorem plain_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt)
-    (ms : List (client.SrvAt GF)) :
-    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ⊢
+    (ms : List KVNames) :
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv) ⊢
       (iprop(∀ (R m : w64), |==> □ [∧list] sv ∈ ms,
-        ⌜plainQ c = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (plainQ c)) :
+        ⌜plainQ c = fun _ => iprop(True)⌝ ∨ kvReadAu sv (plainQ c)) :
         IProp GF) := by
   iintro #Hinvs %R %m
   imodintro
@@ -1161,8 +1161,8 @@ theorem plain_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt)
   have hsv : sv ∈ ms := List.mem_of_getElem? hj
   iintro #Hinvs
   iright
-  iapply plain_read_au γ c g0 sv.γr.kv
-  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+  iapply plain_read_au γ c g0 sv
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : KVNames => kInv γ c g0 sv)
     hsv) $$ Hinvs
 
 /-- **`Apply` takes the continuation** after the reply: the commit bit holds `σ`, so the call
@@ -1506,13 +1506,13 @@ theorem list_later_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVN
 
 /-- **The maker of a list's first page's updates**: for the revision the client prophesies, the
 revision recorded (`γp`) and each member's read update for it. -/
-theorem list_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF))
+theorem list_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List KVNames)
     (γc γt γp : GName) (x : Input) (tl : Bool) (hx : InOk x) (hk4 : x.Kind' = W64 4)
     (Φ : val → IProp GF) :
-    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ∗ listCall γ g0 γc γt γp x tl Φ ∗
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv) ∗ listCall γ g0 γc γt γp x tl Φ ∗
       dghostVar γp (DFrac.own 1) (none : Option w64) ⊢
       (iprop(∀ R : w64, |==> □ [∧list] sv ∈ ms,
-        ⌜listQ c γ γc x tl R = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (listQ c γ γc x tl R)) :
+        ⌜listQ c γ γc x tl R = fun _ => iprop(True)⌝ ∨ kvReadAu sv (listQ c γ γc x tl R)) :
         IProp GF) := by
   iintro ⟨#Hinvs, #Hc, Hp⟩ %R
   imod dghostVar_update (some R) γp none $$ Hp with Hp
@@ -1523,18 +1523,18 @@ theorem list_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (c
   have hsv : sv ∈ ms := List.mem_of_getElem? hj
   iintro ⟨⟨#Hinvs, #Hc⟩, #Hp⟩
   iright
-  iapply list_read_au γ c g0 sv.γr.kv γc γt γp x tl hx hk4 R Φ
+  iapply list_read_au γ c g0 sv γc γt γp x tl hx hk4 R Φ
   iframe Hc Hp
-  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : KVNames => kInv γ c g0 sv)
     hsv) $$ Hinvs
 
 /-- **The maker of a list's later pages' updates**, from the first page's result. -/
-theorem list_makerP (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF))
+theorem list_makerP (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List KVNames)
     (γc : GName) (x : Input) (tl : Bool) :
-    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ⊢
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv) ⊢
       (iprop(□ ∀ (R : w64) (σ : KVState), □ listQ c γ γc x tl R σ -∗
         |==> □ [∧list] sv ∈ ms, ⌜listP (GF := GF) σ = fun _ => iprop(True)⌝ ∨
-          kvReadAu sv.γr.kv (listP σ)) :
+          kvReadAu sv (listP σ)) :
         IProp GF) := by
   iintro #Hinvs
   imodintro
@@ -1547,9 +1547,9 @@ theorem list_makerP (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (
   have hsv : sv ∈ ms := List.mem_of_getElem? hj
   iintro ⟨#Hinvs, #Hel⟩
   iright
-  iapply list_later_au γ c g0 sv.γr.kv σ
+  iapply list_later_au γ c g0 sv σ
   iframe Hel
-  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : KVNames => kInv γ c g0 sv)
     hsv) $$ Hinvs
 
 /-- **A list's plain first page's result** (a list whose prophecy says `EOther`, committed before
@@ -1622,10 +1622,10 @@ theorem plainL_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KV
     iexact Hel
 
 /-- **The maker of a list's plain first page's updates**. -/
-theorem plainL_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF)) :
-    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ⊢
+theorem plainL_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List KVNames) :
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv) ⊢
       (iprop(∀ _R : w64, |==> □ [∧list] sv ∈ ms,
-        ⌜plainL c γ = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (plainL c γ)) : IProp GF) := by
+        ⌜plainL c γ = fun _ => iprop(True)⌝ ∨ kvReadAu sv (plainL c γ)) : IProp GF) := by
   iintro #Hinvs %R
   imodintro
   imodintro
@@ -1633,16 +1633,16 @@ theorem plainL_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List 
   have hsv : sv ∈ ms := List.mem_of_getElem? hj
   iintro #Hinvs
   iright
-  iapply plainL_read_au γ c g0 sv.γr.kv
-  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+  iapply plainL_read_au γ c g0 sv
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : KVNames => kInv γ c g0 sv)
     hsv) $$ Hinvs
 
 /-- **The maker of a plain list's later pages' updates** (as `list_makerP`). -/
-theorem plainL_makerP (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List (client.SrvAt GF)) :
-    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ⊢
+theorem plainL_makerP (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List KVNames) :
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv) ⊢
       (iprop(□ ∀ (_R : w64) (σ : KVState), □ plainL c γ σ -∗
         |==> □ [∧list] sv ∈ ms, ⌜listP (GF := GF) σ = fun _ => iprop(True)⌝ ∨
-          kvReadAu sv.γr.kv (listP σ)) :
+          kvReadAu sv (listP σ)) :
         IProp GF) := by
   iintro #Hinvs
   imodintro
@@ -1655,9 +1655,9 @@ theorem plainL_makerP (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (ms : List
   have hsv : sv ∈ ms := List.mem_of_getElem? hj
   iintro ⟨#Hinvs, #Hel⟩
   iright
-  iapply list_later_au γ c g0 sv.γr.kv σ
+  iapply list_later_au γ c g0 sv σ
   iframe Hel
-  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : KVNames => kInv γ c g0 sv)
     hsv) $$ Hinvs
 
 /-- **`Apply` takes a list's continuation** after the reply (as `getCall_take`). -/

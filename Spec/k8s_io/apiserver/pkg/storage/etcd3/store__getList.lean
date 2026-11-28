@@ -39,10 +39,10 @@ abbrev store.getList.spec : Prop :=
     (lo : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (Q : w64 → KVState → IProp GF),
   kp.length ≤ opKeyMax → lo.Continue'.length ≤ opKeyMax → 0 ≤ sint.Z lo.Revision' →
   0 ≤ sint.Z lo.Limit' → (recur = false → lo.Continue' = []) → (lo.Continue' = [] ∨ kp <+: lo.Continue') →
-  kp ≠ [] → (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  kp ≠ [] → c.K.live →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
-      (∀ R, |==> □ [∧list] x ∈ c.ms, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R)) }}
+      (∀ R, |==> □ [∧list] γv ∈ c.K.kvs, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu γv (Q R)) }}
     (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"getList")) (Val #(GoInterface.ok ci)))
       (Val #kp)) (Val #recur)) (Val #lo))

@@ -114,8 +114,7 @@ theorem store.GetList.wp_proof
   obtain ⟨hk, hkl, hrv, hmatch, hcont, hn63, hlim⟩ := Hpre
   ihave #Hst0 := Hst
   iunfold isStore at Hst
-  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, #Hlst⟩
   ihave #Hlst0 := Hlst
   iunfold storeListOk at Hlst
   icases Hlst with ⟨%af, %γp, #Faf, #Haf, -, %Hutf, %Hrp⟩

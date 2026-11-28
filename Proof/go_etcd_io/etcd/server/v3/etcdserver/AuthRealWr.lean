@@ -387,7 +387,7 @@ theorem usersAt_del {st : auth.AuthState} {m : BktData} {dU : GoString → auth.
       exact h2 n v hl
 
 theorem rolesAt_put {st : auth.AuthState} {m : BktData} {dR : GoString → auth.RoleRec} (rr : auth.RoleRec)
-    (ps : auth.Role) (h : schema.rolesAt st m dR) (hp : rr.toRole.Perm ps) :
+    (ps : auth.Role) (h : schema.rolesAt st m dR) (hp : rr.toRole = ps ∧ ps.Pairwise auth.permLt) :
     schema.rolesAt (auth.putRole st rr.name ps) (m.insert rr.name (auth.roleEncode rr))
       (fun n => if n = rr.name then rr else dR n) := by
   obtain ⟨h1, h2⟩ := h
@@ -577,7 +577,7 @@ theorem lkOk_delUser {d : mvcc.KBReal} {bs : BSess} {st : auth.AuthState} {x : B
 theorem lkOk_putRole {d : mvcc.KBReal} {bs : BSess} {st : auth.AuthState} {x : BktData × BktData × BktData}
     {w : auth.AuthSess} {k : Nat} (hWf : d.P.Wf) (hhas : d.P.has mvcc.authRolesBI) (rr : auth.RoleRec)
     (ps : auth.Role) (h : LkOk d bs st x w k) (hb : sint.Z bs.pend + 1 < 2 ^ 58) (hw : w.roles ≠ .dels)
-    (hp : rr.toRole.Perm ps) :
+    (hp : rr.toRole = ps ∧ ps.Pairwise auth.permLt) :
     LkOk d (bs.put mvcc.authRolesBI rr.name (auth.roleEncode rr) false true) (auth.putRole st rr.name ps) x
       { w with roles := .puts } (k + 1) where
   hw := h.hw

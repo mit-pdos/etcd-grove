@@ -49,8 +49,8 @@ abbrev store.GetCurrentResourceVersion.spec : Prop :=
   (c.pathPrefix ++ k).length ≤ opKeyMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗
-      (∀ R m, |==> □ [∧list] x ∈ c.ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨
-        kvReadAu x.γr.kv (Q R m))) }}
+      (∀ R m, |==> □ [∧list] γv ∈ c.K.kvs, ⌜Q R m = fun _ => iprop(True)⌝ ∨
+        kvReadAu γv (Q R m))) }}
     (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"GetCurrentResourceVersion"))
       (Val #(GoInterface.ok ci)))

@@ -1,8 +1,8 @@
 /-
 **The compact workload of `examples/etcd/dist/client`, linked** (#50 F5, `notes/etcd-dist-plan.md` §26):
 `RunCompact.wp_proof` and `checkCompactRev.wp_proof` at their callees' linked results, the cross-machine
-clientv3 calls at the interim axioms `etcd_dist.KV_Put_dist.wp_proof`, `KV_Get_dist.wp_proof`,
-`KV_Compact_dist.wp_proof` (N2's, reviewed: `notes/axiom-review/n2-kv-dist.md`) and
+clientv3 calls at the client's linked `client.v3.kv.wp_Put`, `wp_Get`, `wp_Compact` (at the client's `isKv` of
+the auth-off view, stage B′) and
 `etcd_dist.Watch_dist.wp_proof` (N3's, reviewed: `notes/axiom-review/n3-watch-dist.md`, and under the
 watcher-environment refactor `notes/axiom-review/wenv-isnewclient.md`); `Client.Close` at its existing
 trust-boundary axiom. The first result resting on `Watch_dist`: `Serve_dist`'s docstring names the watch
@@ -15,9 +15,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.che
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.newClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.checked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ended
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVCompactDist
+public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.WatchDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_uber_org.zap.NewNop
@@ -61,7 +59,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 theorem wp_checkCompactRev : checkCompactRev.spec (GF := GF) (hG := hG) :=
   checkCompactRev.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof
     context.WithTimeoutBackgroundMd.wp_proof context.wp_ErrAny WithRev.wp_proof Watch_dist.wp_proof
-    etcdstart.wp_CompactRev KV_Get_dist.wp_proof
+    etcdstart.wp_CompactRev client.v3.kv.wp_Get
 
 /-- **compact's orchestrator, linked.** -/
 theorem wp_RunCompact : RunCompact.spec (GF := GF) (hG := hG) :=
@@ -69,8 +67,8 @@ theorem wp_RunCompact : RunCompact.spec (GF := GF) (hG := hG) :=
     checked.wp_proof ended.wp_proof wp_checkCompactRev EtcdGrove.strconv.Itoa.wp_proof
     context.wp_Background context.WithTimeoutBackground.wp_proof context.wp_ErrAny
     EtcdGrove.Client.Close.wp_proof WithRev.wp_proof _root_.Perennial.time.wp_AfterFunc
-    _root_.Perennial.time.Timer.wp_Stop etcdstart.wp_Collect KV_Put_dist.wp_proof KV_Get_dist.wp_proof
-    KV_Compact_dist.wp_proof Watch_dist.wp_proof
+    _root_.Perennial.time.Timer.wp_Stop etcdstart.wp_Collect client.v3.kv.wp_Put client.v3.kv.wp_Get
+    client.v3.kv.wp_Compact Watch_dist.wp_proof
 
 end linked
 

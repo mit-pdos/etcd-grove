@@ -2,13 +2,13 @@ package dist
 
 // The compactor workload: examples/k8s/compactor's MainPartition with its writer and its API
 // servers on machines of their own. Machine 0 is the writer (compactor.writer's Writes Puts, of
-// compactorcopy.WriteKeyShared: the cluster is the store workload's too, and the driver's writeKey
+// compactor.WriteKeyShared: the cluster is the store workload's too, and the driver's writeKey
 // is inside the store's keys); machines 1 to Servers are API servers with a compactor of their own (NewCompactor); the
 // last machine is one API server process whose SharedServers storages share the process's
 // compactor (StartCompactorPerEndpoint: sharing it is a process's, so they stay in one). Each API
 // server's loop (its compactor's samples, Stop, the reads of compact_rev_key: the driver's check
-// without its comparisons, compactorcopy.Sample) is one remote.Report call; the orchestrator
-// (RunCompactor) makes check's comparisons on the reported values (compactorcopy.CheckLog) and
+// without its comparisons, compactor.Sample) is one remote.Report call; the orchestrator
+// (RunCompactor) makes check's comparisons on the reported values (compactor.CheckLog) and
 // panics if one fails, as the driver's API servers do. An API server that does not answer
 // reports nothing, and nothing of it is checked: the driver's checks are each API server's own.
 
@@ -23,7 +23,7 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
 
-	comp "github.com/mit-pdos/etcd-grove/examples/k8s/dist/compactorcopy"
+	comp "github.com/mit-pdos/etcd-grove/examples/k8s/compactor"
 )
 
 // CompactorMachines is the compactor workload's client machines: the writer, the API servers with
@@ -142,7 +142,7 @@ func CompactorNode(c int, addr string, eps []string) {
 // then runs w.Rounds rounds (at least one; the driver's run is one): each starts the writer's loop
 // (not awaited, as the driver's writer goroutine; a round's call waits behind the last one's on the
 // writer's machine), calls every API server at once and checks each storage's log
-// (compactorcopy.CheckLog: a failed comparison is a panic). Each round's API servers run the
+// (compactor.CheckLog: a failed comparison is a panic). Each round's API servers run the
 // driver's apiserver afresh: a new compactor of their own, or the shared process's (the last
 // Stop of a round removes it, and the next round's first storage starts another). Checked if an
 // API server answered.
