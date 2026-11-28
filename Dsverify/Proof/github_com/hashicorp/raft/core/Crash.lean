@@ -67,35 +67,119 @@ snapshot store (`latestDur`). -/
 def durStores (X : SrvDur) : IProp GF :=
   iprop(rc.ownL X.A ∗ rc.ownS X.D ∗ rc.ownSS X.lat ∗ latestDur γ rc i X.lat X.pend)
 
+section timeless
+open gprot
+
+instance crash_srvOwn_timeless γ i s : Timeless (srvOwn (GF := GF) γ i s) := by
+  unfold srvOwn; infer_instance
+instance crash_durView_timeless γ i q d : Timeless (durView (GF := GF) γ i q d) := by
+  unfold durView; infer_instance
+instance crash_logCouple_timeless γ i L : Timeless (logCouple (GF := GF) γ i L) := by
+  unfold logCouple; infer_instance
+instance crash_termCouple_timeless γ i t : Timeless (termCouple (GF := GF) γ i t) := by
+  unfold termCouple; infer_instance
+instance crash_cidxCouple_timeless γ i c : Timeless (cidxCouple (GF := GF) γ i c) := by
+  unfold cidxCouple; infer_instance
+instance crash_compLb_timeless rc c : Timeless (compLb (GF := GF) rc c) := by
+  unfold compLb; infer_instance
+instance crash_isSrv_timeless γ i : Timeless (isSrv (GF := GF) γ i) := by
+  unfold isSrv; infer_instance
+instance crash_leaderIs_timeless γ T ℓ : Timeless (leaderIs (GF := GF) γ T ℓ) := by
+  unfold leaderIs; infer_instance
+instance crash_candIs_timeless γ c T li lt : Timeless (candIs (GF := GF) γ c T li lt) := by
+  unfold candIs; infer_instance
+instance crash_termLb_timeless γ i t : Timeless (termLb (GF := GF) γ i t) := by
+  unfold termLb; infer_instance
+instance crash_llogIdx_timeless γ T k e : Timeless (llogIdx (GF := GF) γ T k e) := by
+  unfold llogIdx; infer_instance
+instance crash_commitIs_timeless γ T k p : Timeless (commitIs (GF := GF) γ T k p) := by
+  unfold commitIs; infer_instance
+instance crash_pubIs_timeless γ T k : Timeless (pubIs (GF := GF) γ T k) := by
+  unfold pubIs; infer_instance
+instance crash_termOk_timeless γ t : Timeless (termOk (GF := GF) γ t) := by
+  unfold termOk; infer_instance
+instance crash_lciOk_timeless γ T lci : Timeless (lciOk (GF := GF) γ T lci) := by
+  unfold lciOk; infer_instance
+instance crash_aeValid_timeless γ T prev pt ents lci :
+    Timeless (aeValid (GF := GF) γ T prev pt ents lci) := by
+  unfold aeValid; infer_instance
+instance crash_tpRes_timeless γ tp : Timeless (tpRes (GF := GF) γ tp) := by
+  unfold tpRes; rcases tp with _ | (_ | _) <;> infer_instance
+instance crash_dpRes_timeless γ i s dp : Timeless (dpRes (GF := GF) γ i s dp) := by
+  unfold dpRes; rcases dp with _ | _ <;> infer_instance
+
+end timeless
+
+instance durCore_timeless (X : SrvDur) : Timeless (durCore γ rc i X) := by
+  unfold durCore; infer_instance
+
 /-- (R2) `durBody` is its core and its stores. -/
 theorem durBody_split (X : SrvDur) : durBody γ rc i X ⊣⊢ durCore γ rc i X ∗ durStores γ rc i X := by
-  sorry -- hraft_robust R2: proof pending
+  unfold durBody durCore durStores
+  refine ⟨?_, ?_⟩
+  · iintro ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, HL, HS, HSS, Hp, Hc, Hl, Hpe, Ht, Hd⟩
+    iframe
+  · iintro ⟨⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, Hp, Hc, Hpe, Ht, Hd⟩, HL, HS, HSS, Hl⟩
+    iframe
 
 /-- (R2) **Opening `srvDurInv`**, the core without its later (timeless), the stores under it. -/
 theorem durOpen {E : CoPset} (hE : ↑durN ⊆ E) :
     srvDurInv γ rc i ⊢ |NC={E, E \ ↑durN}=> ∃ X : SrvDur, durCore γ rc i X ∗ ▷ durStores γ rc i X ∗
       (∀ X' : SrvDur, durCore γ rc i X' -∗ ▷ durStores γ rc i X' ={E \ ↑durN, E}=∗ True) := by
-  sorry -- hraft_robust R2: proof pending
+  iintro #Hi Hnc
+  imod (durAcc γ rc i hE) $$ Hi Hnc with ⟨Hnc, HX, Hcl⟩
+  imod later_exists_except0 $$ HX with ⟨%X, HX⟩
+  ihave HX := later_mono (durBody_split γ rc i X).1 $$ HX
+  icases HX with ⟨>Hc, Hs⟩
+  imodintro
+  iframe Hnc
+  iexists X
+  iframe Hc Hs
+  iintro %X' Hc' Hs'
+  iapply Hcl
+  iapply later_exists_mp
+  iexists X'
+  inext
+  iapply (durBody_split γ rc i X').2
+  iframe
 
 /-- (R2) The main goroutine's view agrees with the crash state. -/
 theorem durCore_srvVP_agree (X : SrvDur) (s : SState) (tp : Option TermPend) (dp : Option DiscPend) :
     durCore γ rc i X ∗ srvVP rc s tp dp ⊢ ⌜X.s = s ∧ X.tp = tp ∧ X.dp = dp⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  unfold durCore srvVP
+  iintro ⟨⟨-, -, -, -, -, Hsv, -⟩, Hv⟩
+  icombine Hsv Hv gives %H
+  ipureintro
+  have H := H.2
+  simp only [Prod.mk.injEq] at H
+  exact H
 
 /-- (R2) The stable store's view (with the staged commit index) agrees with the crash state. -/
 theorem durCore_stVS_agree (X : SrvDur) (D : StableAbs) (g : w64) :
     durCore γ rc i X ∗ stVS rc D g ⊢ ⌜X.D = D ∧ X.A.staged = g⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  unfold durCore stVS
+  iintro ⟨⟨-, -, -, -, -, -, Hst, -⟩, Hv⟩
+  icombine Hst Hv gives %H
+  ipureintro
+  have H := H.2
+  simp only [Prod.mk.injEq] at H
+  exact H
 
 /-- (R2) The term atomic's view agrees with the crash state's term. -/
 theorem durCore_termV_agree (X : SrvDur) (t : Nat) :
     durCore γ rc i X ∗ termV rc t ⊢ ⌜X.s.term = t⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  unfold durCore termV
+  iintro ⟨⟨-, -, -, -, -, -, -, Htv, -⟩, Hv⟩
+  icombine Htv Hv gives %H
+  ipureintro; exact H.2
 
 /-- (R2) The commit index atomic's view agrees with the crash state's `cidx`. -/
 theorem durCore_cidxV_agree (X : SrvDur) (c : Nat) :
     durCore γ rc i X ∗ cidxV rc c ⊢ ⌜X.s.cidx = c⌝ := by
-  sorry -- hraft_robust R2: proof pending
+  unfold durCore cidxV
+  iintro ⟨⟨-, -, -, -, -, -, -, -, Hcv, -⟩, Hv⟩
+  icombine Hcv Hv gives %H
+  ipureintro; exact H.2
 
 /-- (R2) **A step of the main goroutine on the crash state** (generic): with its view of `s` (and
 the pending records `tp`, `dp`), any update of the core and the view together, the stores passed

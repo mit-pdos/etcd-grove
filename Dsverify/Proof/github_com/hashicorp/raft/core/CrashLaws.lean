@@ -12,9 +12,9 @@ atomic update, `wp_atomic_nc` or `wp_ncfupd`).
 * **The stores' atomic updates** (R1 §2.2's table): generic builders (`logWrite_au`, `logDelete_au`,
   `logRead_au`, `stableWrite_au`, `stableRead_au`, `snapWrite_au`, `snapRead_au`) whose
   continuation gets the opened core (`durCore`) and re-establishes it, and the commit of each
-  durable write that fires a step (`storeLogs_app_au`, `storeLogs_cfg_au`, `storeLogs_fstore_au`,
-  `deleteRange_trunc_au`, `setUint64_term_au`, `set_voteCand_au`, `setUint64_vote_au`): the write's
-  `W` is `winAt γ rc i s p` (`core/Crash.lean`), given back by the atomic update.
+  durable write that fires a step (`storeLogs_app_win`, `storeLogs_cfg_win`, `storeLogs_fstore_win`,
+  `deleteRange_trunc_win`, `setUint64_term_win`, `set_voteCand_win`, `setUint64_vote_win`): both
+  arguments of the write's contract, its window (`logWin`/`stWin`) and its atomic update.
 -/
 module
 
@@ -318,7 +318,7 @@ section stores
 /-- (R2) A log-store write (`StoreLogs`, `StoreLog`, `StageCommitIndex`: `f` the write's effect). -/
 theorem logWrite_au (f : LogAbs → LogAbs) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
-      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={⊤ \ ↑storeN \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗
+      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗
         ⌜X'.A = f X.A ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL (f A) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
   sorry -- hraft_robust R2: proof pending
@@ -326,7 +326,7 @@ theorem logWrite_au (f : LogAbs → LogAbs) (R Ψ : IProp GF) :
 /-- (R2) A log-store `DeleteRange(mn, mx)` (the store chooses the new `hi'`). -/
 theorem logDelete_au (mn mx : Nat) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
-      (∀ (X : SrvDur) (hi' : w64), durCore γ rc i X -∗ R -∗ |={⊤ \ ↑storeN \ ↑durN}=> ∃ X' : SrvDur,
+      (∀ (X : SrvDur) (hi' : w64), durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur,
         durCore γ rc i X' ∗
         ⌜X'.A = X.A.delete mn mx hi' ∧ X'.D = X.D ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗
@@ -337,14 +337,14 @@ theorem logDelete_au (mn mx : Nat) (R Ψ : IProp GF) :
 opened core (the store's state `X.A`, its coupling with `X.s`). -/
 theorem logRead_au (R : IProp GF) (Ψ : LogAbs → IProp GF) :
     srvDurInv γ rc i -∗ R -∗
-      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={⊤ \ ↑storeN \ ↑durN}=> durCore γ rc i X ∗ Ψ X.A) -∗
+      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ Ψ X.A) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗ (rc.ownL A ={∅, ⊤ \ ↑storeN}=∗ Ψ A) := by
   sorry -- hraft_robust R2: proof pending
 
 /-- (R2) A stable-store write (`f` the write's effect). -/
 theorem stableWrite_au (f : StableAbs → StableAbs) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
-      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={⊤ \ ↑storeN \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗
+      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗
         ⌜X'.D = f X.D ∧ X'.A = X.A ∧ X'.lat = X.lat ∧ X'.pend = X.pend⌝ ∗ Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D : StableAbs, rc.ownS D ∗ (rc.ownS (f D) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
   sorry -- hraft_robust R2: proof pending
@@ -352,7 +352,7 @@ theorem stableWrite_au (f : StableAbs → StableAbs) (R Ψ : IProp GF) :
 /-- (R2) A stable-store read. -/
 theorem stableRead_au (R : IProp GF) (Ψ : StableAbs → IProp GF) :
     srvDurInv γ rc i -∗ R -∗
-      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={⊤ \ ↑storeN \ ↑durN}=> durCore γ rc i X ∗ Ψ X.D) -∗
+      (∀ X : SrvDur, durCore γ rc i X -∗ R -∗ |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ Ψ X.D) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D : StableAbs, rc.ownS D ∗ (rc.ownS D ={∅, ⊤ \ ↑storeN}=∗ Ψ D) := by
   sorry -- hraft_robust R2: proof pending
 
@@ -361,7 +361,7 @@ also gets `latestDur` (under its later: it mentions `snapP`) and re-establishes 
 theorem snapWrite_au (f : SnapLatest → SnapLatest) (R Ψ : IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ ▷ latestDur γ rc i X.lat X.pend -∗ R -∗
-        |={⊤ \ ↑storeN \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗ ▷ latestDur γ rc i X'.lat X'.pend ∗
+        |={(⊤ \ ↑storeN) \ ↑durN}=> ∃ X' : SrvDur, durCore γ rc i X' ∗ ▷ latestDur γ rc i X'.lat X'.pend ∗
           ⌜X'.lat = f X.lat ∧ X'.A = X.A ∧ X'.D = X.D⌝ ∗ Ψ) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old : SnapLatest, rc.ownSS old ∗ (rc.ownSS (f old) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
   sorry -- hraft_robust R2: proof pending
@@ -370,7 +370,7 @@ theorem snapWrite_au (f : SnapLatest → SnapLatest) (R Ψ : IProp GF) :
 theorem snapRead_au (R : IProp GF) (Ψ : SnapLatest → IProp GF) :
     srvDurInv γ rc i -∗ R -∗
       (∀ X : SrvDur, durCore γ rc i X -∗ ▷ latestDur γ rc i X.lat X.pend -∗ R -∗
-        |={⊤ \ ↑storeN \ ↑durN}=> durCore γ rc i X ∗ ▷ latestDur γ rc i X.lat X.pend ∗ Ψ X.lat) -∗
+        |={(⊤ \ ↑storeN) \ ↑durN}=> durCore γ rc i X ∗ ▷ latestDur γ rc i X.lat X.pend ∗ Ψ X.lat) -∗
       |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ old : SnapLatest, rc.ownSS old ∗ (rc.ownSS old ={∅, ⊤ \ ↑storeN}=∗ Ψ old) := by
   sorry -- hraft_robust R2: proof pending
 
@@ -385,97 +385,114 @@ end stores
 
 /-! ## The durable writes that fire a step (R1 §2.2)
 
-The write's caller passes `W := winAt γ rc i s p` (its view, its stable-store view, the law's
-premises) and gets them back, stepped, in the continuation. -/
+Each gives both arguments of the store's write contract: the window (`logWin`/`stWin` of the write,
+made of a quarter of the caller's views and the law's premises: `winRes`) and the atomic update,
+which keeps the views' other quarters and, at the commit, fires the step and hands the stepped
+views to the caller's continuation. -/
 
 section commits
 
 /-- (R2) **The leader's appends** (no-ops, barriers, commands) at `StoreLogs`' commit
-(`leaderAppendCmd_upd`), at `first = |s.log| + 1`. -/
-theorem storeLogs_app_au (s : SState) (es : RLog) (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗
-      (∀ (D : StableAbs) (g : w64), srvV rc { s with log := s.log ++ es } -∗ stVS rc D g -∗
-        ⌜uint.nat g ≤ s.dur.1⌝ -∗
+(`leaderAppendCmd_upd`), at `first = |s.log| + 1`, the staged index durable. -/
+theorem storeLogs_app_win (s : SState) (es : RLog) (D : StableAbs) (g : w64)
+    (hpre : pendPre γ i s (.app es)) (hg : uint.nat g ≤ s.dur.1) (Ψ : IProp GF) :
+    Inv γ -∗ srvDurInv γ rc i -∗ srvV rc s -∗ stVS rc D g -∗ pendHyps γ i s (.app es) -∗
+      (srvV rc { s with log := s.log ++ es } -∗ stVS rc D g -∗
         ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      winAt γ rc i s (.app es) -∗
-      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗
-        (rc.ownL (A.store (s.log.length + 1) es) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
+      logWin γ rc i (.store (s.log.length + 1) es) ∗
+      (logWin γ rc i (.store (s.log.length + 1) es) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
+        rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) es) ={∅, ⊤ \ ↑storeN}=∗ Ψ)) := by
   sorry -- hraft_robust R2: proof pending
 
 /-- (R2) **The leader's configuration entry** at `StoreLogs`' commit (`leaderAppendCfg_upd`). -/
-theorem storeLogs_cfg_au (s : SState) (e : Entry) (k p : Nat) (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗
-      (∀ (D : StableAbs) (g : w64), srvV rc { s with log := s.log ++ [e] } -∗ stVS rc D g -∗
-        ⌜uint.nat g ≤ s.dur.1⌝ -∗ ccfgOwn γ i s.term (lastCfgIdx s.log) -∗
+theorem storeLogs_cfg_win (s : SState) (e : Entry) (k p : Nat) (D : StableAbs) (g : w64)
+    (hpre : pendPre γ i s (.cfg e k p)) (hg : uint.nat g ≤ s.dur.1) (Ψ : IProp GF) :
+    Inv γ -∗ srvDurInv γ rc i -∗ srvV rc s -∗ stVS rc D g -∗ pendHyps γ i s (.cfg e k p) -∗
+      (srvV rc { s with log := s.log ++ [e] } -∗ stVS rc D g -∗
+        ccfgOwn γ i s.term (lastCfgIdx s.log) -∗
         llogIdx γ s.term (s.log.length + 1) e ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      winAt γ rc i s (.cfg e k p) -∗
-      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗
-        (rc.ownL (A.store (s.log.length + 1) [e]) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
+      logWin γ rc i (.store (s.log.length + 1) [e]) ∗
+      (logWin γ rc i (.store (s.log.length + 1) [e]) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
+        rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) [e]) ={∅, ⊤ \ ↑storeN}=∗ Ψ)) := by
   sorry -- hraft_robust R2: proof pending
 
 /-- (R2) **The follower's append** at `StoreLogs`' commit (`followerStore_upd`), then, with
 `lc = some v`, the commit learnt with it (`learnCommitFollower` of `min lci v`, so that the written
-staged index is durable). -/
-theorem storeLogs_fstore_au (s : SState) (prev pt : Nat) (ents : RLog) (lci j : Nat)
-    (lc : Option Nat) (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗
-      (∀ (D : StableAbs) (g : w64) (d : Nat × Nat),
-        srvV rc { s with log := s.log ++ ents.drop j, dur := d } -∗ stVS rc D g -∗
-        ⌜s.dur.1 ≤ d.1 ∧ uint.nat g ≤ d.1 ∧ (∀ v, lc = some v → d.1 = Max.max s.dur.1 (Min.min lci v)) ∧
-          (lc = none → d = s.dur)⌝ -∗
+staged index `g ≤ min lci v` is durable). -/
+theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j : Nat)
+    (lc : Option Nat) (D : StableAbs) (g : w64)
+    (hpre : pendPre γ i s (.fstore prev pt ents lci j lc))
+    (hg : (lc = none → uint.nat g ≤ s.dur.1) ∧ (∀ v, lc = some v → uint.nat g ≤ Min.min lci v))
+    (Ψ : IProp GF) :
+    Inv γ -∗ srvDurInv γ rc i -∗ srvV rc s -∗ stVS rc D g -∗
+      pendHyps γ i s (.fstore prev pt ents lci j lc) -∗
+      (∀ d : Nat × Nat, srvV rc { s with log := s.log ++ ents.drop j, dur := d } -∗ stVS rc D g -∗
+        ⌜s.dur.1 ≤ d.1 ∧ uint.nat g ≤ d.1 ∧
+          (∀ v, lc = some v → d.1 = Max.max s.dur.1 (Min.min lci v)) ∧ (lc = none → d = s.dur)⌝ -∗
         (match lc with | none => iprop(True) | some v => durLb γ i (Min.min lci v)) ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      winAt γ rc i s (.fstore prev pt ents lci j lc) -∗
-      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗
-        (rc.ownL (A.store (s.log.length + 1) (ents.drop j)) ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
+      logWin γ rc i (.store (prev + j + 1) (ents.drop j)) ∗
+      (logWin γ rc i (.store (prev + j + 1) (ents.drop j)) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
+        rc.ownL A ∗ (rc.ownL (A.store (prev + j + 1) (ents.drop j)) ={∅, ⊤ \ ↑storeN}=∗ Ψ)) := by
   sorry -- hraft_robust R2: proof pending
 
-/-- (R2) **The follower's truncation** at `DeleteRange(prev + 1 + j, mx)`'s commit (`truncate_upd`),
-`mx` at least the log's last index. -/
-theorem deleteRange_trunc_au (s : SState) (prev pt : Nat) (ents : RLog) (lci j mx : Nat)
-    (hmx : s.log.length ≤ mx) (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗
-      (srvV rc { s with log := s.log.take (prev + j) } -∗ (∃ (D : StableAbs) (g : w64), stVS rc D g) -∗
-        ⌜s.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      winAt γ rc i s (.trunc prev pt ents lci j) -∗
-      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs, rc.ownL A ∗
-        (∀ hi' : w64, rc.ownL (A.delete (prev + 1 + j) mx hi') ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
+/-- (R2) **The follower's truncation** at `DeleteRange(prev + 1 + j, |s.log|)`'s commit
+(`truncate_upd`). -/
+theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j : Nat)
+    (hpre : pendPre γ i s (.trunc prev pt ents lci j)) (Ψ : IProp GF) :
+    Inv γ -∗ srvDurInv γ rc i -∗ srvV rc s -∗ pendHyps γ i s (.trunc prev pt ents lci j) -∗
+      (srvV rc { s with log := s.log.take (prev + j) } -∗ ⌜s.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ) -∗
+      ∀ (D : StableAbs) (g : w64), stVS rc D g -∗
+      (logWin γ rc i (.del (prev + 1 + j) s.log.length) ∗
+      (logWin γ rc i (.del (prev + 1 + j) s.log.length) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
+        rc.ownL A ∗ (∀ hi' : w64, rc.ownL (A.delete (prev + 1 + j) s.log.length hi')
+          ={∅, ⊤ \ ↑storeN}=∗ stVS rc D g -∗ Ψ))) := by
   sorry -- hraft_robust R2: proof pending
 
 /-- (R2) **`SetUint64(CurrentTerm, t)`'s commit** (`setCurrentTerm`): no model step; the term step
 recorded pending (`tp`, its `tpRes` moved into the crash state), fired at the atomic store
-(`setTerm_R`/`electTerm_R`). -/
-theorem setUint64_term_au (s : SState) (tp : TermPend) (t : w64)
-    (ht : (tp = .set (uint.nat t) ∧ s.term ≤ uint.nat t) ∨ (tp = .elect ∧ uint.nat t = s.term + 1))
+(`setTerm_R`/`electTerm_R`). `tv` the written value: `t` (`.set t`) or `s.term + 1` (`.elect`). -/
+theorem setUint64_term_win (s : SState) (tp : TermPend) (tv : Nat) (D : StableAbs) (g : w64)
+    (ht : (tp = .set tv ∧ s.term ≤ tv) ∨ (tp = .elect ∧ tv = s.term + 1)) (h64 : tv < 2 ^ 64)
     (Ψ : IProp GF) :
-    srvDurInv γ rc i -∗
-      (∀ (D : StableAbs) (g : w64), srvVP rc s (some tp) none -∗
-        stVS rc { D with ints := D.ints.insert (go!"CurrentTerm" : List w8) t } g ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      winAt γ rc i s (.term tp) -∗
-      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D : StableAbs, rc.ownS D ∗
-        (rc.ownS { D with ints := D.ints.insert (go!"CurrentTerm" : List w8) t } ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
+    srvDurInv γ rc i -∗ srvV rc s -∗ stVS rc D g -∗ tpRes γ (some tp) -∗
+      (srvVP rc s (some tp) none -∗
+        stVS rc { D with ints := D.ints.insert (go!"CurrentTerm" : List w8) (W64 tv) } g
+          ={⊤ \ ↑storeN}=∗ Ψ) -∗
+      stWin γ rc i (.setU (go!"CurrentTerm" : List w8) (W64 tv)) ∗
+      (stWin γ rc i (.setU (go!"CurrentTerm" : List w8) (W64 tv)) -∗
+        |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
+          (rc.ownS { D0 with ints := D0.ints.insert (go!"CurrentTerm" : List w8) (W64 tv) }
+            ={∅, ⊤ \ ↑storeN}=∗ Ψ)) := by
   sorry -- hraft_robust R2: proof pending
 
 /-- (R2) **`Set(LastVoteCand, c)`'s commit** (`persistVote`'s first write, after fix 3): no step
-(`voteMatches` holds by `s.vterm < s.term`); no window. -/
-theorem set_voteCand_au (s : SState) (D : StableAbs) (g : w64) (c : List w8) (hv : s.vterm < s.term)
-    (Ψ : IProp GF) :
+(`voteMatches` holds by `s.vterm < s.term`); the window is `stWin`'s right disjunct. -/
+theorem set_voteCand_win (s : SState) (D : StableAbs) (g : w64) (c : List w8)
+    (hv : s.vterm < s.term) (Ψ : IProp GF) :
     srvDurInv γ rc i -∗ srvV rc s -∗ stVS rc D g -∗
-      (srvV rc s -∗ stVS rc { D with bytes := D.bytes.insert (go!"LastVoteCand" : List w8) c } g ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
-        (rc.ownS { D0 with bytes := D0.bytes.insert (go!"LastVoteCand" : List w8) c } ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
+      (srvV rc s -∗ stVS rc { D with bytes := D.bytes.insert (go!"LastVoteCand" : List w8) c } g
+        ={⊤ \ ↑storeN}=∗ Ψ) -∗
+      stWin γ rc i (.set (go!"LastVoteCand" : List w8) c) ∗
+      (stWin γ rc i (.set (go!"LastVoteCand" : List w8) c) -∗
+        |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
+          (rc.ownS { D0 with bytes := D0.bytes.insert (go!"LastVoteCand" : List w8) c }
+            ={∅, ⊤ \ ↑storeN}=∗ Ψ)) := by
   sorry -- hraft_robust R2: proof pending
 
-/-- (R2) **`SetUint64(LastVoteTerm, T)`'s commit** (`persistVote`'s second write): the vote
-(`grantVote_upd`). -/
-theorem setUint64_vote_au (s : SState) (c : SID) (li lt : Nat) (T : w64) (hT : uint.nat T = s.term)
-    (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗
-      (∀ (D : StableAbs) (g : w64), srvV rc { s with vterm := s.term, vcand := c } -∗
-        stVS rc { D with ints := D.ints.insert (go!"LastVoteTerm" : List w8) T } g -∗
+/-- (R2) **`SetUint64(LastVoteTerm, s.term)`'s commit** (`persistVote`'s second write): the vote
+(`grantVote_upd`), `LastVoteCand = c` already stored. -/
+theorem setUint64_vote_win (s : SState) (c : SID) (li lt : Nat) (D : StableAbs) (g : w64)
+    (hpre : pendPre γ i s (.vote c li lt))
+    (hc : D.bytes.lookup (go!"LastVoteCand" : List w8) = some c) (Ψ : IProp GF) :
+    Inv γ -∗ srvDurInv γ rc i -∗ srvV rc s -∗ stVS rc D g -∗ candIs γ c s.term li lt -∗
+      (srvV rc { s with vterm := s.term, vcand := c } -∗
+        stVS rc { D with ints := D.ints.insert (go!"LastVoteTerm" : List w8) (W64 s.term) } g -∗
         voteIs γ i s.term c ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      winAt γ rc i s (.vote c li lt) -∗
-      |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
-        (rc.ownS { D0 with ints := D0.ints.insert (go!"LastVoteTerm" : List w8) T } ={∅, ⊤ \ ↑storeN}=∗ Ψ) := by
+      stWin γ rc i (.setU (go!"LastVoteTerm" : List w8) (W64 s.term)) ∗
+      (stWin γ rc i (.setU (go!"LastVoteTerm" : List w8) (W64 s.term)) -∗
+        |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
+          (rc.ownS { D0 with ints := D0.ints.insert (go!"LastVoteTerm" : List w8) (W64 s.term) }
+            ={∅, ⊤ \ ↑storeN}=∗ Ψ)) := by
   sorry -- hraft_robust R2: proof pending
 
 end commits
