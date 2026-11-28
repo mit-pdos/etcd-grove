@@ -551,7 +551,122 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
           (try iframe)
           iapply (allSt_mono am bm (P := P3) (fun u hu => hu.elim id (fun h => absurd h.1 Hif)))
           iexact Hst
-      sorry
+      generalize hP4 : (fun u => P3 u ∨ (y.Err' = W64 0 ∧ u = y.RV')) = P4
+      have hfin : ∀ u, (∃ p ∈ xs.take (sint.nat (j + W64 1)), OpReq p.1 p.2 u) →
+          P4 u ∨ (x.Kind' = W64 4 ∧ y.Err' = W64 0 ∧
+            ∃ ds, decItemRVsL y.Items' = some ds ∧ ∃ d ∈ ds, d.ResourceVersion' = u) := by
+        refine take_succ_req hPj hjx (fun u h => ?_) (fun u hu => ?_)
+        · subst hP4 hP3 hP2
+          exact Or.inl (Or.inl (Or.inl (Or.inl (Or.inl (Or.inl (Or.inl h))))))
+        sorry
+      (try wp_auto)
+      wp_if_destruct
+      rotate_left
+      · (try wp_auto)
+        wp_for_post
+        iframe
+        iexists j + W64 1, _, W1
+        iframe
+        isplitl
+        · iapply (allSt_mono am bm (P := P4) (fun u hu => (fun u hu => hu.elim id (fun h => absurd h.1 Hif)) u (hfin u hu)))
+          iexact Hst
+        ipureintro
+        constructor <;> word
+      have hK4 := Hif
+      (try wp_auto)
+      wp_if_destruct
+      rotate_left
+      · (try wp_auto)
+        wp_for_post
+        iframe
+        iexists j + W64 1, _, W1
+        iframe
+        isplitl
+        · iapply (allSt_mono am bm (P := P4) (fun u hu => (fun u hu => hu.elim id (fun h => absurd h.2.1 Hif)) u (hfin u hu)))
+          iexact Hst
+        ipureintro
+        constructor <;> word
+      have hE0 := Hif
+      (try wp_auto)
+      wp_apply wp_decodeItemRVs as %isl %ok Hd
+      rcases hd : decItemRVsL y.Items' with _ | ds <;> isimp only [hd] at Hd
+      · icases Hd with %hok
+        subst hok
+        (try wp_auto)
+        wp_for_post
+        iframe
+        iexists j + W64 1, _, W1
+        iframe
+        isplitl
+        · iapply (allSt_mono am bm (P := P4) (fun u hu => (fun u hu => by simpa [hd] using hu) u (hfin u hu)))
+          iexact Hst
+        ipureintro
+        constructor <;> word
+      icases Hd with ⟨%hok, Hws⟩
+      subst hok
+      (try wp_auto)
+      ihave %Hwl := ownSlice_len $$ Hws
+      ihave Hst := allSt_mono am bm (Q := fun u => P4 u ∨
+        ∃ e ∈ ds.take (sint.nat (W64 0)), e.ResourceVersion' = u)
+        (fun u hu => hu.elim id (fun ⟨e, he, _⟩ => by
+          rw [show sint.nat (W64 0) = 0 by word] at he; simp at he)) $$ Hst
+      ihave HJ : (∃ (k : w64) (itv : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.item),
+          "i" ∷ i_ptr ↦ k ∗ "it" ∷ it_ptr ↦ itv ∗
+          "Hws" ∷ isl ↦* ds.map (fun o => github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.item.mk (objKeyL o) o false) ∗
+          "Hst" ∷ allSt am bm (fun u => P4 u ∨
+            ∃ e ∈ ds.take (sint.nat k), e.ResourceVersion' = u) ∗
+          "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z isl.len⌝ : IProp GF) $$ [i it Hws Hst]
+      · iexists W64 0, _
+        iframe
+        ipureintro
+        constructor <;> word
+      wp_for HJ
+      wp_if_destruct
+      · have Hb' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z isl.len :=
+          ⟨Hk.1, by first | exact Hif | exact dec_true Hif⟩
+        have hkl : sint.nat k < ds.length := by simp at Hwl; word
+        have hl : ds[sint.nat k]? = some ds[sint.nat k] := List.getElem?_eq_getElem hkl
+        generalize ds[sint.nat k] = d at hl
+        simp only [Hb', _root_.and_self, ↓reduceIte]
+        wp_apply wp_load_slice_index isl (sint.Z k) _ _ (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.item.mk (objKeyL d) d false) Hk.1 $$ [Hws]
+          as Hws
+        · isplit
+          · iexact Hws
+          · ipureintro; simp [hl]
+        have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
+        have hstep : ∀ u, (P4 u ∨ ∃ e ∈ ds.take (sint.nat (k + W64 1)), e.ResourceVersion' = u) →
+            (P4 u ∨ ∃ e ∈ ds.take (sint.nat k), e.ResourceVersion' = u) ∨ u = d.ResourceVersion' := by
+          intro u hu
+          rcases hu with h | ⟨e, he, hrv⟩
+          · exact Or.inl (Or.inl h)
+          rw [hk1] at he
+          rcases hr_mem_take_succ hl he with he' | rfl
+          · exact Or.inl (Or.inr ⟨e, he', hrv⟩)
+          · exact Or.inr hrv.symm
+        (try wp_auto)
+        wp_apply Hobj' $$ Hst as Hst
+        ihave Hst := allSt_mono am bm hstep $$ Hst
+        wp_for_post
+        iframe
+        iexists k + W64 1, _
+        iframe
+        ipureintro
+        constructor <;> word
+      · have hge : ¬ sint.Z k < sint.Z isl.len := by first | exact Hif | exact dec_false Hif
+        (try rw [decide_eq_false hge, if_pos (decide_eq_true rfl)])
+        (try wp_auto)
+        have hfull : ds.take (sint.nat k) = ds := List.take_of_length_le (by simp at Hwl; word)
+        wp_for_post
+        iframe
+        iexists j + W64 1, _, W1
+        iframe
+        isplitl
+        · iapply (allSt_mono am bm (P := fun u => P4 u ∨
+          ∃ e ∈ ds.take (sint.nat k), e.ResourceVersion' = u) (fun u hu => (fun u hu => hu.imp id (fun ⟨_, _, ds', he, h⟩ => by
+            rw [hd] at he; simp only [Option.some.injEq] at he; subst he; rw [hfull]; exact h)) u (hfin u hu)))
+          iexact Hst
+        ipureintro
+        constructor <;> word
   · sorry
 
 end proof
