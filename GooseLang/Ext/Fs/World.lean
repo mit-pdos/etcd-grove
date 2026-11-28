@@ -359,7 +359,7 @@ theorem wp_os_stepXF (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPa
       (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h ={E \ ↑osN, ∅}=∗
         ⌜∃ e' h' st', FsStep o v h st () e' h' st' ()⌝ ∗
         ▷ ∀ e' h' st', ⌜FsStep o v h st () e' h' st' () ∧
-            ExtSemantics.step (E := fsExt) o v h st () e' h' st' ()⌝ ={∅, E \ ↑osN}=∗
+            ExtSemantics.step (E := fsExt) GoLocalContext.typeFns o v h st () e' h' st' ()⌝ ={∅, E \ ↑osN}=∗
           ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗ WP e' @ s; E {{ Φ }}) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv HF
@@ -423,7 +423,7 @@ theorem wp_os_stepX (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
       (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h ==∗
         ⌜∃ e' h' st', FsStepV o v h st () e' h' st' ()⌝ ∗
         ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' () ∧
-            ExtSemantics.step (E := fsExt) o v h st () e' h' st' ()⌝ ==∗
+            ExtSemantics.step (E := fsExt) GoLocalContext.typeFns o v h st () e' h' st' ()⌝ ==∗
           ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗ WP e' @ s; E {{ Φ }}) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv HF
@@ -507,7 +507,7 @@ theorem wp_os_stepLX (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPa
       (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h -∗ lockCtx (gooseOsGS (L := L)) st ==∗
         ⌜∃ e' h' st', FsStepV o v h st () e' h' st' ()⌝ ∗
         ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' () ∧
-            ExtSemantics.step (E := fsExt) o v h st () e' h' st' ()⌝ ==∗
+            ExtSemantics.step (E := fsExt) GoLocalContext.typeFns o v h st () e' h' st' ()⌝ ==∗
           ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗ lockCtx (gooseOsGS (L := L)) st' ∗
             WP e' @ s; E {{ Φ }}) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
@@ -592,7 +592,7 @@ theorem wp_fs_stepMX (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPa
         ={E \ ↑osN, ∅}=∗
         ⌜∃ e' h' st', FsStepV o v h st () e' h' st' ()⌝ ∗
         ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' () ∧
-            ExtSemantics.step (E := fsExt) o v h st () e' h' st' ()⌝ ={∅, E \ ↑osN}=∗
+            ExtSemantics.step (E := fsExt) GoLocalContext.typeFns o v h st () e' h' st' ()⌝ ={∅, E \ ↑osN}=∗
           ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗
             treeCtx (gooseOsGS (L := L)) st' ∗ WP e' @ s; E {{ Φ }}) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by

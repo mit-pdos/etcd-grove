@@ -80,7 +80,7 @@ theorem wp_logStepSQ (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R pc → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' →
-      (∃ hh hh', ExtSemantics.step (E := fsExt) op v hh st () e' hh' st' ()) →
+      (∃ hh hh', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns op v hh st () e' hh' st' ()) →
       ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ W w false) ∨
          (LoggedFrom st st' k s0 o ∧ (∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) ∧ W w true)))
@@ -197,7 +197,7 @@ theorem wp_osRenameFileSNE (Sio : IoSet) [FsStepSat (NoIoErr Sio)] (R : Roots) (
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R (child d bs) → k' = k) →
       P st → ClaimsAt st cl →
       IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st e' st' →
-      (∃ hh hh', ExtSemantics.step (E := fsExt) "Rename"
+      (∃ hh hh', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns "Rename"
         (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) hh st () e' hh' st' ()) →
       ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ (fun w lg => w = #(0 : w64) ∧ lg = true) w false) ∨

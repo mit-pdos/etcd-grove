@@ -1134,7 +1134,7 @@ theorem wp_logStepSWGQ (op : String) (v : val) (hv : v.isPanic = false) (R : Roo
     (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R pc → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' →
-      (∃ hh hh', ExtSemantics.step (E := fsExt) op v hh st () e' hh' st' ()) →
+      (∃ hh hh', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns op v hh st () e' hh' st' ()) →
       ∃ w, e' = Val w ∧ FsTreeWf st' ∧
         ((EndedT st st' k ∧ W w false) ∨
          (LoggedT st st' k s0 (oF st.fs.nextIno) ∧ W w true)))
@@ -1667,7 +1667,7 @@ theorem wp_logStepSWQ (op : String) (v : val) (hv : v.isPanic = false) (R : Root
     (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R pc → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' →
-      (∃ hh hh', ExtSemantics.step (E := fsExt) op v hh st () e' hh' st' ()) →
+      (∃ hh hh', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns op v hh st () e' hh' st' ()) →
       ∃ w, e' = Val w ∧ FsTreeWf st' ∧
         ((EndedT st st' k ∧ W w false) ∨
          (LoggedT st st' k s0 (oF st.fs.nextIno) ∧ W w true)))

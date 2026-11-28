@@ -28,13 +28,14 @@ abbrev FsNoErrAt [ExtSemantics fsExt] (p : GoString) : Prop := FsNoErrOn (· = p
 
 section step
 variable [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] [S : ExtSemantics fsExt] [FsSemOk]
+variable {tf : GoTypeFns}
 
 /-- **`unlink(2)` of a covered `d/b`**: of a file, errno 0; of a directory, `EISDIR`. -/
 theorem unlink_noErrAt {d b : GoString} {j : Ino} {k : Nat} (hne : FsNoErrAt (child d b))
     {h : GMap Loc (NonAtomic val)} {st : OsState} {g : Unit} {e' : Expr}
     {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
     (hd : st.lookup d = some (.dir j)) (hb : NameOk b) (hw : FsTreeWf st)
-    (hs : S.step "Unlink" (PairV (osTokV k) (#(child d b))) h st g e' h' st' g') :
+    (hs : S.step tf "Unlink" (PairV (osTokV k) (#(child d b))) h st g e' h' st' g') :
     ((∃ i, st.tree.entry j b = some (.file i)) → e' = Val (#(0 : w64))) ∧
     ((∃ J, st.tree.entry j b = some (.dir J)) → e' = Val (#EISDIR)) := by
   obtain ⟨⟨Sio, -, h1, -, hp⟩, hfit⟩ := hne
@@ -69,7 +70,7 @@ theorem rmdir_noErrAt {d b : GoString} {j J : Ino} {k : Nat} (hne : FsNoErrAt (c
     {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
     (hd : st.lookup d = some (.dir j)) (hb : NameOk b) (hw : FsTreeWf st)
     (hJ : st.tree.entry j b = some (.dir J))
-    (hs : S.step "Rmdir" (PairV (osTokV k) (#(child d b))) h st g e' h' st' g') :
+    (hs : S.step tf "Rmdir" (PairV (osTokV k) (#(child d b))) h st g e' h' st' g') :
     ((∀ c, st.tree.entry J c = none) → e' = Val (#(0 : w64))) ∧
     ((∃ c n, st.tree.entry J c = some n) → e' = Val (#ENOTEMPTY)) := by
   obtain ⟨⟨Sio, -, h1, -, hp⟩, hfit⟩ := hne
@@ -103,7 +104,7 @@ theorem openDir_noErrAt {p : GoString} {J : Ino} {k : Nat} (hne : FsNoErrAt p)
     {h : GMap Loc (NonAtomic val)} {st : OsState} {g : Unit} {e' : Expr}
     {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
     (hl : st.lookup p = some (.dir J))
-    (hs : S.step "Open" (PairV (osTokV k) (PairV (#p) (#(W64 0x80000)))) h st g e' h' st' g') :
+    (hs : S.step tf "Open" (PairV (osTokV k) (PairV (#p) (#(W64 0x80000)))) h st g e' h' st' g') :
     ∀ fd e : w64, e' = osRes (#fd) e → e = 0 ∨ e = EINTR := by
   obtain ⟨⟨Sio, -, h1, h2, hp⟩, hfit⟩ := hne
   have hst := (fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)).1

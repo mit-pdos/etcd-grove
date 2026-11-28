@@ -24,6 +24,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 section step
 variable [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] [S : ExtSemantics fsExt] [FsSemOk]
+variable {tf : GoTypeFns}
 
 /-- **A failing `open` of a covered path fails with `EINTR`** when its call has a success from every
 free fd (`hsucc`): with a free fd, `NoIoErr` asks for errno 0; with none, `NoMapLockErr` for `EINTR`
@@ -35,7 +36,7 @@ theorem open_failure_eintr {Sio : IoSet} [hio : FsStepSat (NoIoErr Sio)]
     (hsucc : ∀ fd, FdFree st fd →
       ∃ st'', IsFsStep "Open" (PairV (osTokV k) (PairV (#p) (#fl))) st (osRes (#fd) 0) st'')
     (hst : IsFsStep "Open" (PairV (osTokV k) (PairV (#p) (#fl))) st e' st')
-    (hs : S.step "Open" (PairV (osTokV k) (PairV (#p) (#fl))) h st () e' h' st' ()) :
+    (hs : S.step tf "Open" (PairV (osTokV k) (PairV (#p) (#fl))) h st () e' h' st' ()) :
     ∀ fd e : w64, e' = osRes (#fd) e → e ≠ 0 → e = EINTR := by
   intro fd e he hne
   subst he
