@@ -704,4 +704,24 @@ lemmas over `kitQ`, the kit's `Model`/`Codec`/`Gen` proofs (vr's `ModelProof`, `
   servers, `srvsOkIn_bootSrvs`), `raftConfig` (`cfgOk`), `ServerAddrs`/`ConfAddrs`/`ClientAddrs`, `listen`, and the
   conf protocol's `awaitConf` (`ConfDefs.lean`: `confProto γc`, a prefix of the drawn size's byte; vr's proof on one
   byte).
-- Next (S5d): `Server` (its spec is drafted: `srvShare`, `srvBoot`, a thread token), then `Sys.try`/`op`/`Client`.
+- Landed at `754015a493`.
+
+### S5d batch 2: the server machine `Server`
+
+- **`Server.spec`** (`Spec/.../hraftnet/Server.lean`): server machine `j` (`1 ≤ j ≤ 6`) from its share `srvShare K j`
+  (the configuration addresses' protocols, the world's server addresses and listening right at its own, `kitSS`,
+  `γsOk` (the protocol of each size: the six servers, the genesis `bootSrvs n`, `cfgDec`), `drawInv`, its
+  `shareTok`), `srvBoot` (net/rpc's codec unregistered, its server's variables, `log`'s initialization), the bounds
+  and a thread token; `ThreadBoundLe GF (2 ^ 28)`, `ReceiptBoundLe GF (2 ^ 62)`.
+- **`Server.wp_proof`** (`Proof/.../hraftnet/Server.lean`), over the real code, step by step (as the lab's hr3
+  `run.lean` per server): `awaitConf` on a goroutine and the future (`confOk`: the drawn size `n`), `claim_pkg` (a
+  later credit), `Register()`, `raftConfig` and `ValidateConfig`, two `NewInmemStore`s and `snapstore.New`,
+  `rpctransport.New` over `peers()` in the wrapped world (`peers_ok`: `svcAt_svcK` per peer), `NewServer` (owned
+  registry), `Register(trans.Receiver())` (`raftRcv` of `raftRcvLaws_svcK`), `BootstrapCluster` of
+  `bootConfiguration(n)` iff `j ≤ n` (`j`'s ID among the genesis voters iff `j ≤ n`), `NewStore` (`durBound_of`),
+  `NewRaft` (`store_isFSM`, `inmem_isLogStore` (ported: `InmemLogIface.lean`), `inmem_isStableStore`,
+  `Transport_isTransport`), `New` (its post now gives `a ≠ null`, ledger 2026-11-28), `Register(api)` (`apiRcv` of
+  `apiRcvLaws_svcK`), `listen` and `Accept` on a goroutine (`srvServes`: `RaftRPC` and `API` registered, their
+  `errOk`), the sleep loop. Callees are hypotheses (the API's `Read` obligation `mRead` among them, S6). Not linked
+  yet.
+- Next (S5d): `Sys.try`/`op`/`Client` (the clients' side of (e1): see `S5-HANDOFF.md`).

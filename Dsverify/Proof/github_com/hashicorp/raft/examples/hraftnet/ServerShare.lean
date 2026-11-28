@@ -77,6 +77,11 @@ def kitSS (K : HK GF) : Prop :=
       (if svc = rpctransport.svcName then some (raftSvcK K j)
        else if svc = go!"API" then some (apiSvcK K) else none)
 
+/-- The protocol of size `n`: the six servers, the first configuration `bootSrvs n`. -/
+def γsOk (K : HK GF) : Prop :=
+  ∀ n, N0Ok n → (K.γs n).srvs = allSids ∧ (K.γs n).g = genesisOf (bootSrvs n) ∧
+    (K.γs n).cv = cfgDec allSids
+
 /-- Server `j`'s share of the protocol `γ` (`gprot.alloc_init`'s). -/
 def srvBundle (γ : GNames) (i : SID) : IProp GF :=
   iprop(isSrv γ i ∗ srvOwn γ i (initSrv γ.cv γ.g i) ∗ durView γ i (1 : Qp).half 0 ∗
@@ -110,7 +115,8 @@ instance drawInv_persistent (K : HK GF) : Persistent (drawInv K) := by
 addresses and services, the draw's invariant and `j`'s token. -/
 def srvShare (K : HK GF) (j : Nat) : IProp GF :=
   iprop(confProtos K.γc ∗ ([∗list] a ∈ serverAddrs, net.rpc.rpcAddr (Gg := hG.goose_globalGS) K.W a) ∗
-    ⌜kitSS K ∧ ∀ a, K.W.hs a = [] ∧ K.W.hsAns a = []⌝ ∗ drawInv K ∗ shareTok K j)
+    net.rpc.rpcLisP (Gg := hG.goose_globalGS) K.W (serverAddrs.getD (j - 1) go!"") [] [] ∗
+    ⌜kitSS K ∧ γsOk K⌝ ∗ drawInv K ∗ shareTok K j)
 
 
 /-- What net/rpc's first initialization leaves on a server machine: the codec unregistered

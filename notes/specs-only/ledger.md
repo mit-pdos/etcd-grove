@@ -9343,3 +9343,13 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   continuation can be weakened), proved of the generated codec (`hraftCodec_enc_mono`, emitted into
   `hraftCodecLaws` by `etc/dsv/tools/hraft-codec.py`). No caller outside the kit; no top-level statement changes.
 - **Decision.** Untrusted specs, proved here (S5d, coordinator-E's approval of the draw's design on #48).
+
+## 2026-11-28: `service.New.spec`'s post gives `a ≠ null` (hraft S5d)
+
+- **Spec.** `Dsverify/Spec/github_com/hashicorp/raft/examples/hraftnet/service/New.lean` (the kit's API, S5b).
+- **Defect.** Too weak for the server machine: `Server.Register` of the API (`apiRcv`) needs the receiver not
+  `nil`, and `isAPI` holds only its fields' points-tos, from which `a ≠ null` does not follow.
+- **Evidence.** `examples/dsverify/hraft/examples/hraftnet/server.go`: `srv.Register(api)` of `service.New`'s result.
+- **Change.** The post gains `⌜a ≠ null⌝` (`typedPointsto_not_null` of the allocated `API`, before its fields are
+  split); a strengthening, proved. Its only caller is `Server`. No top-level statement changes.
+- **Decision.** Untrusted spec, proved here (S5d).
