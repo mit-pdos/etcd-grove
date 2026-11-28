@@ -44,11 +44,11 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
   icases Hinv with ⟨%mc, %mi, %mg, %C, %I, %G, Hc, Hi, Hg, Hci, Hgs⟩
   (try wp_auto)
   wp_join iprop(∃ (mc' mi' : GoMap) (C' : GMap ikey GoSlice) (I' : GMap Loc Bool),
-      structFieldRef histHashes go!"canon" hh ↦ mc' ∗ structFieldRef histHashes go!"is" hh ↦ mi' ∗
+      hh_ptr ↦ hh ∗ structFieldRef histHashes go!"canon" hh ↦ mc' ∗ structFieldRef histHashes go!"is" hh ↦ mi' ∗
       mc' ↦$ C' ∗ mi' ↦$ I' ∗
       [∗map] k ↦ sl ∈ C', ∃ ns : List Loc, sl ↦* ns ∗ ownSliceCap Loc sl (DFrac.own 1) ∗
-        [∗list] n ∈ ns, canonNode k n) with [Hc Hi Hci]
-      as ⟨%mc', %mi', %C', %I', Hc, Hi, HC, HI, HCs⟩
+        [∗list] n ∈ ns, canonNode k n) with [hh Hc Hi Hci]
+      as ⟨%mc', %mi', %C', %I', hh, Hc, Hi, HC, HI, HCs⟩
   · (try wp_auto)
     wp_apply (wp_map_make1 (K := ikey) (V := GoSlice) _ _) as %m1 Hm1
     (try wp_auto)
@@ -62,7 +62,7 @@ theorem histHashes.intern.wp_proof (wp_storeHash : storeHash.spec (GF := GF) (hG
     · exact absurd Hnil.1 (by assumption)
     · iexists mc, mi, C, I
       iframe
-  wp_apply wp_storeHash st s as %hv -
+  wp_apply wp_storeHash st s $$ [Hst] as %hv -
   (try wp_auto)
   wp_apply (wp_map_lookup1 _ _ mc' C' (ikey.mk prev n hv) (DFrac.own 1)) $$ [HC] as HC
   ihave Hsl : (∃ ns : List Loc,
