@@ -23,27 +23,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.cindex
 
-section termPos
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-
-/-- **The server's raft names give `srvTermPos`** (`srvRaftLogInv`: the cluster's `isCluster`, its boot log the
-server's, non-empty). -/
-theorem srvTermPos_of_raftLog (hTP : srvTermPos_of_cluster.law (GF := GF)) (γ : ServerRaftNames) :
-    srvRaftLogInv (GF := GF) γ ⊢ srvTermPos γ.raft.cl := by
-  iintro #H
-  iunfold srvRaftLogInv at H
-  icases H with ⟨-, #Hcl, -, -, -, -, %Hv⟩
-  iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨#Hc, -, -, -, -, -, -, -, %Hbl, -⟩
-  obtain ⟨hne, -, hbo, -⟩ := Hv
-  have hpos : 0 < γ.raft.cl.bootLen := by
-    rw [Hbl, hbo.1]; exact List.length_pos_iff.mpr hne
-  iapply hTP γ.raft.cl hpos
-  iexact Hc
-
-end termPos
 
 section backend
 variable [GooseExts] [GooseSemantics] [GooseInterp]

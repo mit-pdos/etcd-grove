@@ -119,6 +119,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyOptsLemmas
 public import Proof.ReceiptTactics
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLaws
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerShared
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CIPairLog
 
 @[expose] public section
 
@@ -410,7 +411,7 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
   iunfold bootstrapContract at Hboot'
   -- (keepfix (c)) the contract's `srvTermPos γ.cl`, from the server's raft names (`srvRaftLogInv`)
   ihave #Htp : srvTermPos (GF := GF) γ.cl $$ []
-  · iapply (srvTermPos_of_raftLog hTermPos ⟨γ, [], W64 0⟩)
+  · iapply (srvRaftLogInv_termPos hTermPos ⟨γ, [], W64 0⟩)
     rw [← HρRaft]; iexact Hsrl
   wp_apply Hboot' $$ [Hrauth Hwdf] as %b %err Hb
   · iframe; iframe Hcfgro Hzlg Hvoff
