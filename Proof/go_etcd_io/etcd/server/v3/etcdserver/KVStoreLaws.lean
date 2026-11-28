@@ -224,7 +224,7 @@ theorem senderImage_holds (Hp : persistent.law (GF := GF))
 theorem kvModelM_prefix (on : Bool) (γk : KVNames) (A A' : List EntryModel) (h : A <+: A') :
     kvModelM on γk A <+: kvModelM on γk A' := by
   cases on
-  · exact kvRaftOf_prefix _ _ _ _ _ h
+  · exact kvModel_prefix _ _ _ h
   · exact kvRaftOfOn_prefix _ _ _ _ _ h
 
 /-- **The Restore contract's precondition from a restore update** (auth-lease S4 item 7b F4, 2026-11-17: the proof of

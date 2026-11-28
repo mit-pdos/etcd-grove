@@ -325,7 +325,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         imod (kvInvOn_log0 γr.raft γr.kv srvAuthSt0) $$ HkI with %Hl0
         imodintro; ipureintro
         refine ⟨?_, ?_, ?_⟩
-        · unfold appliedTable kvLeases
+        · unfold appliedTable
           rw [hpre0, List.nil_append, kvTableOf_plainOn _ _ A' (hlm0 ▸ Hpl)]; rfl
         · rw [hon, appliedTableM_true, hpre0, List.nil_append, kvLeasesOn_none _ _ A' (hlm0 ▸ Hpl)]; rfl
         · rw [hon, kvModelM_true]; unfold kvModelOn
@@ -340,7 +340,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         imodintro; ipureintro
         have Hpl' : plainLogM γr.kv.cmp .none A' := hlm0 ▸ Hpl0.1
         have h1 : (appliedTable γr A').ids = [] := by
-          unfold appliedTable kvLeases
+          unfold appliedTable
           rw [hpre0, List.nil_append, kvTableOf_plainM _ _ _ A' Hpl']; rfl
         have hoff : E.authOn = false := by simpa using hon
         refine ⟨h1, by rw [hoff, appliedTableM_false]; exact h1, ?_⟩

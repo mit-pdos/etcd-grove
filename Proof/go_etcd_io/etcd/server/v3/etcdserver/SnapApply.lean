@@ -48,7 +48,7 @@ theorem kv_cert_jump (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : �
   iunfold kvAppliedL at Ha
   icases Ha with ⟨#HA, Hhi, #Hc, %Hl⟩
   subst Hl
-  have hpre : kvModel γk A <+: kvModel γk A' := kvRaftOf_prefix _ _ _ _ _ hA
+  have hpre : kvModel γk A <+: kvModel γk A' := kvModel_prefix _ _ _ hA
   by_cases heq : (kvModel γk A).length = (kvModel γk A').length
   · have he : kvModel γk A = kvModel γk A' := hpre.eq_of_length heq
     imodintro

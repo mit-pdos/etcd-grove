@@ -43,7 +43,7 @@ open backend
 
 /-- **The image `D`'s lease bucket holds the records of the live leases of its committed log**
 `γr.raft.pre ++ A'` (the receiver's names `γr`, tracked through the parameters `P`): one record per
-id of the log's lease table (`appliedTable γr A'`, i.e. `kvLeases γr.kv (γr.raft.pre ++ A')`), each
+id of the log's lease table (`appliedTable γr A'`, i.e. `kvTableOf γr.kv.c0 γr.kv.ch0 [] (γr.raft.pre ++ A')`), each
 the record `Grant` writes (`leaseEnc id t 0`), its TTL `f id` for some `f` (TTLs differ per
 member: `minLeaseTTL`; at least the table's, the grant's request: the lease-expiry plan's S2–S4,
 Q-S6 (A-ii)), and no other record. Stated as `restLeasesWith`'s bucket over the rest
@@ -257,7 +257,7 @@ theorem kvTableOf_mono (c0 : w64) (ch : apply.Chain) (cmp : Bool) :
 
 theorem appliedTable_append (γr : ReadNames) (A B : List EntryModel) :
     appliedTable γr (A ++ B) = kvTableOf γr.kv.c0 γr.kv.ch0 (appliedTable γr A) B := by
-  unfold appliedTable kvLeases kvTableOf
+  unfold appliedTable kvTableOf
   rw [← List.append_assoc, List.foldl_append]
 
 theorem appliedTable_nodup (γr : ReadNames) (A : List EntryModel) :
@@ -303,7 +303,7 @@ theorem appliedTable_ids_granted (γr : ReadNames) (hpre : γr.raft.pre = []) (A
   obtain ⟨q, hq, rfl⟩ := List.mem_map.1 hu
   have hq' : q ∈ kvTableOf γr.kv.c0 γr.kv.ch0 [] A' := by
     have : appliedTable γr A' = kvTableOf γr.kv.c0 γr.kv.ch0 [] A' := by
-      unfold appliedTable kvLeases; rw [hpre, List.nil_append]
+      unfold appliedTable; rw [hpre, List.nil_append]
     rw [← this]; exact hq
   rcases kvTableOf_mem _ _ A' [] q hq' with h | h
   · cases h

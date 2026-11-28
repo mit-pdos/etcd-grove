@@ -500,7 +500,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     have hl0 : mvcc.LogNoLease γr.kv.log0 := by
       rw [hlog0]; intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs
       rcases hcs with rfl | rfl <;> simp at hc
-    unfold kvModel; exact (kvRaftOf_restorable _ _ _ A' Hpl hl0).1
+    rw [kvModel_offM _ A' Hpl]; exact (kvRaftOf_restorable _ _ _ A' Hpl hl0).1
   -- the compaction revision's permit
   imod crevOf_permit γr.raft γr.kv A' $$ HkI HrI HA' with Hp
   imod crevOf_offM γr.raft γr.kv A' $$ HkI HrI HA' with %Hoff

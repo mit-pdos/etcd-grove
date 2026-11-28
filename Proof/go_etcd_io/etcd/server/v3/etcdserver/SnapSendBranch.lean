@@ -881,12 +881,12 @@ mode-off rest buckets `bkRestAtM .off` of the applied log, at its leases where t
 them, are its leased image `bkRestAtL` (`imageRestAt`'s), given that a cluster granting none has a
 log granting none (`hn`). -/
 theorem bkRestAtL_of_M_off {γk : KVNames} {bootLog : List EntryM} {L : List EntryModel}
-    {D : backend.Data} (lg : Bool) (hn : lg = false → (kvLeases γk L).ids = [])
-    (h : bkRestAtM .off (if lg then kvLeases γk L else []) γk.c0 bootLog L D) :
+    {D : backend.Data} (lg : Bool) (hn : lg = false → (kvTableOf γk.c0 γk.ch0 [] L).ids = [])
+    (h : bkRestAtM .off (if lg then kvTableOf γk.c0 γk.ch0 [] L else []) γk.c0 bootLog L D) :
     bkRestAtL γk bootLog L D := by
   obtain ⟨f, hb, hrest⟩ := h
   have hall : ∀ n ∈ restBuckets, D.lookup n = (apply.restLeasesWith f
-      (LeaseTable.ids (if lg then kvLeases γk L else [])) (restModel γk.c0 bootLog L)).bk.lookup n :=
+      (LeaseTable.ids (if lg then kvTableOf γk.c0 γk.ch0 [] L else [])) (restModel γk.c0 bootLog L)).bk.lookup n :=
     fun n hn' => hrest n hn' (Classical.em _ |>.elim Or.inl (fun h => Or.inr h))
   cases lg
   · have he : LeaseTable.ids ([] : LeaseTable) = [] := rfl
@@ -948,13 +948,13 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   simp only [auth.AuthMode.isOn, appliedTableM_false] at hrest
   unfold appliedTable at hrest
   have hpre : γr.raft.pre = [] := by rw [hraft]
-  have hn : E.lg = false → (kvLeases γr.kv (γr.raft.pre ++ A)).ids = [] := by
+  have hn : E.lg = false → (kvTableOf γr.kv.c0 γr.kv.ch0 [] (γr.raft.pre ++ A)).ids = [] := by
     intro hlg
     have hpl : plainLogM γr.kv.cmp .none A := by
       have := Hpl0.1
       rw [Hlmk, apply.AEnv.lm_of_lg_false hlg] at this
       exact this
-    rw [hpre, List.nil_append]; unfold kvLeases; rw [kvTableOf_plainM _ _ _ A hpl]; rfl
+    rw [hpre, List.nil_append, kvTableOf_plainM _ _ _ A hpl]; rfl
   have hrestL := bkRestAtL_of_M_off E.lg hn hrest
   iunfold dbImage
   iexists A, u
