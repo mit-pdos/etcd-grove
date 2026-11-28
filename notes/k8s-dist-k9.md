@@ -344,3 +344,37 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   `wp_map_make1`, `pure_wp_map_nil_lookup1` (a lookup in a `nil` map: `canonLocked`'s first `is[n]`).
 - **Merges**: neither `k8s-dist-k4/2026-11-27` nor `k8s-dist-g11/2026-11-28` was on lean at hand-off; not
   merged. STATUS.md not updated (nothing landed; add the K9 entry when the stage lands).
+
+## Handoff K9-3 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **Merges**: none. K4 had not landed on lean (`k8s-dist-k4/2026-11-27` still gating), and its fetched head
+  (`2a71df1164`) was already in this branch, so per the brief nothing was merged; the Perennial pin stays
+  `148615524` (lean is at `e5c2d6f62`: the next session that merges lean needs the pin's Perennial build on
+  fk-lean2, as KGO-4/K5-6 did).
+- **Proved and built** (fk-lean2, each target exit 0): `storeHash`, `histHashes.intern`,
+  `histHashes.canonLocked` (with `wp_hh_is`, the `is[n]` lookup under `hhInv`, and `take_succ_snoc`).
+  Linked: `etc/link-lean-first-k8setcd3.txt` gains `mix strHash storeHash pendEqual histHashes__intern
+  histHashes__canonLocked histHashes__canonical`; `Link.lean` regenerated (`etc/gen-link.py --k8setcd3`).
+  Build of record for `Link`: see the commit after this note.
+- **`SharedDefs.lean` changes**: `ikey_safeMapKey`/`ckey_safeMapKey` (field-by-field `==`, as
+  `client_go/util/consistency`'s keys); `arrayLiteralSize1` (shared by the proofs; one name per namespace,
+  since `Link` imports every proof); `cfgSetOwn`'s buckets now record, for each index, that the list's
+  configuration there has the key's history (`∃ d, cs[i]? = some d ∧ d.hist' = k.hist'`): `cfgSet.add`
+  compares only stores and pending writes, trusting the bucket for the history, so its `false` case
+  (`g ∈ gs`) needs this (then `histOwn_agree_len` gives the same history).
+- **Left (step 1)**: `cfgSet.add` (plan: join after the `buckets == nil` check as in `intern`; take the
+  bucket out of the map with the two restore wands of `intern`'s `Hsl`; `&&` of `storeEqual`/`pendEqual`;
+  after appending, `bigSepM_mono` re-proves every bucket's indices against `cs ++ [c']` with
+  `List.getElem?_append_left`); `skipTo` (holds `hh.mu`, `canonLocked`, then `gaps[base]` grown by `intern`
+  of foreign stores: `gapsOwn`'s list is `hs ++ gapsL s |hs| (i+1)`); then `settle` and `SharedModel`
+  (§2.1-2.2; `RevsL`, `revsOwn`, `landingsL`; Go's settle as `SettleWith (landingsL …)` from `SharedGo`).
+  Not started: KGO-5's `stepIdx`/`crossCheck`/sorting (branch `k8s-dist-g11/2026-11-28`).
+- **Proof notes** (new): `wp_apply spec $$ [$H]` (with `$`) frames the precondition; `$$ [H]` leaves it as a
+  first goal. `wp_join (Q := fun v => …)` binds a loop condition's `if:` (`canonLocked`'s `n != nil && !is[n]`)
+  so the loop's exit is proved once. `wp_join R with [hyps]`: only the listed hypotheses reach the cases, so
+  list the pointers the bound code loads (`hh`). `ipersist` needs a WP goal (a basic update). `iStructNamed Hp`
+  splits `p ↦□ hn` into field points-tos before `wp_auto` loads a field. `iframe` leaves persistent
+  hypotheses (`□H`): `iframe #` or `iexact`. A slice literal: `wp_apply (wp_slice_literal (l := [..]))` and
+  `simp only [arrayLiteralSize6]` (a `rfl` lemma) to name the slice. Loop conditions come out of
+  `wp_if_destruct` sometimes as `sint.Z j < …` and sometimes as `#(decide …) = #true` (read the goal).
+- **No `sorry`**, no axiom. WIP commits on the branch are build iterations (squash before landing, or keep).
