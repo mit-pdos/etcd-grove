@@ -31,8 +31,8 @@ abbrev github_com.hashicorp.raft.InmemStore.LastIndex.spec : Prop :=
   ⊢ ∀ Φ : val → IProp GF,
     iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isInmemStore γs i ∗
       rtok tid) -∗
-    (|NC={⊤,∅}=> ▷ ∃ A, inmemLogs γs A ∗
-      (inmemLogs γs A ={∅,⊤}=∗ (rtok tid -∗ Φ (PairV #A.hi #interface.nil)))) -∗
+    (|NC={⊤ \ ↑storeN,∅}=> ▷ ∃ A, inmemLogs γs A ∗
+      (inmemLogs γs A ={∅,⊤ \ ↑storeN}=∗ (rtok tid -∗ Φ (PairV #A.hi #interface.nil)))) -∗
     WP (App (Val (i @!! go.GoType.PointerType InmemStore.ty @!! go!"LastIndex")) (Val #()))
       {{ Φ }}
 

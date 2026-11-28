@@ -46,12 +46,14 @@ theorem github_com.hashicorp.raft.examples.snapstore.Store.Open.wp_proof
   iNamed HR
   iapply wp_ncfupd _ _ rfl
   iintro Hnc
+  imod (fupd_mask_subseteq (PROP := IProp GF) (E1 := ⊤) (E2 := ⊤ \ ↑storeN) (by solve_ndisj)) with Hmask
   imod HAU $$ Hnc with ⟨Hnc, HAU⟩
   imod lc_fupd_elim_later (E := ∅) $$ Hlc1 HAU with ⟨%old, Hown, Hclose⟩
   unfold ownLatest
   ihave %Heq := ghostVar_agree _ _ _ _ _ $$ Hown Hg
   subst Heq
   imod Hclose $$ Hown with HΦ
+  imod Hmask with -
   imodintro
   iframe Hnc
   ihave ⟨%e, #He, %Hene⟩ := errNoSnapshot_ok $$ Hpkg
