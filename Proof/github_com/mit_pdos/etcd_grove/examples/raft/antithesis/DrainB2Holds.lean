@@ -9,6 +9,9 @@ etcdserver WAL's `walSave_holds`, without snapshots.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB2Phases
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB2Report
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessReportB2
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Mono
 
 @[expose] public section
 
@@ -20,7 +23,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace AntHarness
 
-open go_etcd_io.raft.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section pure
 variable [GooseExts]
@@ -117,6 +120,62 @@ theorem DrainIterB1.holds_saveW (γ : AntNames) (j : Fin γ.R.N) (I : DrainIterB
   rw [hph]; exact htc
 
 end pure
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [AntStor GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
+
+/-- **The disk's commit is at most the `Ready`'s** (`AntSim.commit_reachD` in the run's invariant): at a
+view with no `mem` record and no split write, reached from the sent lists' lower bounds. -/
+theorem commit_peekB2 (h_vu : view_update.law (GF := GF)) (msk : AntSim.SimMask)
+    (hmsk : msk ≤ AntSim.mskB2) (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (q : Qp)
+    (v : AntSim.NodeView) (r₁ : RState) (net₀ : List Msg) (xnet₀ : List XMsg)
+    {Adm : List EntryM → CCState → Prop}
+    (hinm : ∀ S V net xnet, AntSim.AntSimD γ.R γ.dec S V net xnet → AntSim.InMask msk γ.R net xnet)
+    (hm : v.mems = []) (hparts : v.parts = [])
+    (hreach : AntSim.ReachIn msk γ.R γ.dec Adm net₀ xnet₀ j v r₁) :
+    antClusterB2 (GF := GF) c γ ∗ sentLb γ.toAntNames net₀ ∗ xsentLb γ.toAntNames xnet₀ ∗
+        viewFrag γ.toAntNames j v ∗ runLive γ q ⊢
+      |={⊤}=> ⌜uint.Z v.dur.commit ≤ uint.Z r₁.p.commit⌝ ∗ viewFrag γ.toAntNames j v ∗ runLive γ q := by
+  iintro ⟨#Hc, #Hlb, #Hxlb, Hv, Hl⟩
+  ihave #Hc' := Hc
+  iunfold antClusterB2 at Hc'
+  icases Hc' with ⟨%cfg, %r, %ns, %stop, -, -, -, -, -, -, -, -, -, -, -, #Hinv, %Hrf, -⟩
+  iunfold sentLb at Hlb
+  iunfold xsentLb at Hxlb
+  iinv Hinv with >Hi Hclose
+  iunfold antInvB2 at Hi
+  icases Hi with (Hi | Hover)
+  · iunfold antOpenB2 at Hi
+    icases Hi with ⟨%evs, %S, %V, %net, %xnet, %G, Hstr, Hviews, Hnet, Hxnet, %Hpure, #HF⟩
+    ihave %Hpre := mono_list_auth_lb_valid (GF := GF) γ.sent 1 net net₀ $$ Hnet Hlb
+    ihave %Hxpre := mono_list_auth_lb_valid (GF := GF) γ.xsent 1 xnet xnet₀ $$ Hxnet Hxlb
+    imod h_vu (⊤ \ ↑antN) γ.toAntNames j V v v $$ [Hv Hviews] with ⟨%HVj, Hv, Hviews⟩
+    · iframe Hv Hviews
+    rw [setV_self_s HVj]
+    have hA := Hpure.1.2.1
+    have hcm := AntSim.commit_reachD hmsk (hinm S V net xnet hA) hA.2.2.1
+      (by rw [← HVj]; exact hA.2.2.2.2 j) hm hparts (hreach.mono Hpre.2 Hxpre.2)
+    imod Hclose $$ [Hstr Hviews Hnet Hxnet] with -
+    · inext
+      iunfold antInvB2
+      ileft
+      iunfold antOpenB2
+      iexists evs, S, V, net, xnet, G
+      iframe Hstr Hviews Hnet Hxnet HF
+      ipureintro; exact Hpure
+    imodintro
+    iframe Hv Hl
+    ipureintro; exact hcm
+  · iexfalso
+    iapply runLive_excl γ q
+    iframe Hl Hover
+
+end proof
 
 end AntHarness
 end EtcdGrove
