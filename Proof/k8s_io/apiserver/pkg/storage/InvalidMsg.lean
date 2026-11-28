@@ -41,7 +41,7 @@ def KPre.failMsg (p : KPre) (uid rvs : GoString) : GoString :=
       go!", UID in object meta: " ++ uid
 
 /-- `Sprintf` copies a literal without `%` to its output. -/
-theorem sprintfOut_lit [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+theorem sprintfOut_lit [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
     {lit f : GoString} {args : List GoInterface} {out : GoString}
     (hl : W8 37 ∉ lit) (h : _root_.Perennial.fmt.SprintfOut (lit ++ f) args out) :
     ∃ out', out = lit ++ out' ∧ _root_.Perennial.fmt.SprintfOut f args out' := by
@@ -55,7 +55,7 @@ theorem sprintfOut_lit [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `Sprintf(pre + "%v" + mid + "%v", a, b)`, with `pre` and `mid` without `%` and two string
 arguments (`StrArgValue`), is `pre ++ x ++ mid ++ y`. -/
-theorem sprintfOut_v2 [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+theorem sprintfOut_v2 [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
     [go.IntoValInj GoString] [go.string ↓u go.string]
     {pre mid x y out : GoString} {a b : GoInterfaceOk}
     (hp : W8 37 ∉ pre) (hm : W8 37 ∉ mid)

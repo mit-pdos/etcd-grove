@@ -54,7 +54,7 @@ def kitFn [GooseExts] [GoSemanticsFunctions] (name : GoString) : GoFunc :=
 
 section routes
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable [GoSemanticsFunctions]
+variable [GoLocalContext] [GoSemanticsFunctions]
 
 /-- `Marshal(v)` goes to the registered codec: `v`'s dynamic type has neither
 `JSONModelMarshalPtr` nor `JSONModelMarshal` (`marshalAny`). -/

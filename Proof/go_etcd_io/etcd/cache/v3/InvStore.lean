@@ -840,7 +840,7 @@ structure StoreNames where
 abbrev kvItemPtrT [GooseExts] [GoGlobalContext] : go.GoType := go.GoType.PointerType kvItem.ty
 
 section addrs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The address of `s.latest.rev`. -/
 abbrev storeLatestRevAddr (s : Loc) : Loc :=

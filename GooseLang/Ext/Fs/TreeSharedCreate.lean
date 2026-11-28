@@ -265,7 +265,7 @@ theorem wp_osOpenCreateSQ (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
     (hpe : ∀ st e' st', FsTreeWf st → st.proc.calls !! k = some (s0, child d b) → st.lookup d = some (.dir j) →
       st.tree.entry j b = h.cur !! b →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
-      (∃ hh hh', ExtSemantics.step (E := fsExt) "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl)))
+      (∃ hh hh', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl)))
         hh st () e' hh' st' ()) →
       ∀ fd e : w64, e' = osRes (#fd) e → e ≠ 0 → Pe e) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
@@ -313,7 +313,7 @@ theorem wp_osOpenCreateSQ (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R (child d b) → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
-      (∃ hh hh', ExtSemantics.step (E := fsExt) "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl)))
+      (∃ hh hh', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl)))
         hh st () e' hh' st' ()) →
       ∃ w, e' = Val w ∧ FsTreeWf st' ∧
         ((EndedT st st' k ∧ W w false) ∨ (LoggedT st st' k s0 (oF st.fs.nextIno) ∧ W w true)) := by
@@ -574,7 +574,7 @@ theorem wp_osOpenFileSQ (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     (hpe : ∀ st e' st', FsTreeWf st → st.proc.calls !! k = some (s0, child d b) →
       st.lookup (child d b) = some (.file i) →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
-      (∃ hh hh', ExtSemantics.step (E := fsExt) "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl)))
+      (∃ hh hh', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl)))
         hh st () e' hh' st' ()) →
       ∀ fd e : w64, e' = osRes (#fd) e → e ≠ 0 → Pe e) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗

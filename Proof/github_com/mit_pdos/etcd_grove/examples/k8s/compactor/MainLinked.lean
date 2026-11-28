@@ -25,6 +25,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.holdTo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Link
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.InProcLinked
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.strconv.Itoa
 public import Perennial.Proof.context.Link
@@ -72,6 +73,7 @@ include h_After in
 theorem k8s_compactor.wp_apiserver : k8s_compactor.apiserver.spec (GF := GF) (hG := hG) :=
   k8s_compactor.apiserver.wp_proof (k8s.wp_NewCompactor h_After)
     (k8s.wp_StartCompactorPerEndpoint h_After) k8s_compactor.wp_check
+    k8s.inProcEtcd_laws_law_holds
 
 include h_After in
 /-- **The compactor example's `Main` does not panic** (see the file header;

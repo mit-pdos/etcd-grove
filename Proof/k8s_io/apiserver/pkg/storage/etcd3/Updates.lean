@@ -321,7 +321,7 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
 
 /-- **The caller's updates at the members and its token give the client's updates** for a
 conditional transaction (`k8sAuRW_kvAu1` at each member). -/
-theorem k8sAusRW_kvAu1 (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
+theorem k8sAusRW_kvAu1 (ks : List KVNames) (c : StoreCfg GF Obj)
     (step : KSt Obj → KSt Obj) (W : IProp GF) (Φ : KVState → IProp GF) (op : KVOp) (hop : op.isKV)
     (ok hand : KVState → Bool) (A : KVState → Prop)
     (h : ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → A σ →
@@ -329,14 +329,14 @@ theorem k8sAusRW_kvAu1 (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
       (ok σ = false → kvOpStep op σ = σ ∧ (hand σ = true → step (c.abs σ) = c.abs σ)))
     (hk : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ))
     (hone : ∀ σ, kvWf c σ → KvOne σ (kvOpStep op σ)) :
-    (W ∗ □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝)) ∗ ([∗list] x ∈ ms, k8sAuRW x.γr.kv c step W Φ) ⊢
-      [∧list] x ∈ ms, kvOpAu1 x.γr.kv op (fun σ => iprop((if ok σ || hand σ then Φ σ else W) ∗
+    (W ∗ □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝)) ∗ ([∗list] x ∈ ks, k8sAuRW x c step W Φ) ⊢
+      [∧list] x ∈ ks, kvOpAu1 x op (fun σ => iprop((if ok σ || hand σ then Φ σ else W) ∗
         rdFacts c σ ∗ ⌜A σ⌝)) := by
-  apply client.bigAndL_of_sep ms _ (fun x => k8sAuRW x.γr.kv c step W Φ)
+  apply client.bigAndL_of_sep ks _ (fun x => k8sAuRW x c step W Φ)
   intro x hx
   iintro ⟨⟨HW, #HA⟩, #Hx⟩
   unfold kvOpAu1
-  iapply k8sAuRW_kvAu1 x.γr.kv c step W Φ op hop ok hand A h hk hone
+  iapply k8sAuRW_kvAu1 x c step W Φ op hop ok hand A h hk hone
   iframe Hx HW HA
 
 end defs

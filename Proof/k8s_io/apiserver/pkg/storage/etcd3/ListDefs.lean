@@ -471,9 +471,9 @@ def pagesOk (c : StoreCfg GF Obj) (f : GoFunc) (kp : GoString) (recur : Bool) (r
     (Q : w64 → KVState → IProp GF) (P : KVState → KVState → IProp GF) : IProp GF :=
   iprop(∀ (y : GoFunc) (J : Option (KVState × w64) → Nat → IProp GF) (Φ : val → IProp GF),
     threadTok -∗
-    (∀ R, |==> □ [∧list] x ∈ c.ms, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R)) -∗
+    (∀ R, |==> □ [∧list] γv ∈ c.K.kvs, ⌜Q R = fun _ => iprop(True)⌝ ∨ kvReadAu γv (Q R)) -∗
     (□ ∀ R σ, □ Q R σ -∗
-      |==> □ [∧list] x ∈ c.ms, ⌜P σ = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (P σ)) -∗
+      |==> □ [∧list] γv ∈ c.K.kvs, ⌜P σ = fun _ => iprop(True)⌝ ∨ kvReadAu γv (P σ)) -∗
     J none 0 -∗
     (□ ∀ (σ : KVState) (R : w64) (i : Nat) (ch : k8s_io.apiserver.pkg.storage.etcd3.listChunk),
         J (if i = 0 then none else some (σ, R)) i -∗

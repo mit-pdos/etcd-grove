@@ -188,7 +188,7 @@ def listOutL (x : Input) (st : GSt) (s : ListModel.LState w8 Obj) (prepared : Go
     false, zeroValDef⟩
 
 section vals
-variable [GoSemanticsFunctions] [GoGlobalContext]
+variable [GoLocalContext] [GoSemanticsFunctions] [GoGlobalContext]
 
 /-- `predicate(in)`: a list's selection predicate (the driver's selectors, `getAttrs`, the limit). -/
 def predV (x : Input) : k8s_io.apiserver.pkg.storage.SelectionPredicate :=

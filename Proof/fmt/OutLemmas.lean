@@ -18,7 +18,7 @@ namespace Perennial
 namespace EtcdGrove
 
 /-- The output of `Sprintf` begins with the format's literal text before its first `%`. -/
-theorem fmt.SprintfOut_litPrefix [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+theorem fmt.SprintfOut_litPrefix [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
     {format : GoString} {xs : List GoInterface} {s : GoString}
     (h : _root_.Perennial.fmt.SprintfOut format xs s) : fmt.litPrefix format <+: s := by
   induction h with
@@ -52,7 +52,7 @@ theorem fmt.litPrefix_append_pct (pre f : GoString) (h : (W8 37 : w8) ∉ pre) :
     rw [ih']
 
 /-- `Sprintf` of a format without `%` and no arguments is the format. -/
-theorem fmt.SprintfOut_noPct [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+theorem fmt.SprintfOut_noPct [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
     {f s : GoString} (hf : (W8 37 : w8) ∉ f) (h : _root_.Perennial.fmt.SprintfOut f [] s) : s = f := by
   induction f generalizing s with
   | nil => cases h; rfl

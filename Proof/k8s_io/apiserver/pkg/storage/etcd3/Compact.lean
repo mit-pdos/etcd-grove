@@ -3,8 +3,8 @@ Lean-first (no Rocq counterpart).
 
 The proof of `Compact`: the round's transaction (`casTxn ev rev`) built as `kubernetes`'
 `OptimisticPut` builds its (`kv.Txn`, `If(Version(key) = ev)`, `Then(OpPut(key,
-FormatInt(rev, 10)))`, `Else(OpGet(key))`), committed through the members (`cas_commit`, as
-linkvtxn's `txn_Commit_st` with the reply's revision reached kept: `txnRevLb`); then
+FormatInt(rev, 10)))`, `Else(OpGet(key))`), through the client's laws (`k8sClient`: `kvTxn`, `txnIf`/`txnThen`/`txnElse`,
+`casCommit`, the reply's revision reached kept); then
 - the compare failed: the else branch's get is the key's key-values (`failure_resps`), which the
   caller's `casPost` says hold `FormatInt c` for a recorded, reached `c`: `Kvs[0]` exists and
   `ParseInt` reads `c` back;
@@ -20,17 +20,13 @@ public import Spec.go_etcd_io.etcd.client.v3.Compare
 public import Spec.go_etcd_io.etcd.client.v3.Version
 public import Spec.go_etcd_io.etcd.client.v3.OpPut
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
-public import Spec.go_etcd_io.etcd.client.v3.Client__Endpoints
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Spec.strconv.FormatInt
 public import Spec.strconv.ParseInt
 public import Spec.k8s_io.klog.v2.V
 public import Spec.k8s_io.klog.v2.Verbose__Infof
 public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
-public import Proof.go_etcd_io.etcd.client.v3.TxnPlainSpec
 public import Proof.go_etcd_io.etcd.client.v3.KVMembers
-public import Spec.go_etcd_io.etcd.client.v3.kv__Txn
-public import Spec.go_etcd_io.etcd.client.v3.txn__If
 
 @[expose] public section
 
@@ -47,152 +43,6 @@ namespace k8s
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open go_etcd_io.etcd.server.v3.etcdserver etcd_txnlin
-
-/-! ## Pure part -/
-
-section pure
-variable [GooseExts]
-
-/-- The round's transaction is small (its strings below linkvtxn's `inMax`). -/
-theorem casTxn_size (ev rev : w64) :
-    txnSizeOk (txnWireOf (clientTxn [.ver compactRevKey ev]
-      [.put compactRevKey (fmtInt rev (W64 10))] [.get compactRevKey])) := by
-  rw [txnWireOf_clientTxn]
-  apply txnSizeOk_txnOf _ _ _ (by simp)
-  have hv := fmtInt_length_le rev (W64 10)
-  refine ⟨fun c hc => ?_, fun o ho => ?_⟩
-  · simp only [List.mem_singleton] at hc
-    subst hc
-    simp [mcmpBytesLe, compactRevKey, inMax]
-  · simp only [List.mem_append, List.mem_singleton] at ho
-    rcases ho with rfl | rfl
-    · exact ⟨by simp [compactRevKey, inMax], by unfold inMax; omega⟩
-    · simp [mopBytesLe, compactRevKey, inMax]
-
-end pure
-
-/-! ## The round's commit -/
-
-section commit
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [reg : EtcdGrove.k8s.CompactorRegistry]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-
-/-- The round's transaction, as the builder holds it. -/
-abbrev casClientTxn (ev rev : w64) : TxnModel :=
-  clientTxn [.ver compactRevKey ev] [.put compactRevKey (fmtInt rev (W64 10))] [.get compactRevKey]
-
-/-- **The round's `Commit()`** through a client of the members `ms`, each at the KV `γk`: its
-update fired at most once at each member (as linkvtxn's `txn_Commit_st`'s writing case, through
-`txn.Commit.specM`, which keeps the reply's revision reached, `txnRevLb`): the reply's verdict and
-responses the server's run at the state `σ` the update fired at, its revision `σ`'s after it,
-positive and reached. -/
-theorem cas_commit [go_etcd_io.etcd.cache.v3.Assumptions]
-    (wp_CommitM : EtcdGrove.txn.Commit.specM (GF := GF) (hG := hG)) (tp : Loc) (ms : List (client.SrvAt GF))
-    (γk : KVNames) (hsame : ∀ x ∈ ms, kvSame x.γr.kv γk) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (ev rev : w64)
-    (Q : KVState → IProp GF) (hb : b.model = casClientTxn ev rev) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-        txnObjAt tp (ms.map client.SrvAt.addr) ci cd b ∗
-        ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, client.srvStart x) ∗
-        client.txnWriteOnce tp (ms.map client.SrvAt.addr) ∗
-        ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.txn (casTxn ev rev)) Q) }}
-      (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
-        (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗ Q σ ∗
-          ⌜m.succeeded = casWins ev rev σ ∧
-            client.opRespsRel false ((casTxn ev rev).branch m.succeeded)
-              (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (casTxn ev rev)).2.2 m.resps ∧
-            0 < sint.Z m.hdr.revision⌝ ∗ kvRevLb γk m.hdr.revision) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err)) }} := by
-  iintro %Φ ⟨#Pc, Hlt, Hobj, #Hregs, #Hst, Hone, Hau⟩ HΦ
-  have hw : txnWireOf b.model = casTxn ev rev := by rw [hb, txnWireOf_clientTxn]
-  have hp : client.TxnModel.plain b.model := by rw [hb]; exact clientTxn_plain _ _ _
-  have hin : client.txnModelIn (txnWireOf b.model) := by rw [hw]; exact txnModelIn_txnOf _ _ _
-  have hsz : txnSizeOk (txnWireOf b.model) := by rw [hb]; exact casTxn_size ev rev
-  have hro : txn.txnReadonly (casTxn ev rev) = false := by
-    rw [txnReadonly_txnOf]; rfl
-  ihave #Hst' := client.srvStart_both ms $$ Hst
-  have hm : ∀ (k : Nat) (x : client.SrvAt GF), ms[k]? = some x →
-      kvOpAu1 x.γr.kv (.txn (casTxn ev rev)) Q ⊢
-        client.txnUpdAt x.γr x.γr (txnWireOf b.model) Q :=
-    fun _ _ _ => by
-      iintro H
-      unfold client.txnUpdAt
-      iright; iright
-      isplitr
-      · ipureintro
-        rw [hw]
-        exact ⟨hro, linkv.txnPlain_txnOf _ _ _, txnNoZeroEnd_txnOf _ _ _⟩
-      rw [hw]
-      iexact H
-  ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
-  iapply (wp_CommitM tp ms ci cd b (W64 0) [] Q) $$ [$Hlt Hobj Hau' Hone]
-  · iframe Hobj
-    iframe #
-    isplitl []
-    · iunfold client.kvRegs; iframe #
-    isplitl []
-    · ipureintro; exact ⟨hp, hin⟩
-    isplitl []
-    · iunfold client.knownAt; iframe #
-    isplitl [Hau' Hone]; rotate_left
-    · ipureintro; exact hsz
-    unfold txnReqPre client.txnUpd
-    iright
-    iunfold client.txnWriteOnce at Hone
-    icases Hone with %Hnr
-    isplitl []
-    · ipureintro; exact Hnr
-    inext
-    iexact Hau'
-  inext
-  iintro %resp %err ⟨Hlt, Hout⟩
-  iapply HΦ
-  iframe Hlt
-  iunfold txnCallOut at Hout
-  icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
-  · ileft
-    isplitl []
-    · ipureintro; exact Herr
-    iunfold client.txnAns at Hq
-    icases Hq with ⟨%x, %hx, Hr, #Hrv⟩
-    ihave #Hrv' := client.txnRevLb_same x.γr.kv γk (hsame x hx) _ m $$ Hrv
-    rw [hw]
-    unfold client.txnRevLb client.txnReplied
-    simp only [hro, Bool.false_eq_true, ↓reduceIte]
-    icases Hr with ⟨%tw, %hmd, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, ⟨%ltq, -, HQ⟩⟩
-    obtain ⟨Htw, -, -, Hz, hap, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
-    have ht : t' = casTxn ev rev := Hz (irrNoZeroEnd_txnOf _ _ _ tw Htw)
-    subst ht hsk
-    have hr : ((kvStateOf y.log ltq).rev + 1 : Nat) = y.log.length := client.kvStateOf_rev_succ _ hlen
-    have hs : (kvStateOf y.log ltq).kvs = mvcc.stateAfter y.log := kvStateOf_kvs _
-    iexists m, kvStateOf y.log ltq
-    iframe Hm HQ Hrv'
-    ipureintro
-    refine ⟨?_, ?_, ?_⟩
-    · unfold casWins; rw [hr, hs]; exact hok
-    · rw [hr, hs]; exact hrel
-    · rw [hrev]
-      have h1 : 1 ≤ mvcc.writeRev y.log
-          (txn.srvRunTxn (W64 (y.log.length : Int)) (mvcc.stateAfter y.log) (casTxn ev rev)).2.1 := by
-        unfold mvcc.writeRev; split <;> omega
-      have h2 : mvcc.writeRev y.log
-          (txn.srvRunTxn (W64 (y.log.length : Int)) (mvcc.stateAfter y.log) (casTxn ev rev)).2.1 <
-          2 ^ 63 := by
-        unfold mvcc.writeRev; split <;> omega
-      word
-  · iright
-    isplitl
-    · ipureintro; exact Herr.1
-    · iunfold kvErr; iframe #; ipureintro; exact Herr.2.1
-
-end commit
-
 
 /-! ## The proof -/
 
@@ -212,18 +62,14 @@ theorem Compact.wp_proof
     (wp_FormatInt : EtcdGrove.strconv.FormatInt.spec (GF := GF) (hG := hG))
     (wp_ParseInt : EtcdGrove.strconv.ParseInt.spec (GF := GF) (hG := hG))
     (wp_GetResponseRange : EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG))
-    (wp_Endpoints : EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG))
     (wp_V : EtcdGrove.klog.V.spec (GF := GF) (hG := hG))
     (wp_Infof : EtcdGrove.klog.Verbose.Infof.spec (GF := GF) (hG := hG))
-    (wp_Txn : EtcdGrove.kv.Txn.spec (GF := GF) (hG := hG))
-    (wp_If : EtcdGrove.txn.If.spec (GF := GF) (hG := hG))
-    (wp_Then : EtcdGrove.txn.Then.spec (GF := GF) (hG := hG))
-    (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
-    (wp_CommitM : EtcdGrove.txn.Commit.specM (GF := GF) (hG := hG))
     (h_client_Compact_kv : client.client_Compact_kv.law (GF := GF) (hG := hG)) :
     Compact.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
-  wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hko, #Hctx, #Hce, #Hcas, #Hev, #Hrev⟩
+  intro _ _ cl K γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
+  wp_start as ⟨Hlt, #HK, #Hko, #Hctx, #Hce, #Hcas, #Hev, #Hrev⟩
+  iunfold k8sClient at HK
+  icases HK with ⟨%hK, #Hh⟩
   ihave #Psc : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
   · iPkgInit
   rw [show k8s_io.apiserver.pkg.storage.etcd3.compactRevKey = #compactRevKey from rfl]
@@ -299,49 +145,40 @@ theorem Compact.wp_proof
     rcases i with _ | i
     · cases Hc; cases Hm; iexact Hc1
     · simp at Hc
-  ihave #Hcl' := Hcl
-  iunfold isNewClient at Hcl'
-  icases Hcl' with ⟨-, #Hrco, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  ihave #Hwo := client.clientWriteOnce_api cl api _ $$ [Hkvf Hone]
-  · iframe #
+  ihave #Hkf := hK.kvField cl $$ Hh
+  icases Hkf with ⟨%api, #Hkvf, #Hkv⟩
   wp_auto
-  wp_apply (wp_Txn api (ms.map client.SrvAt.addr) ci cd) as %t ⟨%tp, %Ht, Hobj, #Hkt⟩
+  wp_apply (hK.kvTxn cl api ci cd) as %t ⟨%tp, %Ht, Hobj⟩
   · iframe #
   subst Ht
-  ihave Htwo : client.txnWriteOnce tp (ms.map client.SrvAt.addr) $$ []
-  · iunfold client.txnWriteOnce
-    iunfold client.writeOnce at Hwo
-    iexact Hwo
   (try wp_auto)
-  wp_apply (wp_If tp (ms.map client.SrvAt.addr) ci cd TxnBuild.empty csl
+  wp_apply (hK.txnIf tp ci cd TxnBuild.empty csl
       [compareM (cmpKeyM .version compactRevKey) .eq (.num ev)]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply ((EtcdGrove.txn.Then.spec_plain wp_Then) tp (ms.map client.SrvAt.addr) ci cd _ tsl
+  wp_apply (hK.txnThen tp ci cd _ tsl
       [opPutModel compactRevKey (fmtInt rev (W64 10)) []]
       [.put compactRevKey (fmtInt rev (W64 10)) (W64 0)]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; exact ⟨rfl, rfl, rfl⟩
   (try wp_auto)
-  wp_apply ((EtcdGrove.txn.Else.spec_plain wp_Else) tp (ms.map client.SrvAt.addr) ci cd _ esl
+  wp_apply (hK.txnElse tp ci cd _ esl
       [opGetModel compactRevKey []] [.get (opGetModel compactRevKey [])]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; exact ⟨rfl, rfl⟩
   (try wp_auto)
-  ihave Hobj : txnObjAt (GF := GF) tp (ms.map client.SrvAt.addr) ci cd
-      ⟨casClientTxn ev rev, true, true, true⟩ $$ [Hobj]
+  ihave Hobj : K.txnAt tp ci cd ⟨casClientTxn ev rev, true, true, true⟩ $$ [Hobj]
   · iExactEq Hobj
     simp [TxnModel.empty, clientTxn, linkv.cmpOf, compareM, cmpKeyM, clientTOp]
-  imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   ihave #Hcas' := Hcas
   iunfold casOk at Hcas'
   ihave Hau := Hcas' $$ %ev %rev Hev Hrev
-  wp_apply (cas_commit wp_CommitM tp ms γk hsame ci cd ⟨casClientTxn ev rev, true, true, true⟩ ev rev
-      (casPost γk Seen recorded ev rev) rfl) $$ [$Hlt Hobj Hau Htwo]
+  wp_apply (hK.casCommit tp γk hsame ci cd ⟨casClientTxn ev rev, true, true, true⟩ ev rev
+      (casPost γk Seen recorded ev rev) rfl) $$ [$Hlt Hobj Hau]
     as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     iframe
@@ -500,7 +337,7 @@ theorem Compact.wp_proof
       (try wp_auto)
       ihave #Pkl : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.klog.v2 $$ []
       · iPkgInit
-      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl ⟨Hlt, %eps, Hesl, -⟩
+      wp_apply (hK.endpoints cl) $$ [$Hlt] as %esl ⟨Hlt, Hesl⟩
       · iframe #
       (try wp_auto)
       wp_apply wp_slice_literal

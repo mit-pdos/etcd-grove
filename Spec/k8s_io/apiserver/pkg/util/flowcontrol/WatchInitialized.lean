@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 abbrev flowcontrol.WatchInitialized.spec : Prop :=
   ∀ (ci : GoInterfaceOk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.util.flowcontrol ∗
-      context.valueAt ci flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (sem := sem)) }}
+      context.valueAt ci flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (hG := hG)) }}
     (App (Val (@! k8s_io.apiserver.pkg.util.flowcontrol.WatchInitialized))
       (Val #(GoInterface.ok ci)))
   {{ RET #(); True }}

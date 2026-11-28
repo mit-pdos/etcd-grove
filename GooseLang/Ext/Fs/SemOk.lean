@@ -20,14 +20,16 @@ namespace Fs
 /-- `S`'s steps are `FsStep`s, and `S` has a step from every state (with mappings that do not
 overlap, as every reachable state's) and operation `FsStep` has one from. -/
 class FsSemOk [S : ExtSemantics fsExt] : Prop where
-  step_sub : ∀ [GooseExts] [GoGlobalContext] (o : String) (v : val) (h : GMap Loc (NonAtomic val))
-    (st : OsState) (g : Unit) (e' : Expr) (h' : GMap Loc (NonAtomic val)) (st' : OsState) (g' : Unit),
-    S.step o v h st g e' h' st' g' → FsStep o v h st g e' h' st' g'
-  step_ex : ∀ [GooseExts] [GoGlobalContext] (o : String) (v : val) (h : GMap Loc (NonAtomic val))
-    (st : OsState) (g : Unit) (e' : Expr) (h' : GMap Loc (NonAtomic val)) (st' : OsState) (g' : Unit),
+  step_sub : ∀ [GooseExts] [GoGlobalContext] {tf : GoTypeFns} (o : String) (v : val)
+    (h : GMap Loc (NonAtomic val)) (st : OsState) (g : Unit) (e' : Expr)
+    (h' : GMap Loc (NonAtomic val)) (st' : OsState) (g' : Unit),
+    S.step tf o v h st g e' h' st' g' → FsStep o v h st g e' h' st' g'
+  step_ex : ∀ [GooseExts] [GoGlobalContext] {tf : GoTypeFns} (o : String) (v : val)
+    (h : GMap Loc (NonAtomic val)) (st : OsState) (g : Unit) (e' : Expr)
+    (h' : GMap Loc (NonAtomic val)) (st' : OsState) (g' : Unit),
     (∀ l i b i' b', MapsTo st l i b → MapsTo st l i' b' → i = i' ∧ b = b') →
     FsStep o v h st g e' h' st' g' →
-      ∃ e'' h'' st'' g'', S.step o v h st g e'' h'' st'' g''
+      ∃ e'' h'' st'' g'', S.step tf o v h st g e'' h'' st'' g''
 
 instance fs_semantics_ok : @FsSemOk fs_semantics where
   step_sub _ _ _ _ _ _ _ _ _ hs := hs

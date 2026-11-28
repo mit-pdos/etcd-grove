@@ -41,7 +41,7 @@ open Iris Iris.BI map k8sDeep
 open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Obj Input)
 
 section vals
-variable [GooseExts] [GoSemanticsFunctions] [GoGlobalContext]
+variable [GooseExts] [GoLocalContext] [GoSemanticsFunctions] [GoGlobalContext]
 
 /-! ## The model -/
 

@@ -89,7 +89,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v
 open go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc (watchServer serverWatchStream)
 
 section addrs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The server `s` as an interface value (`apply.RaftStatusGetter`, `AuthGetter`). -/
 abbrev srvIface (s : Loc) : GoInterface :=
