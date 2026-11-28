@@ -168,6 +168,34 @@ theorem nodeMemB2_kill (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.
     obtain ⟨h1, -, h3⟩ := Hp
     exact ⟨fun _ => h1 rfl, fun h => absurd h (by decide), h3⟩
 
+/-- **The bookkeeping at another view and records** (synchronous storage, no batching: both queues
+empty, so the view enters only through `QueueView`'s count of its `mem` records, none when alive, and
+the durable states only through `JobsChain`'s `D = dur` when alive; a dead node's are unconstrained). -/
+theorem nodeMemB2_view (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v v' : AntSim.NodeView)
+    (x : CrashNames) (g : Nat) (phs phs' : HardStateM) (dur D dur' D' : RaftState) (dead : Bool)
+    (hole : Option WorkHole) (has : γ.mode.Async' = false) (hbt : γ.mode.Batch' = false)
+    (hm : dead = false → v'.mems = [] ∧ D' = dur') :
+    nodeMemB2 (GF := GF) γ j n v x g phs dur D dead hole ⊢
+      nodeMemB2 γ j n v' x g phs' dur' D' dead hole := by
+  unfold nodeMemB2
+  iintro ⟨%items, %mhs, %rhs, %wip, %aip, %wsl, %asl, %wls, %als, %jobs, %ajobs, %ow, %oa, %hm', %rh,
+    H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, Hm, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22,
+    %Hp⟩
+  obtain ⟨-, -, h3, h4, -, h6, -, h8⟩ := Hp
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := h8 has
+  have hi := h6 hbt
+  subst hi
+  iexists 0, mhs, rhs, wip, aip, wsl, asl, wls, als, [], [], none, none, hm', rh
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 Hm H13 H14 H15 H16 H17 H18 H19 H20 H21 H22
+  ipureintro
+  refine ⟨fun hd => ⟨?_, fun i w hw => ?_⟩, fun hd => ?_, h3, h4, fun h => ?_, fun _ => rfl,
+    fun h => ?_, fun _ => ⟨rfl, rfl, rfl, rfl⟩⟩
+  · simp [(hm hd).1]
+  · cases hf : WorkHole.wFresh hole <;> simp [hf] at hw
+  · simp only [JobsChain]; exact (hm hd).2
+  · rw [hbt] at h; cases h
+  · rw [has] at h; cases h
+
 /-- **A dead node drained** (`nodeOwnB2HD … .drained none true` from its pieces): its fields, the kill
 flag set, the view frozen at `v` (normal, the disk against it), its storage, its `RawNode` at any
 record, raft's ghost pieces (the durable ghost at the disk), its bookkeeping dead. -/
