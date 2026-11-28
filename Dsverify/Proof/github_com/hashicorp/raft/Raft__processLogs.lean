@@ -48,9 +48,9 @@ theorem github_com.hashicorp.raft.Raft.processLogs.wp_proof
     github_com.hashicorp.raft.Raft.processLogs.spec (GF := GF) (hG := hG) :=
   fun r γ rc i idx fm M s a cm tid => by
   wp_start as ⟨#Hr, Hsrv, %Hidx, Hprod, Hap, Hcomp, %Hca, Htok, Hfm, HM⟩
-  ihave #Hcells := isRaft_cells r γ rc i $$ Hr
-  unfold raftCells
-  icases Hcells with ⟨#HtermC, #HcidxC, #Hdurv, #HstateC, #HappC, -, -, -⟩
+  ihave #Hcells := isRaftCore_cells r γ rc i $$ Hr
+  unfold raftCellsCore
+  icases Hcells with ⟨#HtermC, #HcidxC, #Hdurv, #HstateC, #HappC, -, -⟩
   wp_auto
   wp_apply wp_getLastApplied $$ [$HappC $Hap] as %la ⟨%Hla, Hap⟩
   wp_if_destruct
@@ -65,9 +65,9 @@ theorem github_com.hashicorp.raft.Raft.processLogs.wp_proof
     · iright; iexact Hfm
   ipersist r
   wp_apply wp_config $$ [$Hr] as %c %Hc
-  ihave #Hchans := isRaft_fsmCh r γ rc i $$ Hr
+  ihave #Hchans := isRaftCore_fsmCh r γ rc i $$ Hr
   icases Hchans with ⟨%fch, #Hfch, #Hspsc⟩
-  ihave #Hsd := isRaft_shutdownCh r γ rc i $$ Hr
+  ihave #Hsd := isRaftCore_shutdownCh r γ rc i $$ Hr
   unfold deadField deadChan
   icases Hsd with ⟨%sch, #Hsch, %γs, #Hsbag⟩
   ihave ⟨%abf, applyBatch, #HAB⟩ : (∃ fv : GoFunc, applyBatch_ptr ↦ fv ∗
@@ -113,10 +113,10 @@ theorem github_com.hashicorp.raft.Raft.processLogs.wp_proof
       iexfalso; iexact HF
     · iapply BigAndL.bigAndL_nil.2
       itrivial
-  ihave #Himm := isRaft_imm r γ rc i $$ Hr
+  ihave #Himm := isRaftCore_imm r γ rc i $$ Hr
   unfold raftImm
   icases Himm with ⟨#Hpv, -⟩
-  ihave #Hproto := isRaft_proto r γ rc i $$ Hr
+  ihave #Hproto := isRaftCore_proto r γ rc i $$ Hr
   icases Hproto with ⟨#Hinv, #Hvoter⟩
   iapply wp_ncfupd _ _ rfl
   iintro Hnc
@@ -129,7 +129,7 @@ theorem github_com.hashicorp.raft.Raft.processLogs.wp_proof
   icases fsmProd_open γ rc a $$ Hprod with ⟨%e0, Hps, %He0, Htail⟩
   obtain ⟨-, Hdl, -, -, -, -, Hlen, -, Hkinds⟩ := Hfacts
   have Hmae := Hc
-  obtain ⟨-, -, -, -, -, -, -, -, -, Hmae1, Hmae2, -⟩ := Hmae
+  obtain ⟨-, -, -, -, -, -, -, -, Hmae1, Hmae2, -⟩ := Hmae
   wp_apply (wp_slice_make3 (V := Loc) (W64 0) c.MaxAppendEntries' (by word)) as %sl0 ⟨Hsl0, Hcap0, %Hsl0c⟩
   have Hla1 : uint.nat (la + W64 1) = a + 1 := by
     have : uint.nat la < uint.nat idx := by word
@@ -249,7 +249,7 @@ theorem github_com.hashicorp.raft.Raft.processLogs.wp_proof
         · rfl
         · rw [h] at Hif; simp at Hif
       simp only [hMx, Option.getD_none, Option.isSome_none]
-      ihave #Hls := isRaft_logStore r γ rc i $$ Hr
+      ihave #Hls := isRaftCore_logStore r γ rc i $$ Hr
       icases Hls with ⟨%lsx, #Hlsp, #Hls, -⟩
       iunfold isLogStore at Hls
       icases Hls with ⟨-, -, #HGet, -⟩

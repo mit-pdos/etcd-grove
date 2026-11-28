@@ -24,12 +24,14 @@ variable [package_sem : github_com.hashicorp.raft.examples.hraftnet.Assumptions]
 open github_com.hashicorp.raft github_com.hashicorp.raft.examples.hraftnet
 
 /-- `raftConfig(id)`: a configuration raft runs with as server `sidOf id` (`cfgOk`: what
-`ValidateConfig` accepts and the verified scope; its random options are any of the drawn ones). -/
+`ValidateConfig` accepts and the verified scope; its random options are any of the drawn ones), with
+`RestoreCommittedLogs` off (hraft_robust: `cfgOk` allows either; `NewRaft` needs a
+`CommitTrackingLogStore` for it on, and this kit's `InmemStore` is not one). -/
 abbrev github_com.hashicorp.raft.examples.hraftnet.raftConfig.spec : Prop :=
   ∀ (id : w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft.examples.hraftnet }}
       (App (Val (@! raftConfig)) (Val #id))
-    {{ (p : Loc), RET #p; ∃ c : Config, p ↦ c ∗ ⌜cfgOk c (sidOf id)⌝ }}
+    {{ (p : Loc), RET #p; ∃ c : Config, p ↦ c ∗ ⌜cfgOk c (sidOf id) ∧ c.RestoreCommittedLogs' = false⌝ }}
 
 end spec
 

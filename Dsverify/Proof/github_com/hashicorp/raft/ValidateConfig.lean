@@ -35,7 +35,7 @@ theorem github_com.hashicorp.raft.ValidateConfig.wp_proof :
   wp_auto
   simp only [ProtocolVersionMin, ProtocolVersionMax, time.Millisecond]
   wp_auto
-  obtain ⟨hpv, hid, hine, -, -, -, -, -, -, hm1, hm2, hh, hhe, hct, hsi, hll, hllh, -, -, -, -⟩ := Hok
+  obtain ⟨hpv, hid, hine, -, -, -, -, -, hm1, hm2, hh, hhe, hct, hsi, hll, hllh, -, -, -, -⟩ := Hok
   subst hid
   rw [hpv]
   have hlen : (c.LocalID' : List w8).length ≠ 0 := by simpa using hine

@@ -29,11 +29,12 @@ the committed entries `(a, idx]` to the FSM in batches (with the futures of `fut
 dispatched future of the server's entry at its index, `nil` for a follower; stage 3: the entries
 read from the log store, which holds them: past the compaction frontier `c ≤ a`, `logCell`), and sets
 `lastApplied` to `max a idx` (stage 3: `lastApplied`'s ghost is a `mono_nat`, `applLb`). Futures at
-indexes `≤ a` are dropped. -/
+indexes `≤ a` are dropped. (hraft_robust rcl) Over `isRaftCore` (`isRaft` frames it): `NewRaft`'s
+`restoreFromCommittedLogs` calls it while `lastLock`'s fields are still pinned. -/
 abbrev github_com.hashicorp.raft.Raft.processLogs.spec : Prop :=
   ∀ (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (idx : w64) (fm : GoMap)
     (M : GMap w64 Loc) (s : SState) (a c : Nat) (tid : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaft r γ rc i ∗ srvV rc s ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.hashicorp.raft ∗ isRaftCore r γ rc i ∗ srvV rc s ∗
      ⌜uint.nat idx ≤ s.dur.1⌝ ∗
      fsmProd γ rc a ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
      monoNatAuthOwn rc.dur.comp (1 : Qp).half c ∗ ⌜c ≤ a⌝ ∗ rtok tid ∗

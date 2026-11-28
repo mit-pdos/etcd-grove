@@ -199,14 +199,14 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- The `Config` the server runs with (what `ValidateConfig` accepts, and the choices of the
 verified scope): protocol version 3, local id `i`, no notify channel, no batched apply channel,
-pre-vote on, startup not skipped, no restore of committed logs, no snapshot restore at start,
+pre-vote on, startup not skipped, (hraft_robust) any `RestoreCommittedLogs`, no snapshot restore at start,
 `1 ≤ MaxAppendEntries ≤ 64`, timeouts as `ValidateConfig` wants. (Stage 3: any
 `SnapshotThreshold` and `TrailingLogs`: servers snapshot and compact.) (Stage 4) A removed server keeps
 running (`ShutdownOnRemove` off: a leader removed from the configuration steps down to `Follower`). -/
 def cfgOk (c : Config) (i : SID) : Prop :=
   c.ProtocolVersion' = W64 3 ∧ c.LocalID' = i ∧ i ≠ [] ∧ c.NotifyCh' = chan.nil ∧
   c.BatchApplyCh' = false ∧ c.PreVoteDisabled' = false ∧ c.skipStartup' = false ∧
-  c.RestoreCommittedLogs' = false ∧ c.NoSnapshotRestoreOnStart' = false ∧
+  c.NoSnapshotRestoreOnStart' = false ∧
   1 ≤ uint.nat c.MaxAppendEntries' ∧ uint.nat c.MaxAppendEntries' ≤ 64 ∧
   5000000 ≤ sint.Z c.HeartbeatTimeout' ∧ sint.Z c.HeartbeatTimeout' ≤ sint.Z c.ElectionTimeout' ∧
   1000000 ≤ sint.Z c.CommitTimeout' ∧ 5000000 ≤ sint.Z c.SnapshotInterval' ∧
@@ -1279,7 +1279,7 @@ def raftImm (r : Loc) (i : SID) : IProp GF :=
   iprop(r.[Raft, go!"protocolVersion"] ↦□ (W64 3) ∗
     r.[Raft, go!"localID"] ↦□ (i : ServerID) ∗ r.[Raft, go!"localAddr"] ↦□ (i : ServerAddress) ∗
     r.[Raft, go!"preVoteDisabled"] ↦□ false ∗ (∃ nlt : Bool, r.[Raft, go!"noLegacyTelemetry"] ↦□ nlt) ∗
-    r.[Raft, go!"RestoreCommittedLogs"] ↦□ false)
+    (∃ rcl : Bool, r.[Raft, go!"RestoreCommittedLogs"] ↦□ rcl))
 
 instance raftImm_persistent r i : Persistent (raftImm (GF := GF) r i) := by
   unfold raftImm; infer_instance
@@ -1386,6 +1386,15 @@ def raftCells (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
 instance raftCells_persistent r γ rc i : Persistent (raftCells (GF := GF) r γ rc i) := by
   unfold raftCells; infer_instance
 
+/-- (hraft_robust rcl) `raftCells` without its last conjunct, the end of `NewRaft`'s `lastLock` pin
+(`llb` discarded): what `isRaftCore` holds of the cells. -/
+def raftCellsCore (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
+  iprop(termCell r γ rc i ∗ cidxCell r γ rc i ∗ srvDurInv γ rc i ∗ stateCell r rc ∗
+    appliedCell r rc ∗ cftCell r ∗ ltipCell r)
+
+instance raftCellsCore_persistent r γ rc i : Persistent (raftCellsCore (GF := GF) r γ rc i) := by
+  unfold raftCellsCore; infer_instance
+
 /-- `isRaft`'s locks and routines group. -/
 def raftLocks (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
   iprop(sync.isMutex (r.[Raft, go!"raftState"].[raftState, go!"lastLock"]) (lastLockInv r γ rc i) ∗
@@ -1455,6 +1464,23 @@ theorem isRaft_unseal : @isRaft = @isRaftDef := by funext; with_unfolding_all rf
 
 instance isRaft_persistent r γ rc i : Persistent (isRaft (GF := GF) r γ rc i) := by
   rw [isRaft_unseal]; unfold isRaftDef; infer_instance
+
+/-- The body of `isRaftCore` (see `isRaftCore`). -/
+def isRaftCoreDef (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
+  iprop(Inv γ ∗ isSrv γ i ∗ raftImm r i ∗ raftIfaces r γ rc i ∗ raftConf r γ i ∗
+    raftCellsCore r γ rc i ∗ raftLocks r γ rc i ∗ raftChans r γ rc i ∗ ⌜γ.cv = cfgDec γ.srvs⌝)
+
+/-- (hraft_robust rcl) **`isRaft` but for the end of `NewRaft`'s `lastLock` pin**: `isRaft` is
+`isRaftCore` and `dghostVar rc.names.llb DFrac.discard none` (`isRaft_iff_core`). For what runs while
+`NewRaft` still pins `lastLock`'s fields: `restoreFromCommittedLogs`' `processLogs` (and its `config`), which
+`RestoreCommittedLogs` runs before the configuration scan reads the pinned snapshot index. Sealed: use
+the laws of `core/Laws.lean`. -/
+@[irreducible] def isRaftCore (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) : IProp GF :=
+  isRaftCoreDef r γ rc i
+theorem isRaftCore_unseal : @isRaftCore = @isRaftCoreDef := by funext; with_unfolding_all rfl
+
+instance isRaftCore_persistent r γ rc i : Persistent (isRaftCore (GF := GF) r γ rc i) := by
+  rw [isRaftCore_unseal]; unfold isRaftCoreDef; infer_instance
 
 /-! ## The commitment -/
 

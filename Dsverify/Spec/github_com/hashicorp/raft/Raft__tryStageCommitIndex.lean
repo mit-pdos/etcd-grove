@@ -2,7 +2,7 @@
 Ported from dsverify-lab examples/hraft/proof/HrVerify/Spec/github_com/hashicorp/raft/Raft__tryStageCommitIndex.lean (241f27e).
 -/
 /-
-`raft.(*Raft).tryStageCommitIndex`'s spec (internal to the RPC handlers): a no-op, since `RestoreCommittedLogs` is false.
+`raft.(*Raft).tryStageCommitIndex`'s spec (internal to the RPC handlers): stages the commit index (or nothing).
 -/
 module
 
@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
 /-- `(*Raft).tryStageCommitIndex`: stages `c` (a `CommitTrackingLogStore` with
-`RestoreCommittedLogs` on) or nothing (here `RestoreCommittedLogs = false`). (hraft_robust R4a, for
+`RestoreCommittedLogs` on) or nothing (hraft_robust: either value of `RestoreCommittedLogs`). (hraft_robust R4a, for
 R4b's `dispatchLogs`) With the main goroutine's stable view `stVS rc D g` (its staged commit index
 `g`): afterwards the staged index is `c` or unchanged. -/
 abbrev github_com.hashicorp.raft.Raft.tryStageCommitIndex.spec : Prop :=

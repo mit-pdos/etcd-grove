@@ -40,7 +40,7 @@ theorem github_com.hashicorp.raft.Raft.setNewLogs.wp_proof
   wp_auto
   wp_apply wp_config $$ [$Hr] as %c %Hc
   have hmax : 1 ≤ uint.nat c.MaxAppendEntries' ∧ uint.nat c.MaxAppendEntries' ≤ 64 := by
-    unfold cfgOk at Hc; exact ⟨Hc.2.2.2.2.2.2.2.2.2.1, Hc.2.2.2.2.2.2.2.2.2.2.1⟩
+    unfold cfgOk at Hc; exact ⟨Hc.2.2.2.2.2.2.2.2.1, Hc.2.2.2.2.2.2.2.2.2.1⟩
   wp_apply (wp_slice_make3 (V := Loc) (W64 0) c.MaxAppendEntries' (by word)) as %sl0 ⟨Hsl, Hcap, %Hslcap⟩
   wp_apply wp_min
   ihave #Hinv := (isRaft_proto r γ rc i).trans sep_elim_left $$ Hr

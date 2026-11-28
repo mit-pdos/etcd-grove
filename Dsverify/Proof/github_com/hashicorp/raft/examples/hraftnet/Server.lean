@@ -248,6 +248,7 @@ theorem Server.wp_proof
   · iframe Hun; iframe #
   -- raft's options
   wp_apply (wp_raftConfig (W64 (j : Int))) as %cp ⟨%c, Hcp, %Hcfg⟩
+  obtain ⟨Hcfg, HrclF⟩ := Hcfg
   wp_apply (wp_ValidateConfig cp c (DFrac.own 1) (sidOf (W64 (j : Int)))) $$ [Hcp] as Hcp
   · iframe Hcp; iframe #; ipureintro; exact Hcfg
   try wp_auto
@@ -462,6 +463,7 @@ theorem Server.wp_proof
   · isplitr; · ipureintro; exact Hcfg
     isplitr; · ipureintro; exact store_fsmNotBatching fsm
     isplitr; · ipureintro; go_type_set
+    isplitr; · ipureintro; exact Or.inl HrclF
     isplitr; · ipureintro; go_type_set
     isplitr; · ipureintro; exact RecOk_fresh _ _ _ _
     isplitr; · ileft; ipureintro; rfl

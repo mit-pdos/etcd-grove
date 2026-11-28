@@ -10,6 +10,7 @@ public import Dsverify.Spec.github_com.hashicorp.raft.NewRaft
 public import Dsverify.Spec.github_com.hashicorp.raft.ValidateConfig
 public import Dsverify.Spec.github_com.hashicorp.raft.Raft__restoreSnapshot
 public import Dsverify.Spec.github_com.hashicorp.raft.Raft__restoreFromCommittedLogs
+public import Dsverify.Spec.github_com.hashicorp.raft.raftState__getCommitIndex
 public import Dsverify.Spec.github_com.hashicorp.raft.Raft__setLatestConfiguration
 public import Dsverify.Spec.github_com.hashicorp.raft.Raft__setCommittedConfiguration
 public import Dsverify.Spec.github_com.hashicorp.raft.DecodeConfiguration
@@ -211,10 +212,11 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     (wp_run : github_com.hashicorp.raft.Raft.run.spec (GF := GF) (hG := hG))
     (wp_runFSM : github_com.hashicorp.raft.Raft.runFSM.spec (GF := GF) (hG := hG))
     (wp_runSnapshots : github_com.hashicorp.raft.Raft.runSnapshots.spec (GF := GF) (hG := hG))
-    (wp_processHeartbeat : github_com.hashicorp.raft.Raft.processHeartbeat.spec (GF := GF) (hG := hG)) :
+    (wp_processHeartbeat : github_com.hashicorp.raft.Raft.processHeartbeat.spec (GF := GF) (hG := hG))
+    (wp_getCommitIndex : github_com.hashicorp.raft.raftState.getCommitIndex.spec (GF := GF) (hG := hG)) :
     github_com.hashicorp.raft.NewRaft.spec (GF := GF) (hG := hG) := by
   intro htb cp c fsmI logsI stableI snapsI transI rpcCh γ i rc eof X tid
-  wp_start as ⟨Hcp, %Hcfg, #Hfsm, %Hnb, #Hlogs, %Hnmono, #Hstable, #Hsnaps, #Heof, #Htrans, %Hpv,
+  wp_start as ⟨Hcp, %Hcfg, #Hfsm, %Hnb, #Hlogs, %Hnmono, %HrclCT, #Hstable, #Hsnaps, #Heof, #Htrans, %Hpv,
     #Hinv, #Hvoter, #Hdi, Hsv, HstV, HtermV, HcidxV, Happ', Happ, Hcomp, Hpend, Hpw, Hboot, %Hrec, #Hfirst, %Hg,
     HfsmOwn, Htok⟩
   obtain ⟨Hcv, ss, Hss, Hgss⟩ := Hg
@@ -311,7 +313,7 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   wp_bind (App (Val #(methods _ _ _)) _)
   iapply HLocalAddr
   wp_auto
-  obtain ⟨hPV, hLID, hi, hNC, hBA, hPVD, hSkip, hRCL, hNSR, hMA1, hMA2, hHB1, hHB2, hCT,
+  obtain ⟨hPV, hLID, hi, hNC, hBA, hPVD, hSkip, hNSR, hMA1, hMA2, hHB1, hHB2, hCT,
     hSI, hLL1, hLL2, hET, hHT, hCT2, hSI2⟩ := Hcfg
   rw [hPV]
   wp_auto
@@ -1001,10 +1003,6 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   iintro %v ⟨%hv, Hfix, r⟩
   subst hv
   wp_auto
-  -- restoreFromCommittedLogs (`RestoreCommittedLogs = false`: nothing)
-  rw [hRCL]
-  ipersist RestoreCommittedLogs
-  wp_apply wp_restoreFromCommittedLogs $$ [$RestoreCommittedLogs]
   -- the state after the fixes
   iunfold fixPost at Hfix
   icases Hfix with ⟨%s1, %A1, %lv1, %c1, Hboot, Hsv, Hpend, Hpw, HstV, Hcomp, Happ, Hllb, Hgll, lastLog, %Hf1⟩
@@ -1032,182 +1030,10 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   iframe Hnc
   imodintro
   obtain ⟨hlen1, hdl1, hents1, -, -⟩ := HF1
-  -- the last use of `lastLock` before `isRaft`: its pin discarded
-  wp_bind (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getLastSnapshot")) (Val #()))
-  iapply (getLastSnapshot_release (GF := GF) γ rc' i r lv1.Index' lv1.Term' (latIdxW X.lat) (latTermW X.lat))
-  iframe Hllb
-  iframe #
-  iintro #Hllb0
-  wp_auto
-  -- the configuration scan: every entry after the snapshot
+  -- (hraft_robust rcl) the boot ends and `isRaftCore` is built before `restoreFromCommittedLogs`, whose
+  -- `processLogs` needs it; `lastLock`'s pin stays until the scan's `getLastSnapshot`
   ipersist logs
-  have hx1n : latIdx X.lat ≤ s1.log.length := Nat.le_trans hx1 hdl1
-  have hidx0 : uint.nat (latIdxW X.lat + W64 1) = latIdx X.lat + 1 := by
-    rw [← latIdxW_nat] at hx1n ⊢; word
-  ihave HI : (∃ (idx : w64) (ccfg cfg : Configuration) (cidx li : w64) (p : Loc),
-      "index" ∷ index_ptr ↦ idx ∗
-      "Hidx" ∷ ⌜latIdx X.lat + 1 ≤ uint.nat idx ∧ uint.nat idx ≤ s1.log.length + 1⌝ ∗
-      "Hcfgs" ∷ r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg li ∗
-      "Hcf" ∷ nrCfgFacts γ s1.log (uint.nat idx - 1) (latIdx X.lat) s1.term cfg ccfg cidx li ∗
-      "Hlp" ∷ sync.atomic.ownPointer (T' := Configuration) (r.[Raft, go!"latestConfiguration"]) (DFrac.own 1) p ∗
-      "Hpc" ∷ (⌜p = null⌝ ∨ ∃ c' : Configuration, p ↦□ c' ∗ cfgOpt γ c') ∗
-      "Htok" ∷ rtok tid ∗ "Hboot" ∷ bootV rc' A1 X.lat ∗ "Hsv" ∷ srvVP rc' s1 none none ∗
-      "HstV" ∷ stVS rc' D' X.A.staged ∗
-      "Hpend" ∷ ghostVar rc'.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-      "lastLog" ∷ lastLog_ptr ↦ lv1 ∗ "r" ∷ r_ptr ↦ r : IProp GF)
-    $$ [index Hcfgs Hlp Hpc Htok Hboot Hsv HstV Hpend lastLog r]
-  · iexists _, ccfg0, cfg0, cidx0, li0, p0
-    iframe
-    rw [hidx0, Nat.add_sub_cancel]
-    iframe #
-    ipureintro; omega
-  repeat (irename : (emp : IProp GF) => Hjunk; iclear Hjunk)
-  repeat (irename : ("_" ∷ (True : IProp GF) : IProp GF) => Hjunk; iclear Hjunk)
-  wp_for HI
-  icases Hidx with %Hidx
-  icases Hcf with #Hcf
-  wp_if_destruct
-  · -- the iteration at `idx`
-    have hidxL : uint.nat idx ≤ s1.log.length := by rw [← hl1'.1]; word
-    obtain ⟨e, he⟩ := proto.ent_isSome s1.log (uint.nat idx) (by omega) hidxL
-    have hlk : A1.m !! uint.nat idx = some e := by rw [hab1 _ (by omega) hidxL]; exact he
-    wp_bind (App (App (Val #(methods _ _ _)) _) _)
-    iapply HGetLog $$ entry Htok
-    iapply (bootRead_L (GF := GF) γ rc' i A1 X.lat s1 none none D' X.A.staged)
-    iframe #
-    iframe Hsv HstV Hboot
-    iintro Hboot Hsv HstV %X5 %HX5 %err' Hpost Htok
-    rw [HX5.1]
-    unfold getLogPost
-    rw [hlk]
-    icases Hpost with ⟨%Herr, %lve, entry, #Hlve⟩
-    subst Herr
-    wp_auto
-    unfold logIs
-    icases Hlve with ⟨%hlve, #Hdata, -⟩
-    obtain ⟨hkind, hcfgk⟩ := hents1 _ _ he
-    have hn1 : uint.nat idx - 1 + 1 = uint.nat idx := by omega
-    have he' : ent s1.log (uint.nat idx - 1 + 1) = some e := by rw [hn1]; exact he
-    have hkT : uint.nat lve.Type' = e.kind := hlve.2.2
-    have hT23 : lve.Type' ≠ W8 2 ∧ lve.Type' ≠ W8 3 := by
-      constructor <;> intro h <;> rw [h] at hkT <;> simp at hkT <;>
-        rcases hkind with h' | h' | h' | h' <;> rw [h'] at hkT <;> simp [kCommand, kNoop, kBarrier, kConfig] at hkT
-    have hpc := wp_processConfigurationLogEntry true
-    simp only [↓reduceIte] at hpc
-    have hidxW : lve.Index' = W64 (uint.nat idx - 1 + 1 : Nat) := by
-      apply BitVec.eq_of_toNat_eq; have := hlve.1; rw [hn1]; simp at this ⊢; omega
-    by_cases hk : e.kind = kConfig
-    · -- a configuration entry: the latest becomes the committed one
-      obtain ⟨ss, hd, hss⟩ := hcfgk hk
-      have hT5 : lve.Type' = W8 5 := by
-        apply BitVec.eq_of_toNat_eq; rw [hk] at hkT; simpa [kConfig] using hkT
-      iapply wp_ncfupd _ _ rfl
-      iintro Hnc
-      ihave H4 := bootPeek (GF := GF) γ rc' i (E := ⊤) (fun _ _ => CoPset.mem_full) A1 X.lat s1 none none
-        iprop(cmtIdx γ s1.term s1.log (lastCfgIdx (s1.log.take (uint.nat idx - 1)))) $$ [$Hdi' $Hboot $Hsv $Hpend]
-      · iintro %X6 %HX6 #- Hown
-        rw [HX6.2.2.1]
-        imod (cfgPrevCommitted γ (⊤ \ ↑durN) gprotN_durN i s1 (uint.nat idx) e he hk) $$ [$Hinv $Hown]
-          with ⟨Hown, #Hcm⟩
-        imodintro; iframe Hown Hcm
-      imod H4 $$ Hnc with ⟨Hnc, Hboot, Hsv, Hpend, #Hcm⟩
-      iframe Hnc
-      imodintro
-      wp_bind (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"processConfigurationLogEntry")) _)
-      iapply (hpc r γ entry_ptr lve (DFrac.own 1) ccfg cfg cidx li p) $$ [$entry $Hcfgs Hlp]
-      · iframe #
-        isplitr; · ipureintro; exact hT23
-        iright
-        iframe Hlp
-        iexists ss
-        rw [← hd]
-        iframe Hdata
-        ipureintro; exact hss
-      inext
-      iintro ⟨entry, Hres⟩
-      icases Hres with (⟨%hne, -⟩ | ⟨%c', %ss', ⟨-, %hss'⟩, Hcfgs, #Hd', Hcs, %p1, %c'', Hlp, #Hp1, Hcs'⟩)
-      · exact absurd hT5 hne
-      ihave %hdeq := ownSlice_agree _ _ _ _ _ $$ Hdata Hd'
-      imod ownSlice_persist $$ Hcs with #Hcs
-      imod ownSlice_persist $$ Hcs' with #Hcs'
-      wp_auto
-      wp_for_post
-      ihave #Hcf' := nrCfgFacts_step_cfg (GF := GF) γ s1.log (uint.nat idx - 1) (latIdx X.lat) s1.term cfg ccfg c'
-        cidx li e ss' he' hk (by rw [hdeq]) hss' (by omega) (by omega) $$ [$Hcf $Hcs $Hcm]
-      iframe
-      iexists (idx + W64 1), cfg, c', li, lve.Index', p1
-      iframe
-      rw [hidxW]
-      have hw : uint.nat (idx + W64 1) - 1 = uint.nat idx - 1 + 1 := by word
-      rw [hw]
-      iframe Hcf'
-      isplitr
-      · ipureintro; word
-      iright; iexists c''; iframe Hp1
-      unfold cfgOpt; iexists ss'; iframe Hcs'; ipureintro; right; exact hss'
-    · -- another entry: nothing changes
-      have hT5 : lve.Type' ≠ W8 5 := by
-        intro h; rw [h] at hkT; apply hk; simpa [kConfig] using hkT.symm
-      wp_apply (hpc r γ entry_ptr lve (DFrac.own 1) ccfg cfg cidx li p) $$ [$entry $Hcfgs]
-        as ⟨entry, Hres⟩
-      · isplitr; · ipureintro; exact hT23
-        ileft; ipureintro; exact hT5
-      icases Hres with (⟨-, Hcfgs⟩ | ⟨%c', %ss', ⟨%hT, -⟩, -⟩)
-      rotate_left
-      · exact absurd hT hT5
-      ihave #Hcf' := nrCfgFacts_step_other (GF := GF) γ s1.log (uint.nat idx - 1) (latIdx X.lat) s1.term cfg ccfg
-        cidx li e he' hk $$ Hcf
-      wp_for_post
-      iframe
-      iexists (idx + W64 1), ccfg, cfg, cidx, li, p
-      iframe
-      have hw : uint.nat (idx + W64 1) - 1 = uint.nat idx - 1 + 1 := by word
-      rw [hw]
-      iframe Hcf'
-      ipureintro; word
-  -- after the scan: the configurations are the log's; the commit index (0) reaches only an empty latest
-  have hidxE : uint.nat idx - 1 = s1.log.length := by have := hl1'.1; word
-  ihave #Hcf2 : (nrCfgFacts γ s1.log s1.log.length (latIdx X.lat) s1.term cfg ccfg cidx li : IProp GF) $$ []
-  · rw [← hidxE]; iexact Hcf
-  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType Raft.ty) (m := go!"getCommitIndex")]
-  wp_call
-  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType raftState.ty) (m := go!"getCommitIndex")]
-  wp_call
-  wp_auto
-  wp_apply sync.atomic.wp_LoadUint64
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hclose
-  inext
-  iexists _
-  iframe FcommitIndex
-  iintro FcommitIndex
-  imod Hclose with _
-  imodintro
-  wp_auto
-  wp_bind (If _ _ _)
-  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ r_ptr ↦ r ∗ ∃ (ccfg' : Configuration) (cidx' : w64),
-      r.[Raft, go!"configurations"] ↦ configurations.mk ccfg' cidx' cfg li ∗
-      nrCfgFacts γ s1.log s1.log.length (latIdx X.lat) s1.term cfg ccfg' cidx' li)))
-    $$ [r Hcfgs] [-]
-  · wp_if_destruct
-    · have hli0 : li = W64 0 := by word
-      subst hli0
-      wp_apply wp_setCommittedConfiguration $$ [$Hcfgs] as Hcfgs
-      isplitr; · ipureintro; trivial
-      iframe r
-      iexists cfg, (W64 0)
-      iframe Hcfgs
-      iapply nrCfgFacts_commit γ s1.log s1.log.length _ s1.term cfg ccfg cidx (W64 0) $$ [$Hcf2]
-      rw [show uint.nat (W64 0) = 0 from rfl]
-      iapply cmtIdx_zero
-    · isplitr; · ipureintro; trivial
-      iframe r
-      iexists ccfg, cidx
-      iframe Hcfgs Hcf2
-  iintro %v ⟨%hv, r, %ccfg2, %cidx2, Hcfgs, #Hcf3⟩
-  subst hv
-  wp_auto
-  ------------------------------------------------------------------
+  ipersist RestoreCommittedLogs
   -- the boot is over: `srvDurInv`
   iapply wp_ncfupd _ _ rfl
   iintro Hnc
@@ -1319,13 +1145,14 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   ipersist followerNotifyCh
   imod inv_alloc latestCfgN ⊤ (latestCfgCell r γ) $$ [Hlp Hpc] with #HlatInv
   · inext; unfold latestCfgCell
-    iexists p; iframe
-  ihave #Hraft : (isRaft r γ rc' i : IProp GF) $$ []
-  · rw [isRaft_unseal]; unfold isRaftDef
+    iexists p0; iframe
+  ihave #Hcore : (isRaftCore r γ rc' i : IProp GF) $$ []
+  · rw [isRaftCore_unseal]; unfold isRaftCoreDef
     isplitr; · iexact Hinv
     isplitr; · iexact Hvoter
     isplitr
     · unfold raftImm; rw [hLID] at *; iframe #
+      try (iexists _; iexact RestoreCommittedLogs)
     isplitr
     · unfold raftIfaces
       rw [show logWin γ rc' i = logWin γ rc i from rfl, show stWin γ rc' i = stWin γ rc i from rfl,
@@ -1351,10 +1178,10 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     · unfold raftConf
       iexists c
       iframe #
-      ipureintro; exact ⟨hPV, hLID, hi, hNC, hBA, hPVD, hSkip, hRCL, hNSR, hMA1, hMA2,
+      ipureintro; exact ⟨hPV, hLID, hi, hNC, hBA, hPVD, hSkip, hNSR, hMA1, hMA2,
         hHB1, hHB2, hCT, hSI, hLL1, hLL2, hET, hHT, hCT2, hSI2⟩
     isplitr
-    · unfold raftCells termCell cidxCell stateCell appliedCell cftCell ltipCell
+    · unfold raftCellsCore termCell cidxCell stateCell appliedCell cftCell ltipCell
       iframe #
     isplitr
     · unfold raftLocks rwLock
@@ -1364,6 +1191,201 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
     · unfold raftChans deadField deadChan
       iframe #
     · ipureintro; exact Hcv
+  -- the FSM producer at the restored position
+  ihave HfsmProd : (fsmProd γ rc' (latIdx X.lat) : IProp GF) $$ [HfsmProd Hgb]
+  · unfold fsmProd; iexists [], ∅, (latIdx X.lat); iframe
+    isplitr
+    · ipureintro; simp
+    isplitr
+    · ileft; ipureintro; exact ⟨rfl, rfl⟩
+    unfold noCmdBetween; simp only [Nat.sub_self, List.range'_zero]
+    iapply BigSepL.bigSepL_nil.2; itrivial
+  -- restoreFromCommittedLogs: with `RestoreCommittedLogs` on, the store's written commit index `k` (durable)
+  -- becomes the commit index and the entries up to it are applied
+  ihave Hsv : (srvV rc' s1 : IProp GF) $$ [Hsv]
+  · unfold srvV; iunfold srvVP at Hsv; iexact Hsv
+  wp_apply (wp_restoreFromCommittedLogs r γ rc' i c.RestoreCommittedLogs' logsI s1 (latIdx X.lat) c1 tid)
+    $$ [$Hcore $Hsv $HfsmProd $Happ $Hcomp $Htok] as ⟨%k, %hk, Hsv, HfsmProd, Happ, Hcomp, Htok⟩
+  · iframe #
+    isplitr; · ipureintro; exact HrclCT
+    ipureintro; exact ⟨hc1, by rw [hci1]; exact Nat.zero_le _⟩
+  have hkd : k ≤ s1.dur.1 := by
+    rcases hk with ⟨-, h⟩ | ⟨-, h⟩
+    · rw [h, hci1]; exact Nat.zero_le _
+    · exact h
+  try wp_auto
+  ihave Hsv : (srvVP rc' { s1 with cidx := k } none none : IProp GF) $$ [Hsv]
+  · unfold srvVP; iunfold srvV at Hsv; iexact Hsv
+  -- the last use of `lastLock` before `isRaft`: its pin discarded
+  wp_bind (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"getLastSnapshot")) (Val #()))
+  iapply (getLastSnapshot_release (GF := GF) γ rc' i r lv1.Index' lv1.Term' (latIdxW X.lat) (latTermW X.lat))
+  iframe Hllb
+  iframe #
+  iintro #Hllb0
+  wp_auto
+  ihave #Hraft : (isRaft r γ rc' i : IProp GF) $$ []
+  · iapply (isRaft_of_core r γ rc' i); iframe #
+  -- the configuration scan: every entry after the snapshot
+  have hx1n : latIdx X.lat ≤ s1.log.length := Nat.le_trans hx1 hdl1
+  have hidx0 : uint.nat (latIdxW X.lat + W64 1) = latIdx X.lat + 1 := by
+    rw [← latIdxW_nat] at hx1n ⊢; word
+  ihave HI : (∃ (idx : w64) (ccfg cfg : Configuration) (cidx li : w64),
+      "index" ∷ index_ptr ↦ idx ∗
+      "Hidx" ∷ ⌜latIdx X.lat + 1 ≤ uint.nat idx ∧ uint.nat idx ≤ s1.log.length + 1⌝ ∗
+      "Hcfgs" ∷ r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg li ∗
+      "Hcf" ∷ nrCfgFacts γ s1.log (uint.nat idx - 1) (latIdx X.lat) s1.term cfg ccfg cidx li ∗
+      "Htok" ∷ rtok tid ∗ "Hsv" ∷ srvVP rc' { s1 with cidx := k } none none ∗
+      "Hcomp" ∷ monoNatAuthOwn rc'.dur.comp (1 : Qp).half c1 ∗
+      "lastLog" ∷ lastLog_ptr ↦ lv1 ∗ "r" ∷ r_ptr ↦ r : IProp GF)
+    $$ [index Hcfgs Htok Hsv Hcomp lastLog r]
+  · iexists _, ccfg0, cfg0, cidx0, li0
+    iframe
+    rw [hidx0, Nat.add_sub_cancel]
+    iframe #
+    ipureintro; omega
+  repeat (irename : (emp : IProp GF) => Hjunk; iclear Hjunk)
+  repeat (irename : ("_" ∷ (True : IProp GF) : IProp GF) => Hjunk; iclear Hjunk)
+  wp_for HI
+  icases Hidx with %Hidx
+  icases Hcf with #Hcf
+  wp_if_destruct
+  · -- the iteration at `idx`
+    have hidxL : uint.nat idx ≤ s1.log.length := by rw [← hl1'.1]; word
+    obtain ⟨e, he⟩ := proto.ent_isSome s1.log (uint.nat idx) (by omega) hidxL
+    wp_bind (App (App (Val #(methods _ _ _)) _) _)
+    iapply HGetLog $$ entry Htok
+    iapply (snapProof.logCell_getLog γ rc' i { s1 with cidx := k } none c1 (uint.nat idx) (by omega) _)
+    iframe Hdinv
+    iframe Hsv Hcomp
+    iintro %LA %Hm Hsv Hcomp %err' Hpost Htok
+    have hlk : LA.m !! uint.nat idx = some e := by rw [Hm.2 hidxL]; exact he
+    unfold getLogPost
+    rw [hlk]
+    icases Hpost with ⟨%Herr, %lve, entry, #Hlve⟩
+    subst Herr
+    wp_auto
+    unfold logIs
+    icases Hlve with ⟨%hlve, #Hdata, -⟩
+    obtain ⟨hkind, hcfgk⟩ := hents1 _ _ he
+    have hn1 : uint.nat idx - 1 + 1 = uint.nat idx := by omega
+    have he' : ent s1.log (uint.nat idx - 1 + 1) = some e := by rw [hn1]; exact he
+    have hkT : uint.nat lve.Type' = e.kind := hlve.2.2
+    have hT23 : lve.Type' ≠ W8 2 ∧ lve.Type' ≠ W8 3 := by
+      constructor <;> intro h <;> rw [h] at hkT <;> simp at hkT <;>
+        rcases hkind with h' | h' | h' | h' <;> rw [h'] at hkT <;> simp [kCommand, kNoop, kBarrier, kConfig] at hkT
+    have hpc := wp_processConfigurationLogEntry false
+    simp only [Bool.false_eq_true, ↓reduceIte] at hpc
+    have hidxW : lve.Index' = W64 (uint.nat idx - 1 + 1 : Nat) := by
+      apply BitVec.eq_of_toNat_eq; have := hlve.1; rw [hn1]; simp at this ⊢; omega
+    by_cases hk : e.kind = kConfig
+    · -- a configuration entry: the latest becomes the committed one
+      obtain ⟨ss, hd, hss⟩ := hcfgk hk
+      have hT5 : lve.Type' = W8 5 := by
+        apply BitVec.eq_of_toNat_eq; rw [hk] at hkT; simpa [kConfig] using hkT
+      iapply wp_ncfupd _ _ rfl
+      iintro Hnc
+      ihave H4 := durPeek (GF := GF) γ rc' i (E := ⊤) (fun _ _ => CoPset.mem_full) { s1 with cidx := k } none none
+        iprop(True) iprop(cmtIdx γ s1.term s1.log (lastCfgIdx (s1.log.take (uint.nat idx - 1)))) $$ [$Hdinv $Hsv]
+      · isplitl []; · itrivial
+        iintro Hown -
+        imod (cfgPrevCommitted γ (⊤ \ ↑durN) gprotN_durN i { s1 with cidx := k } (uint.nat idx) e he hk) $$ [$Hinv $Hown]
+          with ⟨Hown, #Hcm⟩
+        imodintro; iframe Hown; iexact Hcm
+      imod H4 $$ Hnc with ⟨Hnc, Hsv, #Hcm⟩
+      iframe Hnc
+      imodintro
+      wp_bind (App (Val (r @!! go.GoType.PointerType Raft.ty @!! go!"processConfigurationLogEntry")) _)
+      iapply (hpc r γ entry_ptr lve (DFrac.own 1) ccfg cfg cidx li null) $$ [$entry $Hcfgs]
+      · iframe #
+        isplitr; · ipureintro; exact hT23
+        iright
+        try iframe HlatInv
+        iexists ss
+        rw [← hd]
+        iframe Hdata
+        ipureintro; exact hss
+      inext
+      iintro ⟨entry, Hres⟩
+      icases Hres with (⟨%hne, -⟩ | ⟨%c', %ss', ⟨-, %hss'⟩, Hcfgs, #Hd', Hcs, -⟩)
+      · exact absurd hT5 hne
+      ihave %hdeq := ownSlice_agree _ _ _ _ _ $$ Hdata Hd'
+      imod ownSlice_persist $$ Hcs with #Hcs
+      wp_auto
+      wp_for_post
+      ihave #Hcf' := nrCfgFacts_step_cfg (GF := GF) γ s1.log (uint.nat idx - 1) (latIdx X.lat) s1.term cfg ccfg c'
+        cidx li e ss' he' hk (by rw [hdeq]) hss' (by omega) (by omega) $$ [$Hcf $Hcs $Hcm]
+      iframe
+      iexists (idx + W64 1), cfg, c', li, lve.Index'
+      iframe
+      rw [hidxW]
+      have hw : uint.nat (idx + W64 1) - 1 = uint.nat idx - 1 + 1 := by word
+      rw [hw]
+      iframe Hcf'
+      ipureintro; word
+    · -- another entry: nothing changes
+      have hT5 : lve.Type' ≠ W8 5 := by
+        intro h; rw [h] at hkT; apply hk; simpa [kConfig] using hkT.symm
+      wp_apply (hpc r γ entry_ptr lve (DFrac.own 1) ccfg cfg cidx li null) $$ [$entry $Hcfgs]
+        as ⟨entry, Hres⟩
+      · isplitr; · ipureintro; exact hT23
+        ileft; ipureintro; exact hT5
+      icases Hres with (⟨-, Hcfgs⟩ | ⟨%c', %ss', ⟨%hT, -⟩, -⟩)
+      rotate_left
+      · exact absurd hT hT5
+      ihave #Hcf' := nrCfgFacts_step_other (GF := GF) γ s1.log (uint.nat idx - 1) (latIdx X.lat) s1.term cfg ccfg
+        cidx li e he' hk $$ Hcf
+      wp_for_post
+      iframe
+      iexists (idx + W64 1), ccfg, cfg, cidx, li
+      iframe
+      have hw : uint.nat (idx + W64 1) - 1 = uint.nat idx - 1 + 1 := by word
+      rw [hw]
+      iframe Hcf'
+      ipureintro; word
+  -- after the scan: the configurations are the log's; the latest is committed if the commit index reaches it
+  have hidxE : uint.nat idx - 1 = s1.log.length := by have := hl1'.1; word
+  ihave #Hcf2 : (nrCfgFacts γ s1.log s1.log.length (latIdx X.lat) s1.term cfg ccfg cidx li : IProp GF) $$ []
+  · rw [← hidxE]; iexact Hcf
+  ihave Hsv : (srvV rc' { s1 with cidx := k } : IProp GF) $$ [Hsv]
+  · unfold srvV; iunfold srvVP at Hsv; iexact Hsv
+  wp_apply (wp_getCommitIndex.1 r γ rc' i { s1 with cidx := k }) $$ [$Hsv] as Hsv
+  · iframe #
+    try (unfold cidxCell; iframe #)
+  wp_bind (If _ _ _)
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ r_ptr ↦ r ∗ srvV rc' { s1 with cidx := k } ∗
+      ∃ (ccfg' : Configuration) (cidx' : w64),
+      r.[Raft, go!"configurations"] ↦ configurations.mk ccfg' cidx' cfg li ∗
+      nrCfgFacts γ s1.log s1.log.length (latIdx X.lat) s1.term cfg ccfg' cidx' li ∗
+      ⌜cidx' = li ∨ k < uint.nat li⌝)))
+    $$ [r Hcfgs Hsv] [-]
+  · have hk64 : k < 2 ^ 64 := by omega
+    wp_if_destruct
+    · have hlik : uint.nat li ≤ k := by word
+      iapply wp_ncfupd _ _ rfl
+      iintro Hnc
+      ihave H6 := cmtIdx_dur_R (GF := GF) γ rc' i (E := ⊤) (fun _ _ => CoPset.mem_full) { s1 with cidx := k } (uint.nat li)
+        (by show uint.nat li ≤ s1.dur.1; omega)
+        $$ [$Hinv $Hdinv $Hsv]
+      imod H6 $$ Hnc with ⟨Hnc, Hsv, #Hcml⟩
+      iframe Hnc
+      imodintro
+      wp_apply wp_setCommittedConfiguration $$ [$Hcfgs] as Hcfgs
+      isplitr; · ipureintro; trivial
+      iframe r Hsv
+      iexists cfg, li
+      iframe Hcfgs
+      isplitl []
+      · iapply nrCfgFacts_commit γ s1.log s1.log.length _ s1.term cfg ccfg cidx li $$ [$Hcf2]
+        iexact Hcml
+      ipureintro; exact Or.inl rfl
+    · isplitr; · ipureintro; trivial
+      iframe r Hsv
+      iexists ccfg, cidx
+      iframe Hcfgs Hcf2
+      ipureintro; right; word
+  iintro %v ⟨%hv, r, Hsv, %ccfg2, %cidx2, Hcfgs, #Hcf3, %Hck⟩
+  subst hv
+  wp_auto
   -- the heartbeat fast path: the transport may call `r.processHeartbeat` from now on
   wp_bind (App (Val #(methods _ _ _)) _)
   iapply HSetHB
@@ -1395,17 +1417,16 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
   iunfold nrCfgFacts at Hcf3
   icases Hcf3 with ⟨#Hli, #Hcidx, %Hcfgf, #Hcmt⟩
   rw [List.take_length] at Hcfgf
-  ihave Hmain : (mainOwn r γ rc' i : IProp GF) $$ [Hsv Hpw HstV Hgll Hgst Happ HfsmProd Hgb Hcfgs
+  ihave Hmain : (mainOwn r γ rc' i : IProp GF) $$ [Hsv Hpw HstV Hgll Hgst Happ HfsmProd Hcfgs
       HlchOwn Hvtok Hvreg Hvlive Hvnm Hpend Hcomp]
   · unfold mainOwn
-    iexists s1, (W32 0)
+    iexists { s1 with cidx := k }, (W32 0)
     isplitl
     rotate_left
     · ileft; ipureintro; decide
     unfold mainOwnAt
-    iexists (latIdx X.lat), D', cfg, ccfg2, cidx2, li, leaderCh, γlch, [], c1
-    unfold srvV
-    iunfold srvVP at Hsv
+    iexists (Max.max (latIdx X.lat) k), D', cfg, ccfg2, cidx2, li, leaderCh, γlch, [], c1
+    dsimp only
     iframe Hsv Hpw Hgll Hgst Happ Hpend Hcomp Hcfgs HlchOwn
     iframe #
     isplitl [HstV]
@@ -1421,17 +1442,18 @@ theorem github_com.hashicorp.raft.NewRaft.wp_proof
       isplitr
       · iapply BigSepM.bigSepM_empty.2; iempintro
       · iapply BigSepM.bigSepM_empty.2; iempintro
-    isplitr; · ipureintro; exact ⟨hx1, by rw [hci1]; exact Nat.zero_le _⟩
-    isplitl [HfsmProd Hgb]
-    · unfold fsmProd; iexists [], ∅, (latIdx X.lat); iframe
-      isplitr
-      · ipureintro; simp
-      isplitr
-      · ileft; ipureintro; exact ⟨rfl, rfl⟩
-      unfold noCmdBetween; simp only [Nat.sub_self, List.range'_zero]
-      iapply BigSepL.bigSepL_nil.2; itrivial
-    isplitr; · ipureintro; exact hc1
-    isplitr; · ipureintro; exact Hcfgf
+    isplitr; · ipureintro; exact ⟨Nat.max_le.2 ⟨hx1, hkd⟩, Nat.le_max_right _ _⟩
+    isplitl [HfsmProd]
+    · iexact HfsmProd
+    isplitr; · ipureintro; exact Nat.le_trans hc1 (Nat.le_max_left _ _)
+    isplitr
+    · ipureintro
+      refine ⟨Hcfgf.1, ?_⟩
+      rcases Hcfgf.2 with h | ⟨h1, h2⟩
+      · exact Or.inl h
+      · rcases Hck with h | h
+        · exact Or.inl h
+        · exact Or.inr ⟨h1, Nat.max_lt.2 ⟨h2, h⟩⟩
     ipureintro; rw [HlchCap]; simp
   ihave HlsAny : (leaderStateAny r rc' : IProp GF) $$ [commitCh commitment inflight replState notify
       stepDown Hvnm']
