@@ -1033,10 +1033,10 @@ section commits
 (`leaderAppendCmd_upd`), at `first = |s.log| + 1`, the staged index durable. -/
 theorem storeLogs_app_win (s : SState) (es : RLog) (D : StableAbs) (g : w64)
     (hpre : pendPre γ i s (.app es)) (hg : uint.nat g ≤ s.dur.1) (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗ srvV rc s -∗ stVS rc D g -∗ pendHyps γ i s (.app es) -∗
-      (srvV rc { s with log := s.log ++ es } -∗ stVS rc D g -∗
+    Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ stVS rc D g -∗ pendHyps γ i s (.app es) -∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with log := s.log ++ es } -∗ stVS rc D g -∗
         ([∗list] k ↦ e ∈ es, llogIdx γ s.term (s.log.length + 1 + k) e) ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      logWin γ rc i (.store (s.log.length + 1) es) ∗
+      |==> logWin γ rc i (.store (s.log.length + 1) es) ∗
       (logWin γ rc i (.store (s.log.length + 1) es) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) es) ={∅, ⊤ \ ↑storeN}=∗ Ψ)) := by
   sorry -- hraft_robust R2: proof pending
@@ -1044,11 +1044,11 @@ theorem storeLogs_app_win (s : SState) (es : RLog) (D : StableAbs) (g : w64)
 /-- (R2) **The leader's configuration entry** at `StoreLogs`' commit (`leaderAppendCfg_upd`). -/
 theorem storeLogs_cfg_win (s : SState) (e : Entry) (k p : Nat) (D : StableAbs) (g : w64)
     (hpre : pendPre γ i s (.cfg e k p)) (hg : uint.nat g ≤ s.dur.1) (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗ srvV rc s -∗ stVS rc D g -∗ pendHyps γ i s (.cfg e k p) -∗
-      (srvV rc { s with log := s.log ++ [e] } -∗ stVS rc D g -∗
+    Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ stVS rc D g -∗ pendHyps γ i s (.cfg e k p) -∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with log := s.log ++ [e] } -∗ stVS rc D g -∗
         ccfgOwn γ i s.term (lastCfgIdx s.log) -∗
         llogIdx γ s.term (s.log.length + 1) e ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      logWin γ rc i (.store (s.log.length + 1) [e]) ∗
+      |==> logWin γ rc i (.store (s.log.length + 1) [e]) ∗
       (logWin γ rc i (.store (s.log.length + 1) [e]) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (rc.ownL (A.store (s.log.length + 1) [e]) ={∅, ⊤ \ ↑storeN}=∗ Ψ)) := by
   sorry -- hraft_robust R2: proof pending
@@ -1061,13 +1061,13 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
     (hpre : pendPre γ i s (.fstore prev pt ents lci j lc))
     (hg : (lc = none → uint.nat g ≤ s.dur.1) ∧ (∀ v, lc = some v → uint.nat g ≤ Min.min lci v))
     (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗ srvV rc s -∗ stVS rc D g -∗
+    Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ stVS rc D g -∗
       pendHyps γ i s (.fstore prev pt ents lci j lc) -∗
-      (∀ d : Nat × Nat, srvV rc { s with log := s.log ++ ents.drop j, dur := d } -∗ stVS rc D g -∗
+      (∀ d : Nat × Nat, ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with log := s.log ++ ents.drop j, dur := d } -∗ stVS rc D g -∗
         ⌜s.dur.1 ≤ d.1 ∧ uint.nat g ≤ d.1 ∧
           (∀ v, lc = some v → d.1 = Max.max s.dur.1 (Min.min lci v)) ∧ (lc = none → d = s.dur)⌝ -∗
         (match lc with | none => iprop(True) | some v => durLb γ i (Min.min lci v)) ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      logWin γ rc i (.store (prev + j + 1) (ents.drop j)) ∗
+      |==> logWin γ rc i (.store (prev + j + 1) (ents.drop j)) ∗
       (logWin γ rc i (.store (prev + j + 1) (ents.drop j)) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (rc.ownL (A.store (prev + j + 1) (ents.drop j)) ={∅, ⊤ \ ↑storeN}=∗ Ψ)) := by
   sorry -- hraft_robust R2: proof pending
@@ -1076,10 +1076,10 @@ theorem storeLogs_fstore_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j :
 (`truncate_upd`). -/
 theorem deleteRange_trunc_win (s : SState) (prev pt : Nat) (ents : RLog) (lci j : Nat)
     (hpre : pendPre γ i s (.trunc prev pt ents lci j)) (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗ srvV rc s -∗ pendHyps γ i s (.trunc prev pt ents lci j) -∗
-      (srvV rc { s with log := s.log.take (prev + j) } -∗ ⌜s.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ) -∗
+    Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ pendHyps γ i s (.trunc prev pt ents lci j) -∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with log := s.log.take (prev + j) } -∗ ⌜s.dur.1 < prev + 1 + j⌝ ={⊤ \ ↑storeN}=∗ Ψ) -∗
       ∀ (D : StableAbs) (g : w64), stVS rc D g -∗
-      (logWin γ rc i (.del (prev + 1 + j) s.log.length) ∗
+      |==> (logWin γ rc i (.del (prev + 1 + j) s.log.length) ∗
       (logWin γ rc i (.del (prev + 1 + j) s.log.length) -∗ |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ A : LogAbs,
         rc.ownL A ∗ (∀ hi' : w64, rc.ownL (A.delete (prev + 1 + j) s.log.length hi')
           ={∅, ⊤ \ ↑storeN}=∗ stVS rc D g -∗ Ψ))) := by
@@ -1091,11 +1091,11 @@ recorded pending (`tp`, its `tpRes` moved into the crash state), fired at the at
 theorem setUint64_term_win (s : SState) (tp : TermPend) (tv : Nat) (D : StableAbs) (g : w64)
     (ht : (tp = .set tv ∧ s.term ≤ tv) ∨ (tp = .elect ∧ tv = s.term + 1)) (h64 : tv < 2 ^ 64)
     (Ψ : IProp GF) :
-    srvDurInv γ rc i -∗ srvV rc s -∗ stVS rc D g -∗ tpRes γ (some tp) -∗
-      (srvVP rc s (some tp) none -∗
+    srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ stVS rc D g -∗ tpRes γ (some tp) -∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvVP rc s (some tp) none -∗
         stVS rc { D with ints := D.ints.insert (go!"CurrentTerm" : List w8) (W64 tv) } g
           ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      stWin γ rc i (.setU (go!"CurrentTerm" : List w8) (W64 tv)) ∗
+      |==> stWin γ rc i (.setU (go!"CurrentTerm" : List w8) (W64 tv)) ∗
       (stWin γ rc i (.setU (go!"CurrentTerm" : List w8) (W64 tv)) -∗
         |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
           (rc.ownS { D0 with ints := D0.ints.insert (go!"CurrentTerm" : List w8) (W64 tv) }
@@ -1121,11 +1121,11 @@ theorem set_voteCand_win (s : SState) (D : StableAbs) (g : w64) (c : List w8)
 theorem setUint64_vote_win (s : SState) (c : SID) (li lt : Nat) (D : StableAbs) (g : w64)
     (hpre : pendPre γ i s (.vote c li lt))
     (hc : D.bytes.lookup (go!"LastVoteCand" : List w8) = some c) (Ψ : IProp GF) :
-    Inv γ -∗ srvDurInv γ rc i -∗ srvV rc s -∗ stVS rc D g -∗ candIs γ c s.term li lt -∗
-      (srvV rc { s with vterm := s.term, vcand := c } -∗
+    Inv γ -∗ srvDurInv γ rc i -∗ ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc s -∗ stVS rc D g -∗ candIs γ c s.term li lt -∗
+      (ghostVar rc.dur.pw 1 (none : Option Pend) -∗ srvV rc { s with vterm := s.term, vcand := c } -∗
         stVS rc { D with ints := D.ints.insert (go!"LastVoteTerm" : List w8) (W64 s.term) } g -∗
         voteIs γ i s.term c ={⊤ \ ↑storeN}=∗ Ψ) -∗
-      stWin γ rc i (.setU (go!"LastVoteTerm" : List w8) (W64 s.term)) ∗
+      |==> stWin γ rc i (.setU (go!"LastVoteTerm" : List w8) (W64 s.term)) ∗
       (stWin γ rc i (.setU (go!"LastVoteTerm" : List w8) (W64 s.term)) -∗
         |NC={⊤ \ ↑storeN, ∅}=> ▷ ∃ D0 : StableAbs, rc.ownS D0 ∗
           (rc.ownS { D0 with ints := D0.ints.insert (go!"LastVoteTerm" : List w8) (W64 s.term) }
