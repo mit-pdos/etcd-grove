@@ -311,3 +311,35 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
 - **Next steps (K9-2)**: build `SharedGo`. Then the hub, §4 step 1: `SharedDefs.lean` (`HWf`, `RevsL`,
   `hhOwn`, `sharedM`/`sharedS`), and the specs and proofs of `intern`, `canonLocked`, `canonical`,
   `cfgSet.add`, `skipTo` and `settle`. Ask KGO for G11-G13.
+
+## Handoff K9-2 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **`SharedGo.lean` builds** (fk-lean2, target `...k8s.dist.SharedGo`, exit 0) with no change: K9-1's
+  feared fixes (`kstepL_rv_ge`, `settleL_with`) were not needed. No `sorry`, no axiom on the branch.
+- **`SharedDefs.lean`** (defs, `Proof/.../k8s/etcd3/`): `HWf`, `gapsL` (the foreign stores `skipTo`
+  appends: items unchanged, revision `histLen + 1`), `ikey`/`ckey` as map keys (classical `DecidableEq`,
+  `IntoValInj` from the translation's field projections), `canonNode`, `gapsOwn`, `hhInv`/`hhOwn`
+  (§2.3's lock invariant), `cfgSetOwn`, and `histOwn_agree_len` (one node holds one history, from the
+  nodes' recorded lengths; what `cfgSet.add` and `skipTo` need instead of canonicity). Design choices:
+  `is` carries no invariant (`canonLocked` walks the caller's own history, so it never needs to know what
+  a node in `is` holds); a `canon[k]` node records only `k`'s `prev` and `n` and some store (`intern`
+  compares stores with `storeEqual`); `gaps[base]` records `base`'s history `hs` and node `i`'s history
+  `hs ++ gapsL s |hs| (i+1)`; `canon` and `is` are both `nil` or both made (`intern` makes both).
+- **Specs written and built** (`Spec/.../k8s/etcd3/`): `pendEqual`, `mix`, `strHash`, `storeHash` (some
+  `w64`: no spec relies on a hash value), `histHashes.{intern, canonLocked, canonical, skipTo}`,
+  `cfgSet.add`. Not yet written: `settle` and `SharedModel` (§2.1-2.2: need `RevsL`, `revsOwn`,
+  `landingsL`; take `GoSettle R b full x y := SettleWith (landingsL R b full x y)` from `SharedGo`, so
+  that `searchRunN_with` applies directly).
+- **Proofs** (`Proof/.../k8s/etcd3/`): `pendEqual`, `mix`, `histHashes__canonical` build; `strHash`:
+  see the build line below. Left (step 1): `storeHash`, `intern`, `canonLocked`, `skipTo`, `cfgSet.add`,
+  then `settle`'s worklist and `SharedModel`. None is in `etc/link-lean-first-k8setcd3.txt` yet (add
+  them with their callees and rerun `etc/gen-link.py --k8setcd3` once the set is complete).
+- **Proof notes** (learned the hard way): the package's `IsPkgInit` needs `variable [reg :
+  EtcdGrove.k8s.CompactorRegistry]`; `defer` needs `wp_apply wp_with_defer as %defer defer` first;
+  `for i := range a` loads `a[i]` itself (so `a[i]` is loaded twice: `configEqual`'s pattern); a loop
+  condition `i < len(s)` on a string comes out of `wp_if_destruct` as `#(decide …) = #true` over
+  `BitVec.ofNat` while the goal keeps `W64 ↑len` (`strHash`: `BitVec.ofInt_natCast`); no
+  `by_contra`/`List.reverseRecOn` (no Mathlib). Maps: `wp_map_lookup1/2`, `wp_mapInsert`,
+  `wp_map_make1`, `pure_wp_map_nil_lookup1` (a lookup in a `nil` map: `canonLocked`'s first `is[n]`).
+- **Merges**: neither `k8s-dist-k4/2026-11-27` nor `k8s-dist-g11/2026-11-28` was on lean at hand-off; not
+  merged. STATUS.md not updated (nothing landed; add the K9 entry when the stage lands).
