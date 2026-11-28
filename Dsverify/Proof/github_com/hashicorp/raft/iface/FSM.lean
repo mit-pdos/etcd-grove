@@ -58,14 +58,14 @@ instance noCmdBetween_persistent γ k0 k : Persistent (noCmdBetween (GF := GF) �
 /-- (stage 3) **An `FSMSnapshot` value** `snap` of the FSM's state at index `s` (what `Snapshot()`
 returns): `Persist(sink)`, on any goroutine (concurrently with `Apply`), given a sink (`isSink`,
 open and empty) whose close obligation `Q` accepts every snapshot of `s` (`snapP s b`), writes some
-`b` with `snapP s b`, closes the sink and returns nil (the commit's result `R` is dropped: raft's own
-snapshots' commit returns `True`); `Release()` returns. -/
+`b` with `snapP s b`, closes the sink and returns nil with the commit's result `R b` (hraft_robust R4b:
+the own snapshot's commit returns the latest's index lower bound `latLb`, for the compaction); `Release()` returns. -/
 def fsmSnapOk (snap : GoInterfaceOk) (snapP : Nat → List w8 → IProp GF) (s : Nat) : IProp GF :=
   iprop(
     □ (∀ (k : GoInterfaceOk) (id : GoString) (own : Option (List w8) → IProp GF)
           (Q R : List w8 → IProp GF) (Φ : val → IProp GF),
         isSink k id own Q R -∗ □ (∀ b, snapP s b -∗ Q b) -∗ own (some []) -∗
-        (own none -∗ Φ #interface.nil) -∗
+        (own none -∗ (∃ b, R b) -∗ Φ #interface.nil) -∗
         WP (App (Val #(methods snap.ty go!"Persist" snap.v)) (Val #(GoInterface.ok k))) {{ Φ }}) ∗
     □ (∀ (Φ : val → IProp GF), Φ #() -∗
         WP (App (Val #(methods snap.ty go!"Release" snap.v)) (Val #())) {{ Φ }}))
