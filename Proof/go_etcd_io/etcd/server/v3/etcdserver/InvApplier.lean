@@ -649,11 +649,12 @@ instance srvBkTie_persistent (B₀ B : mvcc.KBReal) : Persistent (srvBkTie (GF :
 pending and loaded (`stLoaded γ st = st`: `ConsistentIndex` gives it back unchanged; D22 receiver
 epochs, S8d, 2026-10-26: until then any state, false after a snapshot, whose `γ.m0.1` is not 0),
 with the backend's owner share (`applyBackend`), as `wp_ci_get` takes them, and the value it
-returns there (`ciEff γ st.k`; C1's A2, 2026-10-28); the environment's `E.ciC`. -/
+returns there (`ciEff γ st.k`; C1's A2, 2026-10-28); the environment's `E.ciC`. (keepfix (c) step 1,
+2026-11-28) With the apply thread's mirror of the raft term field, which `wp_ci_get` takes and gives back. -/
 def srvCiC (γ : ApplyNames) (ci : Loc) (C : IProp GF) (x : w64) : Prop :=
-  ∃ (st : ApplyState) (b : GoInterface),
-    C = iprop(applyThread γ st ∗ applyBackend γ ci b) ∧ st.pending = false ∧ stLoaded γ st = st ∧
-      x = ciEff γ st.k
+  ∃ (st : ApplyState) (b : GoInterface) (rt : w64),
+    C = iprop(applyThread γ st ∗ applyBackend γ ci b ∗ ciRaftTerm γ.ci rt) ∧ st.pending = false ∧
+      stLoaded γ st = st ∧ x = ciEff γ st.k
 
 /-- The apply environment's threaded resources are the server's (D14i); (D22, 2026-10-23) its rest
 buckets' resource the backend's tracked buckets with the cluster `cl`'s in-memory members, its
