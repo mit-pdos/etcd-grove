@@ -37,6 +37,7 @@ namespace k8s_etcd3
 open Iris Iris.BI
 open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3
   (mstore mcfg hnode item Input Output state histHashes cfgSet ikey ckey)
+open Iris.ProgramLogic Iris.ProofMode
 
 /-! ## Well-formed configurations and the foreign stores -/
 
@@ -107,6 +108,60 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
+
+/-- An `ikey` is a safe map key: comparing two (field by field) does not panic and is equality of
+values (as `client_go/util/consistency`'s keys). -/
+instance ikey_safeMapKey (k : ikey) : SafeMapKey (GF := GF) ikey.ty k where
+  key_ok := trivial
+  wp_go_eq_map_key k' _ s E Φ := by
+    iintro HΦ
+    wp_pures
+    by_cases h1 : k.prev' = k'.prev'
+    · rw [decide_eq_true h1]
+      wp_pures
+      by_cases h2 : k.n' = k'.n'
+      · rw [decide_eq_true h2]
+        wp_pures
+        rw [show decide (k.h' = k'.h') = decide (k = k') by cases k; cases k'; simp_all]
+        iapply HΦ
+      · rw [decide_eq_false h2]
+        wp_pures
+        rw [show (false : Bool) = decide (k = k') by cases k; cases k'; simp_all]
+        iapply HΦ
+    · rw [decide_eq_false h1]
+      wp_pures
+      rw [show (false : Bool) = decide (k = k') by cases k; cases k'; simp_all]
+      iapply HΦ
+
+/-- A `ckey` is a safe map key (`ikey_safeMapKey`). -/
+instance ckey_safeMapKey (k : ckey) : SafeMapKey (GF := GF) ckey.ty k where
+  key_ok := trivial
+  wp_go_eq_map_key k' _ s E Φ := by
+    iintro HΦ
+    wp_pures
+    by_cases h1 : k.hist' = k'.hist'
+    · rw [decide_eq_true h1]
+      wp_pures
+      by_cases h2 : k.rv' = k'.rv'
+      · rw [decide_eq_true h2]
+        wp_pures
+        by_cases h3 : k.np' = k'.np'
+        · rw [decide_eq_true h3]
+          wp_pures
+          rw [show decide (k.h' = k'.h') = decide (k = k') by cases k; cases k'; simp_all]
+          iapply HΦ
+        · rw [decide_eq_false h3]
+          wp_pures
+          rw [show (false : Bool) = decide (k = k') by cases k; cases k'; simp_all]
+          iapply HΦ
+      · rw [decide_eq_false h2]
+        wp_pures
+        rw [show (false : Bool) = decide (k = k') by cases k; cases k'; simp_all]
+        iapply HΦ
+    · rw [decide_eq_false h1]
+      wp_pures
+      rw [show (false : Bool) = decide (k = k') by cases k; cases k'; simp_all]
+      iapply HΦ
 
 /-- A node of `canon[k]`: `k`'s `prev` and `n`, holding some store (read-only). -/
 def canonNode (k : ikey) (c : Loc) : IProp GF :=
