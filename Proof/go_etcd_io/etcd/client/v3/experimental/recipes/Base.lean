@@ -31,7 +31,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 namespace go_etcd_io.etcd.client.v3.experimental.recipes
 
 section errNewLeaf
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- **An `errors.New` error, as `errors.Is` sees it**: a pointer error (an `*errorString`,
 `errors.IsPointerError`: Go's `==` on it is Lean's equality), a leaf of an error tree without an

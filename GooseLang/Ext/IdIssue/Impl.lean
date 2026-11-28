@@ -75,7 +75,7 @@ end idIssue
 
 /-- A crash keeps the record. -/
 instance idIssue_semantics : ExtSemantics idIssueExt where
-  step := IdIssueStep
+  step := fun _ => IdIssueStep
   crash M M' := M' = M
 
 end Perennial

@@ -80,8 +80,8 @@ abbrev store.GuaranteedUpdate.spec : Prop :=
         (∀ o r, ca = some (o, r) → pr.rv = none ∧ ∀ n, f o n = f o (uint.nat r))⌝ ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ c.S.objAt dest o0 rv0 ∗ preAt pp pr ∗
       cachedOk c (c.pathPrefix ++ k) cx ca ∗ W ∗
-      ([∗list] x ∈ c.ms,
-        k8sAuRW x.γr.kv c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preF pr) f) W Φ) ∗
+      ([∗list] γv ∈ c.K.kvs,
+        k8sAuRW γv c (updStep (c.pathPrefix ++ k) ign c.S.zero (c.S.preF pr) f) W Φ) ∗
       tryUpdateOk c f uf) }}
     (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"GuaranteedUpdate"))

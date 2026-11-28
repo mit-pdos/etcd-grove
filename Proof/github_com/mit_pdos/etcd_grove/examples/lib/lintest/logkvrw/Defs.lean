@@ -212,7 +212,7 @@ theorem regStep_get (s v x : GoString) :
 end inj
 
 section addrs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The address of `s.mu`. -/
 abbrev muAddr (s : Loc) : Loc :=

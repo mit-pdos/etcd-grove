@@ -101,8 +101,8 @@ decision 1b, 2026-11-24). -/
 def getStateOk (c : StoreCfg GF Obj) (key : GoString) (ign : Bool)
     (R : w64 → w64 → KVState → IProp GF) (f : GoFunc) : IProp GF :=
   iprop(□ ∀ Ψ : val → IProp GF, levelTok 0 -∗
-    (∀ R0 m, |==> □ [∧list] x ∈ c.ms, ⌜R R0 m = fun _ => iprop(True)⌝ ∨
-      kvReadAu x.γr.kv (R R0 m)) -∗
+    (∀ R0 m, |==> □ [∧list] γv ∈ c.K.kvs, ⌜R R0 m = fun _ => iprop(True)⌝ ∨
+      kvReadAu γv (R R0 m)) -∗
     ▷ (∀ (st : Loc) (err : GoInterface), levelTok 0 -∗
         (unkErr c err ∨ ∃ σ, □ R (W64 (σ.rev : Int)) (kubernetes.modAt key σ) σ ∗
           ⌜∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗ stAt c key ign σ st err) -∗ Ψ (PairV #st #err)) -∗

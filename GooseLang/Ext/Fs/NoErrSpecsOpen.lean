@@ -21,10 +21,11 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 section step
 variable [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] [S : ExtSemantics fsExt] [FsSemOk]
+variable {tf : GoTypeFns}
 
 /-- Every step of `fstat(fd)` returns errno 0 when every inode is covered. -/
 theorem fstat_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i) (fd : w64) :
-    ∀ h st g e' h' st' g', S.step "Fstat" (#fd) h st g e' h' st' g' →
+    ∀ h st g e' h' st' g', S.step tf "Fstat" (#fd) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ ∃ r0, r = PairV r0 (#(0 : w64)) := by
   intro h st g e' h' st' g' hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
@@ -40,7 +41,7 @@ theorem fstat_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.
 /-- Every step of `pread(fd, n, off)` returns errno 0 when every inode is covered. -/
 theorem pread_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i)
     (fd off n : w64) :
-    ∀ h st g e' h' st' g', S.step "PRead" (PairV (#fd) (PairV (#off) (#n))) h st g e' h' st' g' →
+    ∀ h st g e' h' st' g', S.step tf "PRead" (PairV (#fd) (PairV (#off) (#n))) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ ∃ r0, r = PairV r0 (#(0 : w64)) := by
   intro h st g e' h' st' g' hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)

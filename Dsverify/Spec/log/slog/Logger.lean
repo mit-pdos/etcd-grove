@@ -34,7 +34,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std
 namespace log.slog
 
 section nofmt
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- A value of a type with neither a `String()` nor an `Error()` method (the lab's
 `replica.NoFmtArg`, over `fmt.Stringer` for the lab model's `stringer`). -/

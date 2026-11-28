@@ -348,7 +348,7 @@ opaque dbBroken [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (γ : BoltName) : 
 end vocab
 
 section plain
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The dynamic type of `wi` has no `ReadFrom` method (`io.CopyN` would call it). -/
 def writerPlain (wi : GoInterfaceOk) : Prop := methodSet wi.ty !! go!"ReadFrom" = none

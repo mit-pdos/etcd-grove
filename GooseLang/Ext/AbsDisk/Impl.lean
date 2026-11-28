@@ -252,7 +252,7 @@ end absDisk
 /-- The extension's semantics: its steps, and at a crash every WAL directory's `walCrash` (the
 area and the directories' durability kept; no WAL appears). -/
 instance absDisk_semantics : ExtSemantics absDiskExt where
-  step := AbsDiskStep
+  step := fun _ => AbsDiskStep
   crash s s' := s'.area = s.area ∧ s'.dirs = s.dirs ∧
     (∀ dir d, s.wal !! dir = some d → walCrash d (s'.wal !! dir)) ∧
     (∀ dir, s.wal !! dir = none → s'.wal !! dir = none)

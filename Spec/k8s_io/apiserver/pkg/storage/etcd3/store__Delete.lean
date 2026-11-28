@@ -54,7 +54,7 @@ abbrev store.Delete.spec : Prop :=
         opts.ExpectTransformOrDecodeError' = false⌝ ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗ preAt pp pr ∗
       cachedOk c (c.pathPrefix ++ k) cx ca ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep (c.pathPrefix ++ k) (c.S.preF pr) validate) W Φ) ∗
+      ([∗list] γv ∈ c.K.kvs, k8sAuRW γv c (delStep (c.pathPrefix ++ k) (c.S.preF pr) validate) W Φ) ∗
       validateOk c validate vf) }}
     (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Delete")) (Val #(GoInterface.ok ci)))
