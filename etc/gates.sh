@@ -226,6 +226,13 @@ if python3 etc/dsv/kitgen.py --check > "$tmp/kitgen.log" 2>&1; then
 else
   echo "kitgen: FAILED"; tail -10 "$tmp/kitgen.log"; fail=1
 fi
+# the hraft kit's codec proofs (Dsverify/Proof/.../hraftnet/Codec{Enc,Dec,LawsProof,Rcv}.lean, generated
+# from rpc_gen.go's structs by etc/dsv/tools/hraft-codec.py)
+if python3 etc/dsv/tools/hraft-codec.py --check > "$tmp/hraftcodec.log" 2>&1; then
+  echo "hraft-codec: ok"
+else
+  echo "hraft-codec: FAILED (run etc/dsv/tools/hraft-codec.py)"; head -10 "$tmp/hraftcodec.log"; fail=1
+fi
 # SpecPlan's generated package-init specs (SpecPlan/Spec/PkgInit/, etc/gen-specs-pkginit.py): a
 # stale one can still build, so only this check sees it (putget-dist, 2026-11-23)
 if python3 etc/gen-specs-pkginit.py --check > "$tmp/specpkginit.log" 2>&1; then
