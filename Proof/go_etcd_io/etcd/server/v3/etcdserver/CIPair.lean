@@ -70,6 +70,15 @@ and the certified `metaTMR` at once, with the raft laws (C5). -/
 def srvCITriple0 (cl : Cluster) (k t rt : w64) : IProp GF :=
   iprop(srvCIPair cl k t ∗ ⌜rt ≠ W64 0⌝)
 
+/-- (keepfix (c), step 1) **A committed entry's term is not 0** (persistent; from raft's
+`isCommittedLogLb_term_pos` with the cluster's non-empty boot log): what the backend hook needs to keep the stored
+pair's row (`metaTMR`), since a save of term 0 keeps the stored term. -/
+def srvTermPos (cl : Cluster) : IProp GF :=
+  iprop(□ ∀ k t : w64, srvCIPair cl k t ={⊤}=∗ ⌜t ≠ W64 0⌝)
+
+instance srvTermPos_persistent (cl : Cluster) : Persistent (srvTermPos (GF := GF) cl) := by
+  unfold srvTermPos; infer_instance
+
 instance srvCITriple0_persistent (cl : Cluster) (k t rt : w64) :
     Persistent (srvCITriple0 (GF := GF) cl k t rt) := by
   unfold srvCITriple0; infer_instance

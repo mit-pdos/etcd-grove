@@ -351,29 +351,33 @@ theorem metaTMR_agree (cl : Cluster) (π : ApplyPhys) (γ : BNames) {P : BParams
   exact metaIs_of_hkData hP Heq Hm
 
 /-- (keepfix (c)) **The meta-keys resource after a save** of `(k, tm, rtm)` with the triple predicate:
-nothing written for `k = 0`; else both keys tagged with `k`, the pair committed by the triple. `hpos`: a committed
-entry's term is not 0 (the save keeps the stored term when it is; to be discharged by raft's API, with the cluster's
+nothing written for `k = 0`; else both keys tagged with `k`, the pair committed by the triple. A committed
+entry's term is not 0 (the save keeps the stored term when it is; `srvTermPos`, from raft's API, with the cluster's
 non-empty boot log). -/
 theorem metaTMR_after_save (cl : Cluster) (π : ApplyPhys) (γ : BNames) (P : BParams) (mm : MetaCI)
     (k tm rtm : w64) (S' : Data) (r : Option (w64 × w64))
-    (hpos : ∀ k t : w64, srvCIPair (GF := GF) cl k t ⊢ ⌜t ≠ W64 0⌝)
     (hm : metaIs S' (metaAfterSave mm k tm)) (hr : metaRaftTermOf S' = rtAfterSave r k rtm) :
-    hkOwn (GF := GF) γ (hkData P S') -∗ metaRkOk cl π mm r -∗
-      (⌜k = W64 0⌝ ∨ □ srvCITriple0 cl k tm rtm) -∗ metaTMR cl π γ P (metaAfterSave mm k tm) := by
+    srvTermPos (GF := GF) cl -∗ hkOwn γ (hkData P S') -∗ metaRkOk cl π mm r -∗
+      (⌜k = W64 0⌝ ∨ □ srvCITriple0 cl k tm rtm) ={⊤}=∗ metaTMR cl π γ P (metaAfterSave mm k tm) := by
   rw [metaTMR_unfold]
-  unfold srvCITriple0
-  iintro Hk #Hr #HP
-  iexists S'
-  iframe Hk
-  isplitr; · ipureintro; exact hm
+  unfold srvCITriple0 srvTermPos
+  iintro #Htp Hk #Hr #HP
   by_cases h0 : k = W64 0
   · have hma : metaAfterSave mm k tm = mm := by unfold metaAfterSave; rw [if_pos h0]
     have hra : rtAfterSave r k rtm = r := by unfold rtAfterSave; rw [if_pos (Or.inl h0)]
+    imodintro
+    iexists S'
+    iframe Hk
+    isplitr; · ipureintro; exact hm
     rw [hma, hr, hra]
     iexact Hr
   · icases HP with (%H0 | ⟨#Hpair, %Hrt0⟩)
     · exact absurd H0 h0
-    ihave %Htm := hpos k tm $$ Hpair
+    imod Htp $$ %k %tm Hpair with %Htm
+    imodintro
+    iexists S'
+    iframe Hk
+    isplitr; · ipureintro; exact hm
     have hma : metaAfterSave mm k tm = (k, tm) := by
       unfold metaAfterSave; rw [if_neg h0, if_neg Htm]
     have hra : rtAfterSave r k rtm = some (k, rtm) := by
@@ -774,8 +778,8 @@ variable [cindex_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 variable {Rw : TRow GF}
 
 -- (keepfix (c)) The server's cluster: the consistent index keeps the triple predicate `srvCITriple0 cl` (step 1), and the
--- batch lock's resource is `metaTMR cl`; `hpos`, a committed entry's term is not 0 (`metaTMR_after_save`).
-variable (cl : Cluster) (hpos : ∀ k t : w64, srvCIPair (GF := GF) cl k t ⊢ ⌜t ≠ W64 0⌝)
+-- batch lock's resource is `metaTMR cl`; the hooks take `srvTermPos cl` (a committed entry's term is not 0).
+variable (cl : Cluster)
 
 /-- **The consistent index's pre-commit hook over the real backend**, with the run's facts
 (`hookRun`: what the server's hook needs for its `confState` put): `ci.UnsafeSave(t)`, by the
@@ -795,7 +799,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ srvTermPos cl ∗ inv applyN (consInv γA Rw) ∗
       applyRegd γA ⊢
       {{ batchLocked γ P b st ∗ batchLockInv γA (metaTMR cl γA.ph γ P) ∗ ⌜hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
@@ -803,7 +807,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
       {{ RET #(); ∃ (st' : BSess) (ui ut ur : Bool), batchLocked γ P b st' ∗
           batchLockInv γA (metaTMR cl γA.ph γ P) ∗ ⌜hookRun P st st' ui ut ur⌝ }} := by
   apply texan_of_strong _ _ _ _ _ (by rfl)
-  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv, #Hreg⟩ %Φ ⟨Hl, Hbl, %Hpre⟩ HΦ
+  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Htp, #Hinv, #Hreg⟩ %Φ ⟨Hl, Hbl, %Hpre⟩ HΦ
   iunfold batchLockInv at Hbl
   icases Hbl with ⟨%mm, Hmt, HTM, Hpend, #HregF, #Htm⟩
   icases metaTMR_agree cl γA.ph γ hP b st mm $$ [$Hl $HTM] with ⟨Hl, Hhk, %Hmm, #Hrk⟩
@@ -823,6 +827,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
     isplitr; · itrivial
     isplitr; · itrivial
     ipureintro; exact ⟨Hmm, rfl, hookRun_refl P st⟩
+  iapply wp_fupd
   iapply (hSave ci γA.ci (srvCITriple0 cl) (btIface t) (hookTM γ P b st γi γt γr) (token γi) (token γt)
     (token γr) mm (metaRaftTermOf st.S)) $$
     [HTM Hti Htt Htr] [Hmt Hpend HΦ]
@@ -834,6 +839,9 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
   iintro %tm %rtm #HP HTM
   unfold hookTM
   icases HTM with ⟨%st', %ui, %ut, %ur, Hl, Hhk, -, -, -, %Hm'⟩
+  imod (metaTMR_after_save cl γA.ph γ P mm k tm rtm st'.S (metaRaftTermOf st.S) Hm'.1 Hm'.2.1) $$
+    Htp Hhk Hrk HP with HTMR
+  imodintro
   iapply HΦ
   iexists st', ui, ut, ur
   iframe Hl
@@ -842,9 +850,8 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
     iexists (metaAfterSave mm k tm)
     rw [metaAfterSave_fst]
     iframe Hmt Hpend HregF
-    isplitl [Hhk]
-    · iapply metaTMR_after_save cl γA.ph γ P mm k tm rtm st'.S (metaRaftTermOf st.S) hpos Hm'.1 Hm'.2.1 $$
-        Hhk Hrk HP
+    isplitl [HTMR]
+    · iexact HTMR
     iapply termOk_after_save $$ Htm Hkd
   · ipureintro; exact Hm'.2.2
 
@@ -865,7 +872,7 @@ theorem ci_hook_backend (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ srvTermPos cl ∗ inv applyN (consInv γA Rw) ∗
       applyRegd γA ⊢
       {{ batchLocked γ P b st ∗ batchLockInv γA (metaTMR cl γA.ph γ P) ∗ ⌜hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
@@ -873,7 +880,7 @@ theorem ci_hook_backend (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG 
       {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ batchLockInv γA (metaTMR cl γA.ph γ P) ∗
           ⌜hookStep P st st'⌝ }} := by
   iintro #H !> %Φ Hpre HΦ
-  iapply (ci_hook_backend_run cl hpos hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ H Hpre
+  iapply (ci_hook_backend_run cl hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ H Hpre
   iintro !> ⟨%st', %ui, %ut, %ur, Hl, Hbl, %Hr⟩
   iapply HΦ
   iexists st'
@@ -927,20 +934,20 @@ theorem ci_hookFnSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ srvTermPos cl ∗ inv applyN (consInv γA Rw) ∗
       regdOrLink γA γ ∗
       □ (∀ (v : val) (Ψ : val → IProp GF),
           WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
             (Val v)) {{ Ψ }} -∗
           WP (App (Val #f) (Val v)) {{ Ψ }}) ⊢
       hookFnSpec γ P (batchLockInv γA (metaTMR cl γA.ph γ P)) b t f := by
-  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv, #Hrl, #Hf⟩
+  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Htp, #Hinv, #Hrl, #Hf⟩
   unfold hookFnSpec
   iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, %Hpre, Hpay⟩ HΦ
   imod batchLockInv_resolve γA (metaTMR cl γA.ph γ P) γ P b st stop m u $$ [$Hinv $Hrl] Hbl Hl Hpay
     with ⟨#Hreg, Hbl, Hl, Hpay⟩
   iapply Hf
-  iapply (ci_hook_backend (Rw := Rw) cl hpos hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$
+  iapply (ci_hook_backend (Rw := Rw) cl hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$
     [] [Hl Hbl]
   · iframe #
   · iframe Hl Hbl; ipureintro; exact Hpre
@@ -976,16 +983,16 @@ theorem ci_saveSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := h
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ srvTermPos cl ∗ inv applyN (consInv γA Rw) ∗
       regdOrLink γA γ ⊢
       storage.saveSpec γ P (batchLockInv γA (metaTMR cl γA.ph γ P)) b t
         ⟨go.GoType.PointerType consistentIndex.ty, #ci⟩ := by
-  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv, #Hrl⟩
+  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Htp, #Hinv, #Hrl⟩
   unfold storage.saveSpec
   iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, %Hpre, Hpay⟩ HΦ
   imod batchLockInv_resolve γA (metaTMR cl γA.ph γ P) γ P b st stop m u $$ [$Hinv $Hrl] Hbl Hl Hpay
     with ⟨#Hreg, Hbl, Hl, Hpay⟩
-  iapply (ci_hook_backend_run (Rw := Rw) cl hpos hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ []
+  iapply (ci_hook_backend_run (Rw := Rw) cl hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ []
     [Hl Hbl]
   · iframe #
   · iframe Hl Hbl; ipureintro; exact Hpre
@@ -1011,7 +1018,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ⊢
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ srvTermPos cl ∗ inv applyN (consInv γA Rw) ⊢
       {{ batchLocked γ P b st ∗ batchLockInv γA (metaTMR cl γA.ph γ P) ∗ applyThread γA s ∗
           ⌜hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
@@ -1019,7 +1026,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
       {{ RET #(); ∃ (st' : BSess) (ui ut ur : Bool), batchLocked γ P b st' ∗
           batchLockInv γA (metaTMR cl γA.ph γ P) ∗ freezeY γA s ∗ ⌜hookRun P st st' ui ut ur⌝ }} := by
   apply texan_of_strong _ _ _ _ _ (by rfl)
-  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv⟩ %Φ ⟨Hl, Hbl, Hst, %Hpre⟩ HΦ
+  iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Htp, #Hinv⟩ %Φ ⟨Hl, Hbl, Hst, %Hpre⟩ HΦ
   iunfold batchLockInv at Hbl
   icases Hbl with ⟨%mm, Hmt, HTM, Hpend, #Hreg, #Htm0⟩
   icases metaTMR_agree cl γA.ph γ hP b st mm $$ [$Hl $HTM] with ⟨Hl, Hhk, %Hmm, #Hrk⟩
@@ -1039,6 +1046,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
     isplitr; · itrivial
     isplitr; · itrivial
     ipureintro; exact ⟨Hmm, rfl, hookRun_refl P st⟩
+  iapply wp_fupd
   iapply (hSave ci γA.ci (srvCITriple0 cl) (btIface t) (hookTM γ P b st γi γt γr) (token γi) (token γt)
     (token γr) mm (metaRaftTermOf st.S)) $$
     [HTM Hti Htt Htr] [Hmt Hpend Hst HΦ]
@@ -1050,6 +1058,9 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
   iintro %tm %rtm #HP HTM
   unfold hookTM
   icases HTM with ⟨%st', %ui, %ut, %ur, Hl, Hhk, -, -, -, %Hm'⟩
+  imod (metaTMR_after_save cl γA.ph γ P mm k tm rtm st'.S (metaRaftTermOf st.S) Hm'.1 Hm'.2.1) $$
+    Htp Hhk Hrk HP with HTMR
+  imodintro
   iapply HΦ
   iexists st', ui, ut, ur
   iframe Hl HY
@@ -1058,9 +1069,8 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
     iexists (metaAfterSave mm k tm)
     rw [metaAfterSave_fst]
     iframe Hmt Hpend Hreg
-    isplitl [Hhk]
-    · iapply metaTMR_after_save cl γA.ph γ P mm k tm rtm st'.S (metaRaftTermOf st.S) hpos Hm'.1 Hm'.2.1 $$
-        Hhk Hrk HP
+    isplitl [HTMR]
+    · iexact HTMR
     iapply termOk_after_save γA mm k tm $$ Htm0 Hwd
   · ipureintro; exact Hm'.2.2
 
@@ -1078,13 +1088,13 @@ theorem ci_saveFreeze (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ inv applyN (consInv γA Rw) ⊢
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci (srvCITriple0 cl) ∗ srvTermPos cl ∗ inv applyN (consInv γA Rw) ⊢
       storage.saveReq γ P (batchLockInv γA (metaTMR cl γA.ph γ P)) b t
         ⟨go.GoType.PointerType consistentIndex.ty, #ci⟩ (applyThread γA s) (freezeY γA s) := by
   iintro #H
   unfold storage.saveReq
   iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, Hst, %Hpre, Hpay⟩ HΦ
-  iapply (ci_hook_freeze_run (Rw := Rw) cl hpos hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hps)
+  iapply (ci_hook_freeze_run (Rw := Rw) cl hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hps)
     $$ H [Hl Hbl Hst]
   · iframe Hl Hbl Hst; ipureintro; exact Hpre
   iintro !> ⟨%st', %ui, %ut, %ur, Hl, Hbl, HY, %Hr⟩
