@@ -120,8 +120,8 @@ with the requests (appends and heartbeats) pending first (`reqPend … 0`, alive
 reported (`reportCause`, `emit(sendEv)`: `sendHstepD`) and handed over (`sendMsg`), each other message
 left; a kill on the way (`emit`'s fuse) leaves the rest unreported and unsent. Then `K` at the view
 `v₂`, `v₁` but for its pending messages (alive: the other messages, `reqPend … ms.length`), `told` (set
-as `Told` needs, alive) and the undo record (none and made once a request is reported); the requests
-frozen (`drainMsgsParB2`). -/
+once the cause is reported: a `Ready` without requests whose `mem` was not reported reports none) and
+the undo record (none and made once a request is reported); the requests frozen (`drainMsgsParB2`). -/
 abbrev parReqB2.stmt : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (np rdp bp c n : Loc) (γ : AntNamesB2) (j : Fin γ.R.N)
     (I : DrainIterB1) (msk : AntSim.SimMask) (v₁ : AntSim.NodeView) (net₁ : List Msg)
@@ -146,8 +146,8 @@ abbrev parReqB2.stmt : Prop :=
           ⌜(dead = true → dead' = true) ∧ net₁ <+: net₂ ∧ xnet₁ <+: xnet₂ ∧
             (∃ (P : List Msg) (T : Bool) (U : Option AntSim.DurW) (M : Bool),
               v₂ = { v₁ with pend := P, told := T, undo := U, made := M } ∧
-              ((U = v₁.undo ∧ M = v₁.made) ∨ (U = none ∧ M = true)) ∧
-              (dead' = false → P = reqPend I.ms I.ms.length ∧ AntSim.Told v₂))⌝ ∗
+              ((U = v₁.undo ∧ M = v₁.made) ∨ (U = none ∧ M = true)) ∧ (T = v₁.told ∨ T = true) ∧
+              (dead' = false → P = reqPend I.ms I.ms.length))⌝ ∗
           drainMsgsParB2 γ j I ∗ runLive γ q ∗ netAdder c γ.toAntNames q ∗ threadTok -∗
           WP K {{ Φ }}) ⊢
     WP (App (App (Val exceptionSeq) (Lam BAnon K))
