@@ -431,8 +431,7 @@ theorem Main.wp_proof
     iexists _
     iframe Hcw
     ipureintro; rw [hγkv]
-  ihave #Hecl := client.isEtcdClient_of_km cl w api γk true ckPfx (by decide)
-    (show prefixRangeEnd ckPfx ≠ [W8 0] by decide) $$ []
+  ihave #Hecl := client.isEtcdClient_of_km cl w api γk true ckPfx (by decide) $$ []
   · iframe #
   (try wp_auto)
   -- `c, err := cache.New(cli, prefix)`: the default configuration

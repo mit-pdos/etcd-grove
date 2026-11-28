@@ -144,12 +144,12 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 /-- **etcd's cache over etcd's client, end to end** (K3; D48 over the client's specs):
 `New(cl, pfx, opts...)` for a client `cl` whose `KV` field is a `*kv` of etcd's KV `γ.kv` (`isKv`,
 `kv.Get.spec`'s) and whose `Watcher` field is a client watcher of it (`isKvWatcher`,
-`watcher.Watch.spec`'s), for a non-empty prefix not all `0xff`, returns what `New` returns
+`watcher.Watch.spec`'s), for a non-empty prefix, returns what `New` returns
 (`newCacheResult`) at the clients' model of etcd over its KV state (`client.etcdModelOfKV γ`, with
 the adapter's invariant `kmInv γ`, `client.kmInv_alloc` from the KV state's half): the cache's
 `Get`s and `Watch`es then speak of etcd's KV state. -/
 theorem cache_end_to_end_client (cl w api : Loc) (γ : client.KMNames) (dup : Bool)
-    (pfx : GoString) (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0])
+    (pfx : GoString) (hp : pfx ≠ [])
     (hpl : pfx.length ≤ 2 ^ 28) (sl : GoSlice)
     (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
@@ -166,7 +166,7 @@ theorem cache_end_to_end_client (cl w api : Loc) (γ : client.KMNames) (dup : Bo
         newCacheResult (EM := client.etcdModelOfKV γ) pfx (cfgApply gs defaultConfigVal) c
           err }} := by
   iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #HKV, #HW, #Hkv, #Hw, #Hinv, Hopts, %Hcfg, %Hb⟩ HΦ
-  ihave #Hcl := client.isEtcdClient_of_km cl w api γ dup pfx hp hff $$ []
+  ihave #Hcl := client.isEtcdClient_of_km cl w api γ dup pfx hp $$ []
   · iframe #
   haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax at *; omega⟩
   iapply (cache_New (EM := client.etcdModelOfKV γ) cl pfx sl gs) $$ [Hopts] HΦ
@@ -187,7 +187,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     (hm : V.mem = fun _ => (V.addr, V.R)) (hw : V.memW = fun _ => V.W) (hn : V.nm = 1)
     (hk : V.kst = γ.kv.st)
     (hst : kvSame γr.kv γ.kv) (hrb : receiptBound GF ≤ 2 ^ 62)
-    (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (hpl : V.pfx.length ≤ 2 ^ 28) (sl : GoSlice)
+    (hpl : V.pfx.length ≤ 2 ^ 28) (sl : GoSlice)
     (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -217,7 +217,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
   · iunfold watchAddrFacts at Hf
     icases Hf with ⟨-, -, %H, -⟩
     ipureintro; exact H
-  ihave #Hcl := client.isEtcdClient_of_km cl w api γ true V.pfx hp hff $$ []
+  ihave #Hcl := client.isEtcdClient_of_km cl w api γ true V.pfx hp $$ []
   · iframe #
   haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax at *; omega⟩
   iapply (cache_New (EM := client.etcdModelOfKV γ) cl V.pfx sl gs) $$ [Hopts] HΦ

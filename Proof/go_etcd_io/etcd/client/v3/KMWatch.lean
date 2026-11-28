@@ -4,8 +4,8 @@ Lean-first, no Rocq counterpart.
 
 `isEtcdWatcher_of_km`: a `*watcher` of etcd's KV `γ.kv` (`isKvWatcher`), with the adapter's
 invariant (`kmInv γ`, `EtcdModelKV.lean`), meets the cache's watch contract (`isEtcdWatcher`,
-`cache/v3/InvEtcd.lean`) at the adapter's model (`etcdModelOfKV γ`), for a non-empty prefix not
-all `0xff`: the call is `watcher.Watch.spec`'s, with the adapter's read update after the floor
+`cache/v3/InvEtcd.lean`) at the adapter's model (`etcdModelOfKV γ`), for a non-empty prefix:
+the call is `watcher.Watch.spec`'s, with the adapter's read update after the floor
 the caller knows (`km_read_au` at `km_reached_lb`'s changes of `etcdRead (rev - 1)`), and each
 response, a read of a state the client saw (`watchStateRespOk`), is etcd's response of the
 cache's contract (`watchRespOk_of_km`):
@@ -46,11 +46,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **A client watcher of etcd's KV meets the cache's watcher contract** at the adapter's model
-(see the file header), for a prefix not empty and not all `0xff` (`watcher.Watch.spec`'s
+(see the file header), for a non-empty prefix (`watcher.Watch.spec`'s
 prefix-watch condition): the channel `Watch` returns, its elements etcd's
 (`etcdWatchElem_of_km`). -/
-theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx ≠ [])
-    (hff : prefixRangeEnd pfx ≠ [W8 0]) :
+theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx ≠ []) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isKvWatcher w γ.kv ∗ kmInv γ ⊢
@@ -103,7 +102,7 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
     iintro !> %i %v H
     ihave H := watchStateElemP_elem _ γw (opWatchModel key gs) (kmSeenQ γ l0) _ i v $$ H
     imodintro
-    iapply etcdWatchElem_of_km γ l0 pfx hp hff (opWatchModel key gs) rev hkey hend hr _ γw _ i v
+    iapply etcdWatchElem_of_km γ l0 pfx hp (opWatchModel key gs) rev hkey hend hr _ γw _ i v
       $$ [Hreach H]
     iframe Hreach H
   unfold etcdWatchConsumer

@@ -199,7 +199,7 @@ theorem RunCache.wp_proof
   ihave ⟨%api, #Hkc⟩ := kvClient_of_new cl addrs (Classical.choice hV) Γ $$ [Hnc Hnp Hms]
   · iframe #
   ihave #Hecl := isEtcdClient_of_dist wp_Get wp_Watch wp_RP cl api w addrs (Classical.choice hV) Γ Hauth γ
-    hγk etcd_cache.ckPfx (by decide) (by decide) $$ [Pcli Ppb Pctx Hall Hkc Hwc Hkm]
+    hγk etcd_cache.ckPfx (by decide) $$ [Pcli Ppb Pctx Hall Hkc Hwc Hkm]
   · iframe #
   (try wp_auto)
   -- `c, err := cache.New(ccli, cachePrefix)`: the default configuration

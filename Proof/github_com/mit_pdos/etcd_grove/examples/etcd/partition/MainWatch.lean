@@ -288,7 +288,7 @@ theorem MainWatch.wp_proof
     iexists { cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd wkPfx with conn := conn, ics := ics, wc := wc, lg := lgw }
     iframe Hcw
     ipureintro; rw [hγk]; rfl
-  ihave #Hew := client.isEtcdWatcher_of_km w γ wkPfx (by decide) (by decide) $$ [Pcli Ppb Pctx Hkw]
+  ihave #Hew := client.isEtcdWatcher_of_km w γ wkPfx (by decide) $$ [Pcli Ppb Pctx Hkw]
   · iframe #
   (try wp_auto)
   -- `wctx, cancel := context.WithCancel(context.Background())`

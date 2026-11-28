@@ -5,8 +5,8 @@ counterpart.
 `isEtcdClient_of_km`: a `*clientv3.Client` whose `KV` field is a `*kv` of etcd's KV `γ.kv`
 (`isKv`, any `dup`: the cache only reads) and whose `Watcher` field a client watcher of it
 (`isKvWatcher`) meets the cache's client contract (`isEtcdClient`, `cache/v3/InvNew.lean`) at the
-adapter's model (`etcdModelOfKV γ`, with its invariant `kmInv γ`), for a non-empty prefix not all
-`0xff`: its gets (`isEtcdKVE_of_km`, any context: the watcher's `ctxErrClientAllW`), its watches
+adapter's model (`etcdModelOfKV γ`, with its invariant `kmInv γ`), for a non-empty prefix:
+its gets (`isEtcdKVE_of_km`, any context: the watcher's `ctxErrClientAllW`), its watches
 (`isEtcdWatcher_of_km`) and its progress requests (`isEtcdProgressNotifier_of_km`).
 -/
 module
@@ -54,7 +54,7 @@ theorem ctxErrClientAll_of_kvWatcher (w : Loc) (γk : KVNames) :
 
 /-- **etcd's client is the cache's** (see the file header). -/
 theorem isEtcdClient_of_km (cl w api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString)
-    (hp : pfx ≠ []) (hff : prefixRangeEnd pfx ≠ [W8 0]) :
+    (hp : pfx ≠ []) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗
@@ -71,7 +71,7 @@ theorem isEtcdClient_of_km (cl w api : Loc) (γ : KMNames) (dup : Bool) (pfx : G
   · iapply isEtcdKVE_of_km api γ dup pfx hp
     iframe #
   isplitr
-  · iapply isEtcdWatcher_of_km w γ pfx hp hff
+  · iapply isEtcdWatcher_of_km w γ pfx hp
     iframe #
   iapply isEtcdProgressNotifier_of_km w γ.kv
   iframe #

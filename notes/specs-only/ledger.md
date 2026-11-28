@@ -9650,3 +9650,15 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   name a bbolt key), which `authSmall.names`/the new `authSmall.roleNames` give. `notes/nomode-n1.md`, "D3,
   narrowed".
 - **Decision.** The lead (dsverify-net), relaying the review; strengthening, no new trust.
+## 2026-11-28: the cache's "prefix not all `0xff`" premise dropped (nomode N1b-3)
+
+- **Spec.** `cache_end_to_end_client`, `cache_end_to_end_new` (`cache/v3/Results.lean`);
+  `client.isEtcdClient_of_km`, `isEtcdWatcher_of_km`, `etcdWatchElem_of_km`, `watchRespOk_of_km`,
+  `pfxRange`/`pfxRange_covers`; `isEtcdClient_of_dist`, `isEtcdWatcher_of_kmW`.
+- **Defect.** A premise `prefixRangeEnd pfx ≠ [W8 0]` (prefix not all `0xff`) that only simplified the
+  proof: the proof-internal range `pfxRange` registered the from-key end `[0]` as a literal key.
+- **Evidence.** `client/v3/op.go` `getPrefix` (all-`0xff` → `"\x00"`); `v3rpc/watch.go` `recvLoop`
+  (`"\x00"` → `[]byte{}`); `concurrency.inRange_prefix` (no such premise).
+- **Change.** `pfxRange` registers `[]` for the from-key end, as `createRangeOk` does; the premise is
+  dropped everywhere. `notes/nomode-n1b.md`, "N1b-3".
+- **Decision.** The lead (dsverify-net); strengthening, pre-approved, no new trust.
