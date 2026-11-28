@@ -161,7 +161,7 @@ theorem memHstepD (h_mem : AntSim.antSim_memP_in.stmt) {R : AntSim.RunCfg} {dec 
     (hreach : AntSim.ReachIn msk R dec Adm net₀ xnet₀ j v r₁) (hout : AntSim.ReadyOutP R j v r₁ rd)
     (hlead : rd.role = .leader) (hsnap : rd.snap = none) (hrep : AntSim.Reported v rd)
     (hw : w = true ↔ AntSim.Writes v rd) (htold : AntSim.Told v) (hterm : AntSim.TermRoom v)
-    (_hmems : v.mems = []) (_hparts : v.parts = []) :
+    (hmems : v.mems = []) (hparts : v.parts = []) :
     ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin R.N → AntSim.NodeView)
       (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
       AntSim.SimPreD R dec S V net xnet evs G0 → (∀ i : Fin R.N, (V i).r.full ∈ G0.logs) →
@@ -184,7 +184,7 @@ theorem memHstepD (h_mem : AntSim.antSim_memP_in.stmt) {R : AntSim.RunCfg} {dec 
   refine ⟨?_, hL, setV_logs hlogs hle.2.2.2.1 hrf.1⟩
   simp only [List.append_nil]
   exact h_mem msk hmsk R dec S V net xnet evs G j r₁ rd w Adm (hinm S V net xnet hpre.2.1) hpre'
-    hasync hbat hpar (hreach.mono hn hx) hout hlead hsnap hrep hw htold hrf hterm
+    hasync hbat hpar (hreach.mono hn hx) hout hlead hsnap hrep hw htold hrf hterm hmems hparts
 
 /-- **`-parallel`'s `write` report's B2 step** (`antSim_write_in.stmt`): the oldest queued `mem`'s
 write announced, its undo the disk before it; raft's facts unchanged. -/

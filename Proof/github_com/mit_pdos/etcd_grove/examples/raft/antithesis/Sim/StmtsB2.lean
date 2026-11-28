@@ -605,7 +605,8 @@ abbrev antSim_doneA_in.stmt : Prop :=
 /-- **`mem`, `-parallel`** (B 450-459): a leader's sync `Ready` that writes or changes the reported
 role is reported; its write is queued for `write`; its messages pending, the requests (appends and
 heartbeats) moved first, in their order, then the others in theirs (`parallel` sends the requests
-before the write and the rest after it). -/
+before the write and the rest after it). No write is queued and no split write is in progress before
+it (the loop head's, synchronous storage). -/
 abbrev antSim_memP_in.stmt : Prop :=
   ∀ (msk : SimMask), msk ≤ mskB2 →
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
@@ -615,7 +616,7 @@ abbrev antSim_memP_in.stmt : Prop :=
     R.md.async = false → R.drv.batch = false → R.drv.parallel = true →
     ReachIn msk R dec Adm net xnet n (V n) r₁ → ReadyOutP R n (V n) r₁ rd → rd.role = .leader →
     rd.snap = none → Reported (V n) rd → (w = true ↔ Writes (V n) rd) →
-    Told (V n) → ReadyFacts G (nodeId n) r₁ → TermRoom (V n) →
+    Told (V n) → ReadyFacts G (nodeId n) r₁ → TermRoom (V n) → (V n).mems = [] → (V n).parts = [] →
     SimStepD R dec evs G
       (evMem (nodeId n) (V n).byE (roleStr rd.pre rd.role) rd.term rd.vote rd.commit rd.ents none w)
       (setV V n { ((V n).drainOf r₁ rd) with
