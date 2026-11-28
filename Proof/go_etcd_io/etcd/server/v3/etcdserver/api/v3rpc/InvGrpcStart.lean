@@ -45,7 +45,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.etcd.serve
 
 /-- **The service values' method sets** (see the file header). -/
 class v3rpc.ServerMethodSets [GooseExts] [GoGlobalContext] [GoLocalContext]
-    [GoSemanticsFunctions] : Prop where
+    [GoLocalContext] [GoSemanticsFunctions] : Prop where
   kv_impl : go.typeSetContains (go.GoType.PointerType v3rpc.quotaKVServer.ty)
     etcdserverpb.KVServer.ty = true
   kv_te : go.typeSetContains (go.GoType.PointerType v3rpc.quotaKVServer.ty) testEmbeddedIface = false

@@ -342,7 +342,7 @@ instance (priority := high) raftNodeConfig_typeRepr_u :
 end typeRepr
 
 section addrs
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The configuration's fields the request path reads. -/
 abbrev srvCfgFieldAddr (s : Loc) (f : GoString) : Loc :=

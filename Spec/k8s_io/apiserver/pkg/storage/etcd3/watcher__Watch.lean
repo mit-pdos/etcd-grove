@@ -53,7 +53,7 @@ abbrev watcher.Watch.spec : Prop :=
       sendInitIs opts.SendInitialEvents' sie ∗ selPredOk c.S opts.Predicate' sel emp ∗
       watchListOn ∗ rangeStreamOff ∗
       context.isContext ci cd ∗ metadata.outgoingCtxOkC ci ∗ ctxErrClient ci cd ∗
-      context.valueAt ci flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (sem := sem)) ∗
+      context.valueAt ci flowcontrol.initSignalKeyAny (flowcontrol.initSignalRes (hG := hG)) ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ readAus c γk (Q 0) ∗
       (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev))) }}
     (App (App (App (App (Val (wp @!! go.GoType.PointerType

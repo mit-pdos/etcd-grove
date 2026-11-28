@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-- A string argument of `fmt.Errorf` (`%q`) is well formed. -/
-theorem storage.argWf_string [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+theorem storage.argWf_string [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
     [go.string ↓u go.string] (x : GoString) :
     _root_.Perennial.fmt.ArgWf ⟨go.string, #x⟩ :=
   ⟨fun _ => ⟨x, rfl⟩, fun h => absurd h _root_.Perennial.fmt.not_isIntArgType_string,

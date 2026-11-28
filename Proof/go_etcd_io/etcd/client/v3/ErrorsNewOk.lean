@@ -39,7 +39,7 @@ namespace EtcdGrove
 
 /-- The method set of `*errors.errorString` has no `GRPCStatus` method (Go's `errors` package
 gives it only `Error`; grpc's `status.FromError` would call it). -/
-class ErrorStringNoGRPCStatus [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
+class ErrorStringNoGRPCStatus [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   noGRPCStatus : methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !!
       go!"GRPCStatus" ≠
     some (go.Signature [] false
@@ -48,7 +48,7 @@ class ErrorStringNoGRPCStatus [GooseExts] [GoGlobalContext] [GoSemanticsFunction
 /-- `ErrorStringNoGRPCStatus` holds: `*errorString`'s method set (goose's `ptr_method_set`) is
 `Error` only. -/
 instance errorStringNoGRPCStatus_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
-    [GoSemanticsFunctions] [_root_.Perennial.errors.Assumptions] : ErrorStringNoGRPCStatus := by
+    [GoLocalContext] [GoSemanticsFunctions] [_root_.Perennial.errors.Assumptions] : ErrorStringNoGRPCStatus := by
   have h := go.method_set_is (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
     go!"GRPCStatus"
   simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h

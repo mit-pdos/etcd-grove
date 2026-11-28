@@ -19,7 +19,7 @@ namespace EtcdGrove
 open go_etcd_io.etcd.api.v3
 
 section clientErr
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- **The dynamic types of the errors etcd's client returns** (k8s 7e-1, 2026-11-10, approved by
 etcd-grove-81): a gRPC status error (`*status.Error`, grpc's `internal/status`: `toRPCErr`,

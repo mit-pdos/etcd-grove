@@ -478,7 +478,7 @@ def OsCrash (st st' : OsState) : Prop :=
         ∃ img, CrashImage st p f img ∧ st'.files !! p = some (some (OsFile.ofDisk img))
 
 instance osFs_semantics : ExtSemantics osFsExt where
-  step := OsStep
+  step := fun _ => OsStep
   crash := OsCrash
 
 end Perennial

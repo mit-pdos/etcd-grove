@@ -351,7 +351,7 @@ theorem wp_osOpenTruncSQ (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) 
     (hpe : ∀ st e' st', FsTreeWf st → st.proc.calls !! k = some (s0, child d b) →
       st.lookup (child d b) = some (.file i) →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
-      (∃ hh hh', ExtSemantics.step (E := fsExt) "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl)))
+      (∃ hh hh', ExtSemantics.step (E := fsExt) GoLocalContext.typeFns "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl)))
         hh st () e' hh' st' ()) →
       ∀ fd e : w64, e' = osRes (#fd) e → e ≠ 0 → Pe e) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗

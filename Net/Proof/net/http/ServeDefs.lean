@@ -132,7 +132,7 @@ instance srvHandler_persistent (s : Loc) (cn : Nat) (a : GoString) (P Q : Proto 
 end defs
 
 /-- See the file header. -/
-theorem SprintfOut_noVerb [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] :
+theorem SprintfOut_noVerb [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] :
     ∀ {f out : GoString}, (∀ c ∈ f, c ≠ W8 37) → fmt.SprintfOut f [] out → out = f
   | [], _, _, h => fmt.SprintfOut.done_inv h
   | c :: f, out, hf, h => by
