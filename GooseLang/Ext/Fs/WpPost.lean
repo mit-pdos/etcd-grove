@@ -30,7 +30,8 @@ extension's semantics. -/
 theorem extOp_step_inv {X : GooseExt} [ExtSemantics X] [ExtInterp X] [hX : HasExt X] (o : String) (v : val)
     (hv : v.isPanic = false) {σ₁ : BcfgState} {obs e₂ σ₂ eₜ}
     (hst : PrimStep.primStep (ExternalOp X.name o (Val v), σ₁) obs (e₂, σ₂, eₜ)) :
-    ∃ h g h' σ' g', ExtSemantics.step (E := X) o v h (hX.mem.get σ₁.1.1.world) g e₂ h' σ' g' := by
+    ∃ tf h g h' σ' g',
+      ExtSemantics.step (E := X) tf o v h (hX.mem.get σ₁.1.1.world) g e₂ h' σ' g' := by
   have hsub : SubredexesAreValues (ExternalOp X.name o (Val v)) :=
     EctxItemLanguage.subredexes_are_values (fun Ki e' h => by
       cases Ki <;> (try simp only [fillItem] at h) <;> cases h <;> rfl)
@@ -41,13 +42,13 @@ theorem extOp_step_inv {X : GooseExt} [ExtSemantics X] [ExtInterp X] [hX : HasEx
   cases baseStep_of_headStep hnu hh with
   | ExternalOpS _ _ _ _ _ _ Hst =>
     obtain ⟨h', σ'', g', Hst', -⟩ := (extStep_named _ _ _ _ _).1 Hst
-    exact ⟨_, _, h', σ'', g', (HasExt.step_iff ..).1 Hst'⟩
+    exact ⟨_, _, _, h', σ'', g', (HasExt.step_iff ..).1 Hst'⟩
 
 /-- **A weakest precondition of an extension's operation, strengthened by its steps** (see the file
 header). -/
 theorem wp_ext_post {X : GooseExt} [ExtSemantics X] [ExtInterp X] [hX : HasExt X] (o : String) (v : val)
     (hv : v.isPanic = false) (Ψ : val → Prop)
-    (hΨ : ∀ h σ g e' h' σ' g', ExtSemantics.step (E := X) o v h σ g e' h' σ' g' →
+    (hΨ : ∀ {tf : GoTypeFns} h σ g e' h' σ' g', ExtSemantics.step (E := X) tf o v h σ g e' h' σ' g' →
       ∃ r, e' = Val r ∧ Ψ r)
     (Φ : val → IProp GF) :
     WP (ExternalOp X.name o (Val v)) @ s; E {{ r, ⌜Ψ r⌝ -∗ Φ r }} ⊢
@@ -65,7 +66,7 @@ theorem wp_ext_post {X : GooseExt} [ExtSemantics X] [ExtInterp X] [hX : HasExt X
   isplitr
   · ipureintro; exact Hred
   iintro %e₂ %σ₂ %eₜ %Hstep Hcred
-  obtain ⟨h, g, h', σ', g', Hst⟩ := extOp_step_inv o v hv Hstep
+  obtain ⟨tf, h, g, h', σ', g', Hst⟩ := extOp_step_inv o v hv Hstep
   obtain ⟨r, rfl, hr⟩ := hΨ _ _ _ _ _ _ _ Hst
   ihave H := H $$ %(Val r) %σ₂ %eₜ %Hstep Hcred
   iapply step_fupdN_wand $$ H
@@ -86,7 +87,8 @@ read off the state the step starts from (the operation being one step, the state
 theorem wp_ext_postS {X : GooseExt} [ExtSemantics X] [I : ExtInterp X] [hX : HasExt X]
     (o : String) (v : val) (hv : v.isPanic = false) (P : IProp GF) (R : X.LocalState → Prop)
     (hP : ∀ σ, iprop(P ∗ I.localCtx (extLocalGS X) σ) ⊢ ⌜R σ⌝) (Ψ : val → Prop)
-    (hΨ : ∀ h σ g e' h' σ' g', R σ → ExtSemantics.step (E := X) o v h σ g e' h' σ' g' →
+    (hΨ : ∀ {tf : GoTypeFns} h σ g e' h' σ' g', R σ →
+      ExtSemantics.step (E := X) tf o v h σ g e' h' σ' g' →
       ∃ r, e' = Val r ∧ Ψ r)
     (Φ : val → IProp GF) :
     ⊢ P -∗ (P -∗ WP (ExternalOp X.name o (Val v)) @ s; E {{ r, ⌜Ψ r⌝ -∗ Φ r }}) -∗
@@ -124,7 +126,7 @@ theorem wp_ext_postS {X : GooseExt} [ExtSemantics X] [I : ExtInterp X] [hX : Has
   isplitr
   · ipureintro; exact Hred
   iintro %e₂ %σ₂ %eₜ %Hstep Hcred
-  obtain ⟨h, g, h', σ', g', Hst⟩ := extOp_step_inv o v hv Hstep
+  obtain ⟨tf, h, g, h', σ', g', Hst⟩ := extOp_step_inv o v hv Hstep
   obtain ⟨r, rfl, hr⟩ := hΨ _ _ _ _ _ _ _ hR Hst
   ihave H := H $$ %(Val r) %σ₂ %eₜ %Hstep Hcred
   iapply step_fupdN_wand $$ H

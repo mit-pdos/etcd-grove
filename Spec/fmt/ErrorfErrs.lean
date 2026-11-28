@@ -39,7 +39,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode
 
 section args
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- The verbs under which these specs admit an error argument: `%v`, `%s`, `%w`. -/
 def fmt.errArgVerbs : List w8 := [W8 118, W8 115, W8 119]

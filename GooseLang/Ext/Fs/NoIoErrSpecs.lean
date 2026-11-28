@@ -31,13 +31,14 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 section step
 variable [GooseExts] [GoGlobalContext] [S : ExtSemantics fsExt] [FsSemOk]
+variable {tf : GoTypeFns}
 open Classical in
 
 /-- **A covered call that could succeed does** (`NoIoErr`, from the semantics' step). -/
 theorem noIoErr_step {Sio : IoSet} [hsat : FsStepSat (NoIoErr Sio)] {o : String} {v : val}
     {h : GMap Loc (NonAtomic val)} {st : OsState} {g : Unit} {e' : Expr}
     {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
-    (hs : S.step o v h st g e' h' st' g') (hc : IoCovers Sio o v st)
+    (hs : S.step tf o v h st g e' h' st' g') (hc : IoCovers Sio o v st)
     (hex : ∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e'') : ErrnoZero o e' :=
   (hsat.sat o v h st g e' h' st' g' hs hc).1 hex
 
@@ -46,14 +47,14 @@ theorem noIoErr_step {Sio : IoSet} [hsat : FsStepSat (NoIoErr Sio)] {o : String}
 theorem noIoErr_pathErrno {Sio : IoSet} [hsat : FsStepSat (NoIoErr Sio)] {o : String} {v : val}
     {h : GMap Loc (NonAtomic val)} {st : OsState} {g : Unit} {e' : Expr}
     {h' : GMap Loc (NonAtomic val)} {st' : OsState} {g' : Unit}
-    (hs : S.step o v h st g e' h' st' g') (hc : IoCovers Sio o v st)
+    (hs : S.step tf o v h st g e' h' st' g') (hc : IoCovers Sio o v st)
     (hno : ¬ ∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e'') : PathErrno o v st e' :=
   (hsat.sat o v h st g e' h' st' g' hs hc).2 hno
 
 open Classical in
 /-- Every step of `fsync(fd)` returns 0 when every inode is covered. -/
 theorem fsync_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i) (fd : w64) :
-    ∀ h st g e' h' st' g', S.step "Fsync" (#fd) h st g e' h' st' g' →
+    ∀ h st g e' h' st' g', S.step tf "Fsync" (#fd) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ r = #(0 : w64) := by
   intro h st g e' h' st' g' hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
@@ -69,7 +70,7 @@ theorem fsync_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.
 /-- Every step of a directory fd's `close(fd)` returns 0 when every inode is covered. -/
 theorem dirClose_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i)
     (fd : w64) :
-    ∀ h st g e' h' st' g', S.step "DirClose" (#fd) h st g e' h' st' g' →
+    ∀ h st g e' h' st' g', S.step tf "DirClose" (#fd) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ r = #(0 : w64) := by
   intro h st g e' h' st' g' hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
@@ -85,7 +86,7 @@ theorem dirClose_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, S
 /-- Every step of a directory fd's `fsync(fd)` returns 0 when every inode is covered. -/
 theorem dirSync_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i)
     (fd : w64) :
-    ∀ h st g e' h' st' g', S.step "DirSync" (#fd) h st g e' h' st' g' →
+    ∀ h st g e' h' st' g', S.step tf "DirSync" (#fd) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ r = #(0 : w64) := by
   intro h st g e' h' st' g' hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
@@ -104,7 +105,7 @@ there (`maxBytes` page-aligned), so the premise rules the errno out. -/
 theorem pwFinish_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i)
     (t : Nat) (c0 : OsChange) (off : Nat) (data : List w8) (hoff : off < maxBytes) :
     ∀ h st g e' h' st' g', (st.proc.inflight !! t = some c0 ∧ c0.kind = .write off data) →
-      S.step "PWriteFinish" (osTokV t) h st g e' h' st' g' →
+      S.step tf "PWriteFinish" (osTokV t) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ ∃ r0, r = PairV r0 (#(0 : w64)) := by
   intro h st g e' h' st' g' ⟨hc0, hk0⟩ hs
   have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)

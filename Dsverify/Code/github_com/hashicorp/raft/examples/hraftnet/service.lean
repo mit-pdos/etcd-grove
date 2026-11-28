@@ -1012,9 +1012,12 @@ noncomputable def API.LeadershipTransfer.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef AdminReply.ty go!"Ok"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AdminReply.ty)))) (Var "reply"))) (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- Status answers what this server knows of the cluster (args is not read).
+/-- Status answers what this server knows of the cluster (args is not read). LeaderWithID runs on a
+    goroutine of its own, which the method waits for (the same behavior: the fresh goroutine is what
+    gives its read lock a thread in the proof, since net/rpc's method goroutine lends none; as
+    rpctransport's deliver).
 
-    go: service.go:328:15 -/
+    go: service.go:331:15 -/
 noncomputable def API.Status.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "args"
@@ -1026,6 +1029,11 @@ noncomputable def API.Status.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "args" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AdminArgs.ty)))) (Var "args"))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.hashicorp.raft.RaftState.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.Raft.ty) go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.Raft.ty)))) (App (Val (GoInstruction (StructFieldRef API.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType API.ty)))) (Var "a"))))) (Val #())) (Val #(W32 2))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.hashicorp.raft.ServerID.ty)]))) (Val #())) (Val #(W64 1)))
+  (Let "idCh" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.hashicorp.raft.ServerID.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.hashicorp.raft.ServerID.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (Lam BAnon
+  (Seq (App (Val exceptionDo)
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.Raft.ty) go!"LeaderWithID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.Raft.ty)))) (App (Val (GoInstruction (StructFieldRef API.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType API.ty)))) (Var "a"))))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1034,7 +1042,17 @@ noncomputable def API.Status.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "id" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.hashicorp.raft.ServerID.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.hashicorp.raft.ServerID.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.hashicorp.raft.ServerID.ty))) (Var "id"))
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.hashicorp.raft.ServerID.ty)))) (Var "idCh"))
+  (Let "$v" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.hashicorp.raft.ServerID.ty))) (Var "id"))
+  (App (App (Val (chan.send _root_.Perennial.github_com.hashicorp.raft.ServerID.ty)) (Var "$chan")) (Var "$v")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.hashicorp.raft.ServerID.ty))) (Pair (Var "id") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Fst (App (Val (chan.receive _root_.Perennial.github_com.hashicorp.raft.ServerID.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.hashicorp.raft.ServerID.ty)))) (Var "idCh"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.Raft.ty) go!"GetConfiguration"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.hashicorp.raft.Raft.ty)))) (App (Val (GoInstruction (StructFieldRef API.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType API.ty)))) (Var "a"))))) (Val #()))
   (Let "f" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.hashicorp.raft.ConfigurationFuture.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.hashicorp.raft.ConfigurationFuture.ty))) (Val #())))
@@ -1092,16 +1110,17 @@ noncomputable def API.Status.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef StatusReply.ty go!"LeaderID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusReply.ty)))) (Var "reply"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.hashicorp.raft.ServerID.ty))) (Pair (Var "id") (Var "$r1")))))))
+  (Fork
+  (App (Var "$go") (Val #()))))))))
   (App (Val doExecute)
-  (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.hashicorp.raft.ServerID.ty)))) (Pair (Var "idCh") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef StatusReply.ty go!"Leader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusReply.ty)))) (Var "reply"))) (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- Snapshot asks this server to take a snapshot now (it compacts its log).
 
-    go: service.go:346:15 -/
+    go: service.go:353:15 -/
 noncomputable def API.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "args"

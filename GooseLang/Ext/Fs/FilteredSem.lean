@@ -28,7 +28,7 @@ theorem fsSemWithS_ok (SQ : StepPrem) (Q : OsState → OsState → Prop) (hk : S
     letI := fsSemWithS SQ Q; FsSemOk := by
   letI := fsSemWithS SQ Q
   refine ⟨fun _ _ _ _ _ _ _ _ _ hs => hs.1, ?_⟩
-  intro _ _ o v h st g e' h' st' g' hd hs
+  intro _ _ _ o v h st g e' h' st' g' hd hs
   cases g; cases g'
   obtain ⟨e'', h'', st'', h1, h2⟩ := hk o v h st e' h' st' hd hs
   exact ⟨e'', h'', st'', (), h1, h2⟩
@@ -36,9 +36,10 @@ theorem fsSemWithS_ok (SQ : StepPrem) (Q : OsState → OsState → Prop) (hk : S
 /-- Every step of the semantics satisfies `SQ`: what a proof over `fsSemWithS SQ Q` may use of
 the premise on steps (`wp_os_stepX`'s continuation gets the semantics' step). -/
 class FsStepSat (SQ : StepPrem) [S : ExtSemantics fsExt] : Prop where
-  sat : ∀ [GooseExts] [GoGlobalContext] (o : String) (v : val) (h : GMap Loc (NonAtomic val))
-    (st : OsState) (g : Unit) (e' : Expr) (h' : GMap Loc (NonAtomic val)) (st' : OsState) (g' : Unit),
-    S.step o v h st g e' h' st' g' → SQ o v st e' st'
+  sat : ∀ [GooseExts] [GoGlobalContext] {tf : GoTypeFns} (o : String) (v : val)
+    (h : GMap Loc (NonAtomic val)) (st : OsState) (g : Unit) (e' : Expr)
+    (h' : GMap Loc (NonAtomic val)) (st' : OsState) (g' : Unit),
+    S.step tf o v h st g e' h' st' g' → SQ o v st e' st'
 
 theorem fsSemWithS_sat (SQ : StepPrem) (Q : OsState → OsState → Prop) :
     letI := fsSemWithS SQ Q; FsStepSat SQ := by

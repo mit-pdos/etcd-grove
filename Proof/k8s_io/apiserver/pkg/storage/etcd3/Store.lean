@@ -4,13 +4,13 @@ Lean-first (no Rocq counterpart).
 # The store (`*etcd3.store`): its predicate and its answers (`notes/k8s-etcd3-plan.md`, phase 4)
 
 - `StoreCfg`: what a store was made with (`New`): the object specification and the contract's
-  interface values, the key prefixes, the kubernetes client and the members it talks to, the
+  interface values, the key prefixes, the kubernetes client and its etcd client's data (`K`), the
   group-resource and metrics tracker it reports to.
 - `isStore sp c` (persistent): the store's fields as `New` set them, read-only (the unary paths
   never write them), its client `*kubernetes.Client` (`Kubernetes` is the client itself, as
-  `kubernetes.New` sets it) over `New`'s `clientv3.Client` of the members (`isNewClient`,
-  sending a write at most once, each member's KV registered, its workload admitting the store's
-  writes), the contract (`contractOk`), and the list path's fields (`storeListOk`: the aggregator
+  `kubernetes.New` sets it) over the etcd client `k8sClient c.K c.cl` (`EtcdClient.lean`: the
+  client calls the library makes; in-process `New`'s client of the members, `EtcdClientInProc.lean`),
+  the contract (`contractOk`), and the list path's fields (`storeListOk`: the aggregator
   factory, `collectorMux`'s reader pool, the group-resource's UTF-8; stage 7e-2, #15).
 - `storageErrIs err code key rv`: `err` is a `*storage.StorageError` with these fields (what
   `NewKeyNotFoundError`, `NewKeyExistsError` return); `respIs`: a model answer as the error and
@@ -22,6 +22,7 @@ module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Contract
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.EtcdClient
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Defs
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.k8s_io.apimachinery.pkg.runtime.schema
@@ -77,8 +78,8 @@ structure StoreCfg (GF : BundledGFunctors) (Obj : Type) where
   kc : Loc
   /-- its `clientv3.Client` -/
   cl : Loc
-  ms : List (client.SrvAt GF)
-  V : client.WEnv GF
+  /-- the client's data (`K8sEtcd`: the KV ghosts, liveness, endpoints, handle) -/
+  K : K8sEtcd GF
   /-- the metrics tracker and its `Get` tracker -/
   mt : Loc
   lt : Loc
@@ -145,9 +146,7 @@ def isStore (sp : Loc) (c : StoreCfg GF Obj) : IProp GF :=
     c.kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
         #c.kc)) ∗
-    isNewClient c.cl (c.ms.map client.SrvAt.addr) c.V ∗
-    client.clientWriteOnce c.cl (c.ms.map client.SrvAt.addr) ∗
-    ([∗list] x ∈ c.ms, client.kvRegsAt x) ∗
+    k8sClient c.K c.cl ∗
     contractOk c.S c.codec c.vi c.ti c.di ∗
     storeListOk sp c)
 
