@@ -1300,7 +1300,8 @@ def stWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : StableOp) : IProp GF :=
   iprop((∃ (s : SState) (p : Pend), ⌜pendStOk s p op⌝ ∗ winRes γ rc i s p) ∨
     (∃ vb : List w8, ⌜op = .set (go!"LastVoteCand" : List w8) vb⌝) ∨
     (∃ (kb : List w8) (v : w64) (D : StableAbs) (g : w64),
-      ⌜op = .setU kb v ∧ (D.ints.lookup kb).getD (W64 0) = v⌝ ∗ stVq rc D g))
+      ⌜op = .setU kb v ∧ (D.ints.lookup kb).getD (W64 0) = v⌝ ∗ stVq rc D g ∗
+      ghostVar rc.dur.pw (1 : Qp).half (none : Option Pend)))
 
 /-- (hraft_robust) **Raft's close obligation for its snapshot store** (`isSnapStore`'s `Qc`): the closed
 snapshot's facts (`latestOk`) and its index durable at `i` or installed while `i` followed (what
