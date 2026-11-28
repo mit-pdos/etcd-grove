@@ -1291,8 +1291,8 @@ def pendLogOk (s : SState) : Pend → LogOp → Prop
   | .cfg e _ _, op => op = .store (s.log.length + 1) [e]
   | .fstore prev _ ents _ j _, op => ∃ k, k ≤ j ∧ op = .store (prev + k + 1) (ents.drop k) ∧
       ∀ m, k ≤ m → m < j → ent s.log (prev + m + 1) = ents[m]?
-  | .trunc prev _ _ _ j, op => op = .del (prev + 1 + j) s.log.length
-  | .discard _, op => ∃ mn mx, op = .del mn mx
+  | .trunc prev _ _ _ j, op => op = .del true (prev + 1 + j) s.log.length
+  | .discard _, op => ∃ mn mx, op = .del true mn mx
   | _, _ => False
 
 /-- (hraft_robust) The stable store write `op` that the pending step `p` at state `s` makes. -/
@@ -1308,7 +1308,7 @@ frontier) lends only the frontier's bound. (Pre-model writes, `BootstrapCluster`
 R5/the kit.) -/
 def logWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : LogOp) : IProp GF :=
   iprop((∃ (s : SState) (p : Pend), ⌜pendLogOk s p op⌝ ∗ winRes γ rc i s p) ∨
-    (∃ mn mx : Nat, ⌜op = .del mn mx⌝ ∗ compLb rc mx ∗ latLb rc mx ∗ durLb γ i mx))
+    (∃ mn mx : Nat, ⌜op = .del false mn mx⌝ ∗ compLb rc mx ∗ latLb rc mx ∗ durLb γ i mx))
 
 /-- (hraft_robust) **Raft's window family for its stable store** (`isStableStore`'s `Ws`): the vote's second
 write and the term writes lend `winRes`; the vote's first write (`LastVoteCand`) lends nothing. -/
