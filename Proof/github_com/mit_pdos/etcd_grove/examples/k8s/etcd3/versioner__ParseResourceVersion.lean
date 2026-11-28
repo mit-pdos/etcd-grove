@@ -30,7 +30,14 @@ theorem versioner.ParseResourceVersion.wp_proof (wp_parseRV : parseRV.spec (GF :
   (try wp_auto)
   wp_apply wp_parseRV as %n %err Hr
   iapply HΦ
-  iexact Hr
+  rcases h : parseRVD s with _ | m
+  · skip
+    icases Hr with ⟨Ha, Hb, -⟩
+    isplitl [Ha]
+    · iexact Ha
+    · iexact Hb
+  · skip
+    iexact Hr
 
 end proof
 

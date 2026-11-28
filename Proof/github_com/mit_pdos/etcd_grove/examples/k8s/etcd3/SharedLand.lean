@@ -10,6 +10,7 @@ vocabulary of `settle`'s spec:
   does not have);
 - `decItemRVsL s`: `decodeItemRVs(s)`'s items (each object with its resource version), or none;
 - `showsL x y key r`: `shows(in, out, key, r)`;
+- `boundL x y`: `bound(in, out)`;
 - `landingsL R rv w b full x y`: `landings(revs, c, w, b, full, in, out)` for a `c` at revision `rv`
   (`sort.Search` over the sorted anchors is `dropWhile`);
 - `GoSettle R b full x y`: Go's `settle`, `SharedGo`'s `SettleWith` with `landingsL`;
@@ -130,6 +131,21 @@ def landingsL (R : RevsL) (rv : w64) (w : Input) (b : w64) (full : Bool) (x : In
     ls2 ++ ((R.anchors.dropWhile fun a => decide (uint.nat a < uint.nat rv)).flatMap
       fun a => [a, a + W64 1]).filter ok
   else ls2
+
+/-- **`bound(in, out)`**: the greatest revision a configuration may be at before `x` answers `y`, as far
+as the answer says (0: it does not say). Not a watch; `req` is the parsed minimum resource version
+(`0` if it does not parse, as Go's `parseRV` returns): a "not found"'s revision, one less than a
+too-large resource version, a successful write's revision, a current List's revision. -/
+def boundL (x : Input) (y : Output) : w64 :=
+  if x.Kind' = W64 5 then 0
+  else
+    let req := (parseRVD x.MinRV').getD 0
+    if y.Err' = W64 1 then y.ErrRV'
+    else if y.Err' = W64 6 then (if req = W64 0 then 0 else req - W64 1)
+    else if y.Err' = W64 0 then
+      (if isWriteL x then y.RV'
+       else if x.Kind' = W64 4 ∧ pastReadL x req = false then y.ListRV' else 0)
+    else 0
 
 /-- **Go's `settle`**: `SettleWith` with `landingsL` (`b`: `bound`'s). -/
 abbrev GoSettle (R : RevsL) (b : w64) (full : Bool) (x : Input) (y : Output) : GCfg → GCfg → Prop :=

@@ -31,6 +31,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.addConfig
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.advance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.appendHist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.bookmarksOk
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.bound
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__get
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__getW
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__put
@@ -521,6 +522,18 @@ theorem wp_bookmarksOk :
     EtcdGrove.k8s_etcd3.bookmarksOk.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.bookmarksOk.wp_proof
 
+theorem wp_pastRead :
+    EtcdGrove.k8s_etcd3.pastRead.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.pastRead.wp_proof
+
+theorem wp_isWrite :
+    EtcdGrove.k8s_etcd3.isWrite.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.isWrite.wp_proof
+
+theorem wp_bound :
+    EtcdGrove.k8s_etcd3.bound.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.bound.wp_proof wp_parseRV wp_pastRead wp_isWrite
+
 theorem cache.wp_get :
     EtcdGrove.k8s_etcd3.cache.get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.cache.get.wp_proof
@@ -977,17 +990,9 @@ theorem wp_Apply :
     EtcdGrove.k8s_etcd3.Apply.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Apply.wp_proof wp_call cache.wp_put wp_objOf wp_runWatch cache.wp_putW
 
-theorem wp_isWrite :
-    EtcdGrove.k8s_etcd3.isWrite.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.isWrite.wp_proof
-
 theorem wp_outEqual :
     EtcdGrove.k8s_etcd3.outEqual.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.outEqual.wp_proof
-
-theorem wp_pastRead :
-    EtcdGrove.k8s_etcd3.pastRead.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.pastRead.wp_proof
 
 theorem wp_histAt :
     EtcdGrove.k8s_etcd3.histAt.spec (GF := GF) (hG := hG) :=
