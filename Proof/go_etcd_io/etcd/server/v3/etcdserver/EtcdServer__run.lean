@@ -146,6 +146,9 @@ def applyResR (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List EntryMode
     acTok K (ciEff B.γ st.k) ∗
     -- (restart S6, CP2 route (C), 2026-11-13) at the ghost index `g` (until then Go's `ai`)
     srvSnapOwn C.s C.ci B.E C.γr B.γ g ∗ monoNatAuthOwn C.γr.cursor 1 A.length ∗ epReplayCfg C.ep C.γr.raft rp.A₀.length A.length ∗
+    -- (keepfix (c) step 1) the raft term's mirror, not `0` when the restart's term is not (a non-empty
+    -- batch then keeps it nonzero: `rnRtOk`'s zero case)
+    (∃ rtm : w64, ciRaftTerm B.γ.ci rtm ∗ ⌜C.rn.t0 ≠ W64 0 → rtm ≠ W64 0⌝) ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ g ∧
       uint.Z g ≤ uint.Z (ciEff B.γ st.k) ∧
       lastTermIs A at' ∧
@@ -222,7 +225,8 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #HreplayField, #Hrtok, #Hmerge⟩ HΦ
   iunfold applyResR at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss, Hst, Hbe, Happ, Hlr, Hbr,
-    Hwr, Hrdk, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA, %Hnsw⟩, HtokR, Hso, Hcursor, HbootField, %Hpure⟩
+    Hwr, Hrdk, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA, %Hnsw⟩, HtokR, Hso, Hcursor, HbootField,
+    ⟨%rtm, Hrtm, %Hrtm⟩, %Hpure⟩
   ihave Hwal : rnWalTokA γn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [← hrn]; iexact Hwal
   rw [hw]
@@ -315,11 +319,33 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
   have hlenCursor : (rnLogOf γn (A ++ ce)).length = (A ++ ce).length := by simp [rnLogOf, hprefix]
   imod mono_nat_own_update (rnLogOf γn (A ++ ce)).length (by rw [hlenCursor, List.length_append]; omega)
     $$ Hcursor with ⟨Hcursor, -⟩
+  -- (keepfix (c) step 1, sub-goal 2) the mirror nonzero after a non-empty batch: the batch's term,
+  -- or (a zero term) the restart's, which the mirror is nonzero with
+  ihave #Hrtok' := Hrtok
+  iunfold rnRtOk at Hrtok'
+  icases Hrtok' with ⟨%Hz, -⟩
+  have hmir : unapplied ai ce = [] ∨ rtMax rtm rt ≠ W64 0 := by
+    rw [hun]
+    by_cases hce : ce = []
+    · exact Or.inl hce
+    · right
+      apply rtMax_ne0
+      by_cases hr0 : rt = W64 0
+      · left
+        rcases Hz hr0 with hn | ht
+        · exfalso; apply hce
+          have h2 : (rnLogOf γn (A ++ ce)).length = (A ++ ce).length := by simp [rnLogOf, hprefix]
+          rw [h2, List.length_append] at hn
+          exact List.eq_nil_of_length_eq_zero (by omega)
+        · exact Hrtm (by rw [hrn]; exact ht)
+      · exact Or.inr hr0
   iapply (hAA C.s B.γ C.ci B.TM K B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x sa A
-      C.ms C.γs C.wt dv γnc w nk (1 : Qp).half γn rt (rnLogOf γn (A ++ ce)).length rp g)
-    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hrdk Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh Hwal Hso Hcursor HbootField]
+      C.ms C.γs C.wt dv γnc w nk (1 : Qp).half γn rt (rnLogOf γn (A ++ ce)).length rp g rtm hmir)
+    $$ [Hai Hat Hcs Hcv Hss Hst Hbe Happ Hlr Hwr Htok Hrdk Hbr HKV Hao Hka HRS Hnrc Hdv HAR HtokR Hrh Hwal Hso Hcursor HbootField Hrtm]
   · isplitr
     · iexact Hpkg
+    isplitl [Hrtm]
+    · iexact Hrtm
     isplitr
     · ipureintro
       exact ⟨by rw [beSucc_authMode HB]; exact hM, hRB, hms, hb1, Hloop, hok',
@@ -336,10 +362,16 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     · iexact Hdvr
     iExactEq Hrh; cases dv <;> rfl
   inext
-  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %g', %HB', Hcursor, HbootField, Hrh, #Hsrv', HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, Hao,
+  iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %g', %HB', Hrtm', Hcursor, HbootField, Hrh, #Hsrv', HAR, Hai, Hat, Hcs, #Hcv', Hss, Hst, HtokR, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', %sa', HKV, %Hx', #Hlog', Hka, HRS⟩, #HKVf', Hwal, Hso, %Hpost⟩
   ihave HcursorPost : monoNatAuthOwn C.γr.cursor 1 (A ++ ce).length $$ [Hcursor]
   · rw [← hlenCursor]; iexact Hcursor
+  ihave Hmir : iprop(∃ rtm' : w64, ciRaftTerm γ'.ci rtm' ∗ ⌜C.rn.t0 ≠ W64 0 → rtm' ≠ W64 0⌝) $$ [Hrtm']
+  · iexists _; iframe Hrtm'; ipureintro; intro ht
+    have h := Hrtm ht
+    split
+    · exact h
+    · exact rtMax_ne0 (Or.inl h)
   ihave Hwal : rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [hrn]; iexact Hwal
   obtain ⟨hg', hloop', hai', hci', hciN, hat'⟩ := Hpost
@@ -538,7 +570,7 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
     -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`readySnap_mode`)
     (hns : ¬ clusterNoSnap γn.node.cl) (hbase : γn.snap0 ≤ rp.b) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
+        isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γr.raft.raft.cl C.γ ∗
         taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
         taSnapshotAddr apL ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
         (letI := srvStor (GF := GF) γn.node; iprop(
@@ -564,7 +596,7 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
   iunfold applyResR at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %HB, #Hsrv, Hai, Hat, Hcs, #Hcv, Hss,
     Hst, Hbe, Happ, Hlr, Hbr, Hwr, Hrdk, HKV, Hao, #Hlog, Hkr, HRS, HAR, #HlbA0, #HKVf, Hwal, ⟨%w, #HWA, -⟩,
-    HtokR, Hso, Hcursor, HbootField, %Hpure⟩
+    HtokR, Hso, Hcursor, HbootField, ⟨%rtm, Hrtm, %Hrtm⟩, %Hpure⟩
   ihave Hwal : rnWalTokA γn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [← hrn]; iexact Hwal
   obtain ⟨Hloop, Hai0, HJ, Hci, Hlt, Hg0, Hb, Hty, HA0b⟩ := Hpure
@@ -619,9 +651,9 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
   · rw [srvWTPool_beSucc HB]; iexact HWc
   ihave Hbr : iprop(srvBemuReaderAt C.s B.E.γbe) $$ [Hbr]
   · rw [beSucc_γbe HB]; iexact Hbr
-  ihave #Hmeta' : srvMetaSnap B.γ $$ []
-  · have hms : srvMetaSnap (GF := GF) B.γ = srvMetaSnap C.γ := by
-      rw [HB.1]; exact srvMetaSnap_withPh _ _
+  ihave #Hmeta' : srvMetaSnap C.γr.raft.raft.cl B.γ $$ []
+  · have hms : srvMetaSnap (GF := GF) C.γr.raft.raft.cl B.γ = srvMetaSnap C.γr.raft.raft.cl C.γ := by
+      rw [HB.1]; exact srvMetaSnap_withPh _ _ _
     rw [hms]; iexact Hmeta
   iunfold srvMetaSnap at Hmeta'
   ihave #Hracc' : rnAdvChan rac (letI := srvStor (GF := GF) C.ρ.raft.raft
@@ -642,26 +674,43 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
   ihave HbootRaw : (∃ p : Loc, epReplayConfAddr C.ep ↦ p : IProp GF) $$ [HbootField]
   · iunfold epReplayCfg at HbootField
     icases HbootField with ⟨%p, Hpt, -⟩; iexists p; iexact Hpt
+  -- (keepfix (c) step 1, sub-goal 2) the mirror nonzero after the payload's `SetRaftTerm`: the
+  -- snapshot's log is non-empty, so a zero term comes with a nonzero restart term
+  ihave #Hrtok' := Hrtok
+  iunfold rnRtOk at Hrtok'
+  icases Hrtok' with ⟨%Hz, -⟩
+  have hmir : rtMax rtm rt ≠ W64 0 := by
+    apply rtMax_ne0
+    by_cases hr0 : rt = W64 0
+    · left
+      rcases Hz hr0 with hn | ht
+      · exfalso
+        have hl : (rnLogOf γn A').length = A'.length := by simp [rnLogOf, hpre]
+        omega
+      · exact Hrtm (by rw [hrn]; exact ht)
+    · exact Or.inr hr0
   have hS := hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es sn sv rac nc st ai at' a t cs x
     (ghostOf rp A) C.ms C.γs C.wt γnc w γn.id γn.key (1 : Qp).half γn rt (rnLogOf γn A').length sa
-    g r0 hany hag hgi h61 (by rw [← hγn]; exact hboot) hAL hcia hids hraft (by rw [Hkc.1, hc00])
+    g r0 rtm hmir hany hag hgi h61 (by rw [← hγn]; exact hboot) hAL hcia hids hraft (by rw [Hkc.1, hc00])
     (by rw [hon]; exact hch) Hlog0 hγn hn (by rw [← hn]; have := ghostOf_length rp A; omega) (by rw [← hγn]; exact hns)
   rw [hon] at hS
   have hlenCursor : (rnLogOf γn A').length = A'.length := by simp [rnLogOf, hpre]
   imod mono_nat_own_update (rnLogOf γn A').length (by rw [hlenCursor]; omega)
     $$ Hcursor with ⟨Hcursor, -⟩
   iapply hS
-    $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hrdk Hbr HKV Hao Hka HRS HAR Hwal Hso Hsnv Hnr0 Hcursor HbootRaw]
+    $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hrdk Hbr HKV Hao Hka HRS HAR Hwal Hso Hsnv Hnr0 Hcursor HbootRaw Hrtm]
   · iframe #
     iframe
     iunfold srvGoRes
     iframe
   inext
-  iintro ⟨%γ', %TM', %E', %b', %st', %A'', %cs', %HB', Hcursor, HbootRaw, #Hsrv'', HAR, #Hlb'', Hai, Hat, Hcs,
+  iintro ⟨%γ', %TM', %E', %b', %st', %A'', %cs', %HB', Hrtm', Hcursor, HbootRaw, #Hsrv'', HAR, #Hlb'', Hai, Hat, Hcs,
     #Hcv', Hss, Hst, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, Hao, #Hal, #HWA', ⟨%x', HKV, #Hlog', Hka, HRS⟩,
     #HKVf', Hwal, Hso, %Hpost⟩
   ihave HcursorPost : monoNatAuthOwn C.γr.cursor 1 A'.length $$ [Hcursor]
   · rw [← hlenCursor]; iexact Hcursor
+  ihave Hmir : iprop(∃ rtm' : w64, ciRaftTerm γ'.ci rtm' ∗ ⌜C.rn.t0 ≠ W64 0 → rtm' ≠ W64 0⌝) $$ [Hrtm']
+  · iexists _; iframe Hrtm'; ipureintro; intro _; exact hmir
   ihave Hwal : rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half $$ [Hwal]
   · rw [hrn]; iexact Hwal
   obtain ⟨hloop', hci', -, hlen'', hlast⟩ := Hpost
@@ -785,11 +834,11 @@ theorem applyResR_start (K : AuthC) (C : ApplyCtx GF) (TM : MetaCI → IProp GF)
       (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv C.E.γ ∗ ⌜kv = C.E.kv⌝) ∗
       rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
       (∃ w : Nat, srvWTTaken C.wt.cnt w ∗ ⌜clusterNoSnap C.γr.raft.raft.cl → uint.nat ai ≤ w⌝) ∗
-      monoNatAuthOwn C.γr.cursor 1 P.length ∗ srvRestartAtR K C.s C.γ C.ci C.b C.E C.γr C.ai₀ C.c₀ C.x₀ C.γw A₀ ai ⊢
+      monoNatAuthOwn C.γr.cursor 1 P.length ∗ srvRestartAtR K C.s C.γ C.ci C.b C.E C.γr C.ai₀ C.c₀ C.x₀ C.γw A₀ ai C.rn.t0 ⊢
     applyResR K C ⟨P.length, A₀⟩ P := by
   iintro ⟨#Hsrv, Hai, Hat, Hcsa, #Hcsok, #Hcsat, HbootRaw, Hdsi, Hmsi, #Hms, #Hslb, Hkvf, Hwt, Hwtt, Hcursor, Hrs⟩
   iunfold srvRestartAtR at Hrs
-  icases Hrs with ⟨%st₀, %a, %t, %f, %g₀, %sa₀, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hwg, Hrdk, Hkv, Hao, Hal, Hkr,
+  icases Hrs with ⟨%st₀, %a, %t, %f, %g₀, %sa₀, Hth, %Hok, Hbe, Hca, Hrt, Hlg, Hbm, Hwg, Hrdk, Hkv, Hao, Hal, Hkr,
     Hrest, Hap, Hfs, Htok, Hso⟩
   obtain ⟨Hloop, Hce, Hg⟩ := Hok
   icases kvRunM_lbR _ _ _ _ _ _ _ $$ Hkr with ⟨#HlbA, Hkr⟩
@@ -819,7 +868,7 @@ theorem applyResR_start (K : AuthC) (C : ApplyCtx GF) (TM : MetaCI → IProp GF)
     icases Hcsat with (%hzero | #Hcfg)
     · ileft; ipureintro; simp [hzero]
     · iright; rw [← hρ]; iexact Hcfg
-  iframe Hcursor HbootField Hwtt Htok Hso
+  iframe Hcursor HbootField Hwtt Htok Hso Hrt
   ipureintro
   have hl := hP.length_le
   refine ⟨Hloop, hai, Or.inr ⟨?_, ?_⟩, ?_, hlt, Hg, Nat.le_refl _, hty, ?_, hbnd⟩
@@ -848,7 +897,7 @@ theorem stop_split (K : AuthC) (C : ApplyCtx GF) (rp : RestartPt) (A : List Entr
       rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗ srvTrStop C.s ∗ applyResStopR K C rp A := by
   unfold applyResR applyResStopR
   iintro ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %sa, %g, %hB, H1, H2, H3, H4, H5, H6, H7, H8, H9,
-    H10, H11, H12, Hrdk, H13, H14, H15, H16, H17, Hap, Hlb, H18, Hwt, ⟨%w, H19, -⟩, H20, H21, -, -, %hp⟩
+    H10, H11, H12, Hrdk, H13, H14, H15, H16, H17, Hap, Hlb, H18, Hwt, ⟨%w, H19, -⟩, H20, H21, -, -, -, %hp⟩
   ihave H19 : iprop(∃ w : Nat, srvWTTaken C.wt.cnt w) $$ [H19]
   · iexists w; iexact H19
   iframe Hwt
@@ -1205,10 +1254,10 @@ theorem EtcdServer.run.wp_proofG
   irename appliediE => appliedi
   -- (R2d'a A10 item 4) the apply thread's resources at the restart's start (`applyResR_start`,
   -- Go's handed log `P` (S4; until then `[]`), the ghost log `A₀`)
-  ihave ⟨Hstart, %Hkc0, #HlbA0⟩ : iprop(srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ ρ.wait A₀ (W64 P.length) ∗
+  ihave ⟨Hstart, %Hkc0, #HlbA0⟩ : iprop(srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ ρ.wait A₀ (W64 P.length) γn.t0 ∗
       ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝ ∗ srvRLogLb γr.raft A₀) $$ [Hstart]
   · iunfold srvRestartAtR at Hstart
-    icases Hstart with ⟨%st₀, %a₀, %t₀, %f₀, %g₀, %sa₀, Hst, %Hst0, Hbe, Happ, Hlr', Hbr, Hwr, Hrdk,
+    icases Hstart with ⟨%st₀, %a₀, %t₀, %f₀, %g₀, %sa₀, Hst, %Hst0, Hbe, Happ, Hrt₀, Hlr', Hbr, Hwr, Hrdk,
       HKV, Hao, Hal, Hkr, HRS, HAR, Hfs, HtokR, Hso⟩
     ihave Hkr : iprop(kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A₀ x₀ sa₀ ∗
         ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝) $$ [Hkr]
@@ -1217,10 +1266,10 @@ theorem EtcdServer.run.wp_proofG
     ihave Hkr : kvRunM C.isOn γr ai₀ c₀ A₀ x₀ sa₀ $$ [Hka0]
     · rw [kvRunM_split]; iframe Hka0; ipureintro; exact Hkc0
     icases kvRunM_lbR _ _ _ _ _ _ _ $$ Hkr with ⟨#HlbA0, Hkr⟩
-    isplitl [Hst Hbe Happ Hlr' Hbr Hwr Hrdk HKV Hao Hal Hkr HRS HAR Hfs HtokR Hso]
+    isplitl [Hst Hbe Happ Hrt₀ Hlr' Hbr Hwr Hrdk HKV Hao Hal Hkr HRS HAR Hfs HtokR Hso]
     · iunfold srvRestartAtR
       iexists st₀, a₀, t₀, f₀, g₀, sa₀
-      iframe Hst Hbe Happ Hlr' Hbr Hwr Hrdk HKV Hao Hal Hkr HRS HAR Hfs HtokR Hso
+      iframe Hst Hbe Happ Hrt₀ Hlr' Hbr Hwr Hrdk HKV Hao Hal Hkr HRS HAR Hfs HtokR Hso
       ipureintro; exact Hst0
     isplitr
     · ipureintro; exact Hkc0
@@ -1550,12 +1599,12 @@ theorem EtcdServer.run.wp_proofG
       obtain ⟨hlev, hrevo⟩ := lease.runCfg_revoke Hmo
       have hrev := srvRevokeOpen_spec hrevo
       have hlm : ρ.rd.kv.lm = .revocable := by rw [Hlgt.1]; exact lease.runCfg_lm Hmo
-      ihave #Hfa : srvFieldsAt s γ ci TM E ρ fv $$ []
+      ihave #Hfa : srvFieldsAt s γ ci γr.raft.raft.cl TM E ρ fv $$ []
       · rw [← srvFieldsAtM_false, ← hCoff]; iexact Hfv
       ihave #Hpe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
       · iPkgInit
       (try wp_auto)
-      wp_apply hrev s γ ci TM E ρ fv γr γg γcx v _ ls $$ [Htok] as Htok
+      wp_apply hrev s γ ci γr.raft.raft.cl TM E ρ fv γr γg γcx v _ ls $$ [Htok] as Htok
       · iframe #; iframe Htok
         ipureintro; exact ⟨hlm, hlev, Hg.2⟩
       (try wp_auto)

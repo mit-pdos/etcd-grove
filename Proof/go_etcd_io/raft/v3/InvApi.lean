@@ -1219,11 +1219,16 @@ theorem hsCommitted_of_raft (γ : Cluster) (N : Namespace) (E : CoPset) (HE : �
 states it (`readyGot`). -/
 theorem hsCommitted_disj (γ : Cluster) (N : Namespace) (h : HardStateM) (n : Nat) :
     hsCommitted (GF := GF) γ N h n ⊢
-      ⌜h = hsZero⌝ ∨ committedAtTerm γ N h.Term' h.Commit' ∗ ⌜(n : Int) ≤ uint.Z h.Commit'⌝ := by
+      ⌜h = hsZero ∧ (n : Int) ≤ uint.Z h.Commit'⌝ ∨ committedAtTerm γ N h.Term' h.Commit' ∗
+        ⌜(n : Int) ≤ uint.Z h.Commit' ∧
+          (0 < γ.raft.reBoot.length → 1 ≤ uint.Z h.Commit' → h.Term' ≠ W64 0)⌝ := by
   unfold hsCommitted
-  iintro ⟨%Hn, -, (%H | #H)⟩
-  · ileft; ipureintro; exact H
-  · iright; iframe H; ipureintro; exact Hn
+  iintro ⟨%Hn, %Hp, (%H | #H)⟩
+  · ileft; ipureintro; exact ⟨H, Hn⟩
+  · iright; iframe H; ipureintro
+    refine ⟨Hn, fun hb h1 h0 => ?_⟩
+    have := Hp (List.length_pos_iff.mp hb) h1
+    rw [h0] at this; revert this; word
 
 /-- **A read state** (persistent): raft's (`readOk`), its context committed (`γ.ctxs`) after a log
 no longer than its index. -/
@@ -2955,10 +2960,14 @@ abbrev readyPost (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : Nod
     -- (2026-11-03, R2b-1 stage 1) the delivered log after the `Ready` and its hard state's
     -- committed fact, without *enter*: a client that enters at its disk write needs them before
     deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
-    (⌜phsNext st.hardState h = hsZero⌝ ∨
+    -- (keepfix (c) step 1, 2026-11-28: F1's bound in the zero case too, and F2's nonzero term)
+    (⌜phsNext st.hardState h = hsZero ∧ ((st.afterReady ce es h L ss).delivered.length : Int) ≤
+        uint.Z (phsNext st.hardState h).Commit'⌝ ∨
       committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
       ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
-        uint.Z (phsNext st.hardState h).Commit'⌝))
+        uint.Z (phsNext st.hardState h).Commit' ∧
+        (0 < γ.raft.reBoot.length → 1 ≤ uint.Z (phsNext st.hardState h).Commit' →
+          (phsNext st.hardState h).Term' ≠ W64 0)⌝))
 
 
 
@@ -3117,10 +3126,14 @@ abbrev readyPostT (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : No
     (⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms) ∗
     readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
     deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
-    (⌜phsNext st.hardState h = hsZero⌝ ∨
+    -- (keepfix (c) step 1, 2026-11-28: F1's bound in the zero case too, and F2's nonzero term)
+    (⌜phsNext st.hardState h = hsZero ∧ ((st.afterReady ce es h L ss).delivered.length : Int) ≤
+        uint.Z (phsNext st.hardState h).Commit'⌝ ∨
       committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
       ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
-        uint.Z (phsNext st.hardState h).Commit'⌝) ∗
+        uint.Z (phsNext st.hardState h).Commit' ∧
+        (0 < γ.raft.reBoot.length → 1 ≤ uint.Z (phsNext st.hardState h).Commit' →
+          (phsNext st.hardState h).Term' ≠ W64 0)⌝) ∗
     readyToksClaim n γ N ms)
 
 

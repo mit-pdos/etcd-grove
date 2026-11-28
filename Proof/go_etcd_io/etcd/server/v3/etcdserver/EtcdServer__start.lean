@@ -464,7 +464,7 @@ theorem EtcdServer.start.wp_proof
   iunfold srvBuiltRestartR at HBr
   icases HBr with ⟨%P, %HPa, ⟨%ms, #Hms, Hsnap⟩, Hloop, Happly, Happ, Hso⟩
   iunfold applyBuiltR at Happ
-  icases Happ with ⟨%st₀, %a, %t, %f, %g₀, %sa₀, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hrdk, Hbo,
+  icases Happ with ⟨%st₀, %a, %t, %f, %g₀, %sa₀, Hth, %Hlo, Hbe, Hca, Hrt, Halg, Hbm, Hrdk, Hbo,
     ⟨%ua, Hua, Hres, #Hfor, Hkv⟩, HRA, Hrdat, Hao, #Hlog, Hkr, Hrest, Hap, Hfs, Htok⟩
   -- the read side, from the component's row (`acRes_read`)
   icases acRes_read C s E ua sa₀ hm $$ Hres with ⟨Hres, #HaR⟩
@@ -474,11 +474,11 @@ theorem EtcdServer.start.wp_proof
   icases srvSnapOwn_ro s ci E γr γ _ $$ Hso with ⟨Hso, #Hsnapb⟩
   have hg₀ : ai₀ + W64 γn.a0.length = g₀ := by obtain ⟨-, -, h⟩ := Hlo; word
   rw [hg₀]
-  ihave Hstart : srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw γn.a0 (W64 P.length) $$
-      [Hth Hbe Hca Halg Hbm Hrdk Hbo Hua Hkv HRA Hres Hrdat Hao Hkr Hrest Hap Hfs Htok Hwg1 HRD Hso]
+  ihave Hstart : srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw γn.a0 (W64 P.length) γn.t0 $$
+      [Hth Hbe Hca Hrt Halg Hbm Hrdk Hbo Hua Hkv HRA Hres Hrdat Hao Hkr Hrest Hap Hfs Htok Hwg1 HRD Hso]
   · iunfold srvRestartAtR
     iexists st₀, a, t, f, g₀, sa₀
-    iframe Hth Hbe Hca Halg Hbm Hrdk Hao Hso Hfs Hwg1 Hlog Hkr Hrest Hap Htok
+    iframe Hth Hbe Hca Hrt Halg Hbm Hrdk Hao Hso Hfs Hwg1 Hlog Hkr Hrest Hap Htok
     isplitr
     · ipureintro; exact Hlo
     iunfold srvApplyKVC

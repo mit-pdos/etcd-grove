@@ -156,7 +156,7 @@ theorem raftNode_of_StartNode
   iexists γw, rv
   isplitr
   · ipureintro
-    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwsd, Hwss, Hwa0, Hws0, Hrvlg, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
+    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwsd, Hwss, Hwa0, Hwt0, Hws0, Hrvlg, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
     all_goals first | rfl | simp only [rnNodeIface, Hwnl]
   ihave #Hsti' : isWalStorage rv.raftNodeConfig'.storage' γw.wal.h γw.ss $$ []
   · rw [Hrvcfg]; iexact Hsti
@@ -438,7 +438,7 @@ theorem raftNode_of_RestartNode
       ⟨γr.cfg, rfl, fun _ h => h, fun _ h1 h2 => absurd h1 h2, H0, Hsz⟩⟩
   ihave ⟨Hloop, Happly⟩ := rnToks_of_restart γw (A₀.take σ.b) σ.hs S
       ⟨min A₀.length σ.commit, Membership.simple γr.cfg⟩ Hwpre hidx (by rw [Hwc0]; exact Nat.le_refl _)
-      (by simp [rnLogOf, Hwpre, Hws0, Nat.min_eq_left Hba]) hcfgv
+      (by simp [rnLogOf, Hwpre, Hws0, Nat.min_eq_left Hba]) hcfgv (by rw [Hwt0])
     $$ [Hdrv Hncfg Hrun1 Hprod Hcons Hcum Hcum0 Hwview]
   · rw [Hsrv, Hwnode, Hwnl, Hwms, Hwγs]
     ihave Hwview' : rnWalViewK γw.walK ((⟨S, σ.hs, none, srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⟩ : WalView), none) $$ [Hwview]

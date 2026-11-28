@@ -402,19 +402,6 @@ instance srvRunFieldsAt_persistent (s : Loc) (γr : ReadNames) (γg : GoNames)
     Persistent (srvRunFieldsAt (GF := GF) s γr γg γcx v SP) := by
   unfold srvRunFieldsAt; infer_instance
 
-/-- **The apply thread's resources when `run` starts** (at the snapshot's index `ai₀`, the KV at
-`x₀`, the protocol at `st₀` with the consistent index `c₀`), but `ep`, which `run` makes: what
-`applyRes []` is once `ep` is built. -/
-def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
-    (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName) : IProp GF :=
-  iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
-    applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvWgReader s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKV s E γw x₀ ∗
-    srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗
-    -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back
-    srvSnapOwn s ci E γr γ ai₀)
-
 /-- (J8b, 2026-11-01) **The meta reads of the backends the apply thread opens** at the apply names
 `γ`: `bootOk`'s `#HmetaSnap` (J8a-4) by name, which `NewServer` passes to `run` through `start`'s
 construction premise (`srvBuilt`, `isServerBuilt`, `isServerRunC`'s `#HmetaSnap`) for

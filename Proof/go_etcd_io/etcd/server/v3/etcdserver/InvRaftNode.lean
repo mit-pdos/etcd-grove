@@ -888,6 +888,18 @@ def rnReadySnap (E : RNEnv GF) (γ : RNNames GF) (rd : Ready) (d es A' : List En
     (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗
       [∗list] rs ∈ rsL, srvReadStateOk E.γr.raft E.RQ rs))
 
+/-- (keepfix (c) step 1, 2026-11-28) **The server's cluster has a non-empty boot log**
+(`srvRaftLogInv`'s log and `srvClusterOk`'s `bootLen`). -/
+theorem srvRaftLogInv_bootLen_pos (γ : ServerRaftNames) :
+    srvRaftLogInv (GF := GF) γ ⊢ ⌜0 < γ.raft.cl.bootLen⌝ := by
+  iintro #H
+  iunfold srvRaftLogInv at H
+  icases H with ⟨-, #Hcl, -, -, -, -, %Hvs⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, %Hbl, -⟩
+  ipureintro
+  rw [Hbl, Hvs.2.2.1.1]; exact List.length_pos_iff.mpr Hvs.1
+
 /-- (J8b, 2026-11-01) **A snapshot `Ready` is past the boot log**: its index is at least the boot
 log's length. True of raft: a node restores a snapshot only above its committed index
 (`raft.restore`), which is at least the boot log's length, so every snapshot a `Ready` hands out is
@@ -1256,8 +1268,12 @@ batch of the log `pre ++ L`: empty, or its commit index committed at its term an
 def rnHsC (γ : RNNames GF) (p : HardStateM) (L : List EntryModel) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(rnBatchSource γ p.Term' (srvLE γ.srv L).length ∗
-    (⌜p = hsZero⌝ ∨ committedAtTerm γ.node.cl srvClusterN p.Term' p.Commit' ∗
-      ⌜((srvLE γ.srv L).length : Int) ≤ uint.Z p.Commit'⌝))
+    -- (keepfix (c) step 1, 2026-11-28) the bound in the zero case too (F1), and a nonzero term with a
+    -- nonzero commit index (F2', the server's boot log non-empty)
+    (⌜p = hsZero ∧ ((srvLE γ.srv L).length : Int) ≤ uint.Z p.Commit'⌝ ∨
+      committedAtTerm γ.node.cl srvClusterN p.Term' p.Commit' ∗
+      ⌜((srvLE γ.srv L).length : Int) ≤ uint.Z p.Commit' ∧
+        (1 ≤ uint.Z p.Commit' → p.Term' ≠ W64 0)⌝))
 
 instance rnHsC_persistent (γ : RNNames GF) (p : HardStateM) (L : List EntryModel) :
     Persistent (rnHsC (GF := GF) γ p L) := by
@@ -1322,6 +1338,9 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   -- (out_size C3) the server's cluster bounds proposed data: a `Ready`'s entries are sized
   ihave %Hmd := srvRaftLogInv_maxData E.γr.raft $$ Hinv
   have Hmd' : γ.node.cl.maxData = some (2 ^ 30) := by rw [← Hraft]; exact Hmd
+  -- (keepfix (c) step 1) the boot log non-empty, for the hard state's nonzero term (F2')
+  ihave %Hbpos := srvRaftLogInv_bootLen_pos E.γr.raft $$ Hinv
+  rw [Hraft] at Hbpos
   cases Lo with
   | some l =>
     -- a snapshot `Ready`: the snapshot's log `A'` (the loan's delivered log after the start log),
@@ -1519,8 +1538,9 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
         rw [hA']
         iExactEq Hsource; rfl
       icases Hhsc with (%Hz | ⟨#Hc, %Hle⟩)
-      · ileft; ipureintro; exact Hz
-      · iright; iframe Hc; ipureintro; rw [hA']; simpa only [strip, List.length_map] using Hle
+      · ileft; ipureintro; rw [hA']; simpa only [strip, List.length_map] using Hz
+      · iright; iframe Hc; ipureintro; rw [hA']
+        exact ⟨by simpa only [strip, List.length_map] using Hle.1, Hle.2 Hbpos⟩
     ipureintro; exact ⟨HLiW, Hcm⟩
   | none =>
   simp only [NodeDriverState.afterReady]
@@ -1690,8 +1710,9 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       rw [Hdel]
       iExactEq Hsource; rfl
     icases Hhsc with (%Hz | ⟨#Hc, %Hle⟩)
-    · ileft; ipureintro; exact Hz
-    · iright; iframe Hc; ipureintro; rw [Hdel]; simpa only [List.length_append] using Hle
+    · ileft; ipureintro; rw [Hdel]; simpa only [List.length_append] using Hz
+    · iright; iframe Hc; ipureintro; rw [Hdel]
+      exact ⟨by simpa only [List.length_append] using Hle.1, Hle.2 Hbpos⟩
   ipureintro; exact ⟨HLiW, Hcm⟩
 
 /-! ## The other components -/
@@ -1950,7 +1971,13 @@ least the batch's log, `n` entries long. (2026-10-27 to 2026-10-31 `True`; 2026-
 node API's `nodeDriver_hardStateCommitted`.) -/
 def rnRtOk (γ : RNNames GF) (t : w64) (n : Nat) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
-  iprop(⌜t = W64 0⌝ ∨ ∃ c : w64, committedAtTerm γ.node.cl srvClusterN t c ∗ ⌜(n : Int) ≤ uint.Z c⌝ ∗ ⌜(γ.a0.length : Int) ≤ uint.Z c⌝ ∗ rnBatchSource γ t n)
+  iprop(
+    -- (keepfix (c) step 1, 2026-11-28) a zero term carries no log, or the restart's term `t0` is not
+    -- zero (Go's `raftTerm` is still `0` only before the first non-empty `HardState`, while raft's
+    -- `prevHardSt` is the restored one): with the apply thread's mirror, a non-empty batch raises it
+    -- to a nonzero term
+    ⌜t = W64 0 → n = 0 ∨ γ.t0 ≠ W64 0⌝ ∗
+    (⌜t = W64 0⌝ ∨ ∃ c : w64, committedAtTerm γ.node.cl srvClusterN t c ∗ ⌜(n : Int) ≤ uint.Z c⌝ ∗ ⌜(γ.a0.length : Int) ≤ uint.Z c⌝ ∗ rnBatchSource γ t n))
 
 instance rnRtOk_persistent (γ : RNNames GF) (t : w64) (n : Nat) :
     Persistent (rnRtOk (GF := GF) γ t n) := by
@@ -1973,7 +2000,7 @@ theorem srv_merge_index (γ : RNNames GF) (rd : ReadNames) (pin : GName)
   by_cases he : q.st.msg.Term' = term
   · subst term
     iunfold rnRtOk at Hrt
-    icases Hrt with (%hzero | ⟨%c, -, -, -, #Hbatch⟩)
+    icases Hrt with ⟨-, (%hzero | ⟨%c, -, -, -, #Hbatch⟩)⟩
     · ihave %shape := sentMsg_shape γ.node.cl srvClusterN γ.id q.st $$ Hsent
       exact False.elim (shape.1.2.2.2.1 (by rw [ht]; exact msgSnap_not_termless) hzero)
     · ihave Hle := srv_snapshot_index_le γ rd pin q sv bound ht hs hb
@@ -1981,41 +2008,12 @@ theorem srv_merge_index (γ : RNNames GF) (rd : ReadNames) (pin : GName)
       inext; iintro -; iexact Hle
   · inext; iintro %he'; exact False.elim (he he')
 
-/-- (2026-10-31) The term the `Ready` loop records (`0` or the driver's hard state's) is good for a
-batch of the log the driver was delivered, `pre ++ L` (`nodeDriver_hardStateCommitted`). -/
-theorem rn_rtOk_st (γ : RNNames GF) (rt : w64) (L : List EntryModel) (st : NodeDriverState)
-    (hboot : γ.a0.length ≤ uint.nat st.hardState.Commit')
-    (hd : st.delivered = srvLE γ.srv L) (Hrt : uint.Z rt = 0 ∨ rt = st.hardState.Term') :
-    (letI := srvStor (GF := GF) γ.node; nodeDriver (GF := GF) γ.nl γ.node.cl srvClusterN st) ∗
-        rnBatchSource γ st.hardState.Term' (rnLogOf γ L).length ⊢
-      (letI := srvStor (GF := GF) γ.node; nodeDriver γ.nl γ.node.cl srvClusterN st) ∗
-        rnRtOk γ rt (rnLogOf γ L).length := by
-  letI := srvStor (GF := GF) γ.node
-  iintro ⟨Hd, #Hsrc⟩
-  ihave ⟨Hd, #Hc⟩ := nodeDriver_hardStateCommitted _ _ _ _ $$ Hd
-  iframe Hd
-  iunfold rnRtOk
-  rcases Hrt with Hrt | Hrt
-  · ileft; ipureintro; word
-  · icases Hc with ⟨%Hle, (%Hz | #Hc)⟩
-    · ileft; ipureintro; rw [Hrt, Hz]
-    · iright
-      iexists st.hardState.Commit'
-      rw [Hrt]
-      iframe Hc Hsrc
-      have hz := uint_nat_eq st.hardState.Commit'
-      isplit
-      · ipureintro
-        rw [hd] at Hle
-        simp only [srvLE, rnLogOf, RNNames.srv, List.length_map, List.length_append] at Hle ⊢
-        omega
-      · ipureintro; omega
-
 /-- A durable apply can outlive the last WAL commit. In that case the old
 incarnation's commit receipt covers the image. The new Ready still supplies
-the receipt for the batch and its snapshot-source observation. -/
+the receipt for the batch and its snapshot-source observation. (keepfix (c) step 1) With the zero
+term's fact `hz`. -/
 theorem rnRtOk_of_commit (γ : RNNames GF) (rt cur : w64) (n : Nat)
-    (hn : (n : Int) ≤ uint.Z cur) :
+    (hn : (n : Int) ≤ uint.Z cur) (hz : rt = W64 0 → n = 0 ∨ γ.t0 ≠ W64 0) :
     letI := srvStor (GF := GF) γ.node
     committedAtTerm γ.node.cl srvClusterN rt cur -∗ rnBatchSource γ rt n -∗
     (⌜(γ.a0.length : Int) ≤ uint.Z cur⌝ ∨ ∃ old cover : w64,
@@ -2025,6 +2023,8 @@ theorem rnRtOk_of_commit (γ : RNNames GF) (rt cur : w64) (n : Nat)
   letI := srvStor (GF := GF) γ.node
   iintro #Hcur #Hsrc Hboot
   iunfold rnRtOk
+  isplitr
+  · ipureintro; exact hz
   iright
   icases Hboot with (%within | ⟨%old, %cover, #Hprior, %prior⟩)
   · iexists cur; iframe Hcur Hsrc; isplit <;> ipureintro <;> assumption
@@ -2036,9 +2036,11 @@ theorem rnRtOk_of_commit (γ : RNNames GF) (rt cur : w64) (n : Nat)
 
 /-- Build the apply job from the receive's hard state. A graceful restart
 provides the first disjunct. A retained pre-crash receipt supplies the second
-even when the recovered commit is below the backend index. -/
+even when the recovered commit is below the backend index. (keepfix (c) step 1, 2026-11-28) The
+loop's term `rt` is `prevHardSt`'s, or `0` while `prevHardSt` is still the restored one (term `t0`):
+so a zero term with a non-empty log has `t0 ≠ 0`. -/
 theorem rnRtOk_of_hsC (γ : RNNames GF) (rt : w64) (L : List EntryModel) (p : HardStateM)
-    (Hrt : uint.Z rt = 0 ∨ rt = p.Term') :
+    (Hrt : rt = p.Term' ∨ (uint.Z rt = 0 ∧ p.Term' = γ.t0)) :
     letI := srvStor (GF := GF) γ.node
     rnHsC γ p L -∗
     (⌜(γ.a0.length : Int) ≤ uint.Z p.Commit'⌝ ∨ ∃ old cover : w64,
@@ -2047,15 +2049,42 @@ theorem rnRtOk_of_hsC (γ : RNNames GF) (rt : w64) (L : List EntryModel) (p : Ha
     rnRtOk γ rt (rnLogOf γ L).length := by
   letI := srvStor (GF := GF) γ.node
   iintro #Hc Hboot
-  rcases Hrt with Hrt | rfl
-  · iunfold rnRtOk; ileft; ipureintro; word
-  · iunfold rnHsC at Hc
-    icases Hc with ⟨#Hsrc, (%Hz | ⟨#Hc, %Hle⟩)⟩
-    · iunfold rnRtOk; ileft; ipureintro; rw [Hz]
+  iunfold rnHsC at Hc
+  icases Hc with ⟨#Hsrc, #Hc⟩
+  have hlen : ((rnLogOf γ L).length : Int) = ((srvLE γ.srv L).length : Int) := by
+    simp [srvLE, rnLogOf, RNNames.srv]
+  ihave %Hp : ⌜((srvLE γ.srv L).length : Int) ≤ uint.Z p.Commit' ∧
+      (1 ≤ uint.Z p.Commit' → p.Term' ≠ W64 0)⌝ $$ []
+  · icases Hc with (%Hz | ⟨-, %Hle⟩)
+    · ipureintro
+      refine ⟨Hz.2, fun h1 => ?_⟩
+      rw [Hz.1] at h1; exfalso; revert h1; simp only [hsZero]; word
+    · ipureintro; exact Hle
+  have hz : rt = W64 0 → (rnLogOf γ L).length = 0 ∨ γ.t0 ≠ W64 0 := by
+    intro h0
+    by_cases hl : (rnLogOf γ L).length = 0
+    · exact Or.inl hl
+    · right
+      have h1 : 1 ≤ uint.Z p.Commit' := by omega
+      have hT := Hp.2 h1
+      rcases Hrt with Hrt | ⟨-, Ht⟩
+      · exact absurd (Hrt ▸ h0) hT
+      · rw [← Ht]; exact hT
+  by_cases h0 : rt = W64 0
+  · iunfold rnRtOk
+    isplitr
+    · ipureintro; exact hz
+    ileft; ipureintro; exact h0
+  · have Hrt' : rt = p.Term' := by
+      rcases Hrt with Hrt | ⟨Hz, -⟩
+      · exact Hrt
+      · exact absurd (by word) h0
+    subst Hrt'
+    icases Hc with (%Hz | ⟨#Hc, %Hle⟩)
+    · exfalso; apply h0; rw [Hz.1]
     · ihave #Hsrc' : rnBatchSource γ p.Term' (rnLogOf γ L).length $$ []
       · iExactEq Hsrc; simp [srvLE, rnLogOf, RNNames.srv]
-      iapply rnRtOk_of_commit γ p.Term' p.Commit' (rnLogOf γ L).length (by
-        simpa [srvLE, rnLogOf, RNNames.srv] using Hle) $$ Hc Hsrc' Hboot
+      iapply rnRtOk_of_commit γ p.Term' p.Commit' (rnLogOf γ L).length (by omega) hz $$ Hc Hsrc' Hboot
 
 /-- (D22l) `prevHardSt`'s update by a `Ready` of the server's hard state `hs`. -/
 theorem phsNext_toM_empty (p : HardStateM) (hs : HardStateModel) (h : hs = HardStateModel.empty) :
@@ -2337,7 +2366,9 @@ def rnLoopTokP (γ : RNNames GF) (L : List EntryModel) (p : HardStateM) (b : Boo
 /-- The loop's ghost state at some `prevHardSt` (D22l: `rnLoopTokP`, the loop keeps it tied to
 the raft term it records). -/
 def rnLoopTok (γ : RNNames GF) (L : List EntryModel) : IProp GF :=
-  iprop(⌜γ.snap0 ≤ (rnLogOf γ L).length⌝ ∗ ∃ p : HardStateM, rnLoopTokP γ L p false)
+  -- (keepfix (c) step 1, T1, 2026-11-28) `prevHardSt` at the loop's start has the restored term `t0`
+  -- (`RestartNode`'s storage hard state; a first start's empty one, term `0`)
+  iprop(⌜γ.snap0 ≤ (rnLogOf γ L).length⌝ ∗ ∃ p : HardStateM, rnLoopTokP γ L p false ∗ ⌜p.Term' = γ.t0⌝)
 
 /-- The apply side's ghost state: `applyc`'s consumer half, and `cum` at the number of
 payloads received, the log `A` forwarded so far. -/

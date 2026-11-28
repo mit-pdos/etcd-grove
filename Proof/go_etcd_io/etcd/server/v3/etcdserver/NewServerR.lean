@@ -2301,8 +2301,9 @@ theorem NewServer.wp_proofRG
     have hci : ciEff γA γA.m0.1 = i := by unfold ciEff; split <;> exact Hm0.2.1
     iexists ⟨γA.m0.1, γA.m0.1, W64 0, false⟩, W64 0, W64 0, false, i, srvAuthSt0
     -- (keepfix (c)) the apply thread's mirror, `bootOkR`'s seed
-    ihave Hrt' : iprop(∃ rt : w64, ciRaftTerm (GF := GF) γA.ci rt) $$ [Hrt]
-    · iexists _; iexact Hrt
+    -- (T3) nonzero when the restored term `γrn.t0` (the same `σ.hs.Term'`) is
+    ihave Hrt' : iprop(∃ rt : w64, ciRaftTerm (GF := GF) γA.ci rt ∗ ⌜γrn.t0 ≠ W64 0 → rt ≠ W64 0⌝) $$ [Hrt]
+    · iexists _; iframe Hrt; ipureintro; intro h; rw [Hrnt0] at h; exact h
     iframe Hthr Happ Hrt' Hlr5 HrdApp Haown forceDiskSnapshot
     isplitr
     · ipureintro
