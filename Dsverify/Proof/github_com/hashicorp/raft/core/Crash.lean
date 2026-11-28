@@ -88,7 +88,7 @@ def srvVacant (X : SrvDur) : IProp GF :=
     termCouple γ i X.s.term ∗ cidxCouple γ i X.s.cidx ∗
     rc.ownL X.A ∗ rc.ownS X.D ∗ rc.ownSS X.lat ∗
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
-      uint.nat X.A.ci ≤ X.s.dur.1 ∧ X.pend = none⌝ ∗
+      uint.nat X.A.ci ≤ X.s.dur.1 ∧ uint.nat X.A.staged ≤ X.s.dur.1 ∧ X.pend = none⌝ ∗
     latestOk γ rc X.lat ∗
     (⌜X.lat = none⌝ ∨ ∃ (m : SnapshotMeta) (b : List w8), ⌜X.lat = some (m, b)⌝ ∗
       (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term'))) ∗
@@ -102,7 +102,7 @@ authority (at `X.c`) and the main goroutine's half of the pending-install record
 theorem raft_arm (rc0 : RCtx GF) (X : SrvDur) :
     srvVacant γ rc0 i X ⊢ |==> ∃ dn : DurNames,
       srvDurInv γ { rc0 with dur := dn } i ∗ srvCrashTok { rc0 with dur := dn } ∗
-      srvVP { rc0 with dur := dn } X.s X.tp X.dp ∗ stV { rc0 with dur := dn } X.D ∗
+      srvVP { rc0 with dur := dn } X.s X.tp X.dp ∗ stVS { rc0 with dur := dn } X.D X.A.staged ∗
       termV { rc0 with dur := dn } X.s.term ∗ cidxV { rc0 with dur := dn } X.s.cidx ∗
       monoNatAuthOwn dn.applied 1 0 ∗ monoNatAuthOwn dn.comp 1 X.c ∗
       ghostVar dn.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) := by
