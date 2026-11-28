@@ -9,6 +9,7 @@ module
 public import Dsverify.Spec.github_com.hashicorp.raft.raftState__getLastLog
 public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.github_com.hashicorp.raft.core.Helpers
+public import Dsverify.Proof.github_com.hashicorp.raft.core.LastLock
 
 @[expose] public section
 
@@ -30,8 +31,8 @@ open github_com.hashicorp.raft proto gprot
 theorem github_com.hashicorp.raft.raftState.getLastLog.wp_proof :
     github_com.hashicorp.raft.raftState.getLastLog.spec (GF := GF) (hG := hG) := by
   constructor
-  · intro r γ rc i li lt
-    wp_start as ⟨#His, Hg⟩
+  · intro r γ rc i li lt a
+    wp_start as ⟨#His, Hg, Ha⟩
     ihave #Hm := isRaft_lastLock r γ rc i $$ His
     wp_method_call; wp_call
     wp_auto
@@ -39,15 +40,28 @@ theorem github_com.hashicorp.raft.raftState.getLastLog.wp_proof :
     iunfold lastLockInv at HL
     icases HL with ⟨%x, %y, %si, %st, Hx, Hy, Hsi, Hst, Hg', #Hsnap⟩
     ihave %he := ghostVar_agree _ _ _ _ _ $$ Hg Hg'
-    wp_auto
-    wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg']
-    · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe; iframe #
-    iapply HΦ
-    iframe
-    ipureintro
-    split at he
-    · simp only [Prod.mk.injEq] at he; omega
-    · simp only [Prod.mk.injEq] at he; omega
+    ihave #Hs2 := Hsnap
+    icases Hs2 with (%H0 | ⟨%e, -, -, #Hlb, -⟩)
+    · have Hsia : uint.nat si ≤ a := by subst H0; simp
+      wp_auto
+      wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg']
+      · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe; iexact Hsnap
+      iapply HΦ
+      iframe
+      ipureintro
+      split at he
+      · simp only [Prod.mk.injEq] at he; omega
+      · simp only [Prod.mk.injEq] at he; omega
+    · ihave %Hsia := applLb_le rc _ a (uint.nat si) $$ [$Ha $Hlb]
+      wp_auto
+      wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg']
+      · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe; iexact Hsnap
+      iapply HΦ
+      iframe
+      ipureintro
+      split at he
+      · simp only [Prod.mk.injEq] at he; omega
+      · simp only [Prod.mk.injEq] at he; omega
   · intro r γ rc i
     wp_start as #His
     ihave #Hm := isRaft_lastLock r γ rc i $$ His
