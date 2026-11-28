@@ -22,6 +22,9 @@ namespace etcd_dist
 
 open go_etcd_io.etcd.server.v3.etcdserver mvcc linkv
 
+section go
+variable [GooseExts]
+
 /-- **The server's run of a model transaction's operations changes only their keys** (puts and
 deletes alike), at every state. -/
 theorem srvOps_keys (P : GoString → Prop) (s0 : List EtcdKv) (r : w64) :
@@ -78,7 +81,10 @@ theorem pfxLocal_putTxn (p lk le k v : GoString) (rev : w64) (g : Bool) (hk : p 
   simp only [k8s.putTxn, k8s.delTxn, opOf]
   apply pfxLocal_txnOf
   intro op hop
-  cases g <;> simp_all [MOp.key]
+  have key : ∀ op ∈ [MOp.put k v] ++ (if g then [MOp.get k] else []), op.key = k := by
+    cases g <;> simp [MOp.key]
+  rw [key op hop]
+  exact hk
 
 /-- **The k8s store's compare-delete of a key under `p` (`OptimisticDelete`) is local to `p`.** -/
 theorem pfxLocal_delTxn (p lk le k : GoString) (rev : w64) (g : Bool) (hk : p <+: k) :
@@ -86,7 +92,12 @@ theorem pfxLocal_delTxn (p lk le k : GoString) (rev : w64) (g : Bool) (hk : p <+
   simp only [k8s.putTxn, k8s.delTxn, opOf]
   apply pfxLocal_txnOf
   intro op hop
-  cases g <;> simp_all [MOp.key]
+  have key : ∀ op ∈ [MOp.del k] ++ (if g then [MOp.get k] else []), op.key = k := by
+    cases g <;> simp [MOp.key]
+  rw [key op hop]
+  exact hk
+
+end go
 
 end etcd_dist
 end EtcdGrove
