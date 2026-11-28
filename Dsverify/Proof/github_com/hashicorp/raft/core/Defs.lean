@@ -113,6 +113,9 @@ structure DurNames where
   end of `NewRaft`, `some (A, lat)` (½ `durBody`, ½ `NewRaft`): the stores' state the restore reads is the
   arm-time one; then `none`, discarded (`bootOver`, in `srvDurInv`). -/
   boot : GName
+  /-- (hraft_robust, R4b) `mono_nat`: the latest snapshot's index (`latIdxD`; authority in `durBody`,
+  lower bounds `latLb`: a closed own snapshot's index, which its compaction then lends). -/
+  lat : GName
 
 /-- One server's context: its ghost names and the client predicates fixed at `NewRaft`. -/
 structure RCtx [GooseExts] (GF : BundledGFunctors) where
@@ -961,12 +964,19 @@ def latestDur (γ : GNames) (rc : RCtx GF) (i : SID) (lat : SnapLatest)
           ⌜lat = some (m, b) ∧ m.ID' = id ∧ uint.nat m.Index' = s ∧ uint.nat m.Term' = st ∧ a < s⌝ ∗
           snapFollow γ i s st ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a))
 
-/-- (hraft_robust, R2) The latest snapshot's index (`0`: none). The compaction frontier stays at most it
-(compaction follows its snapshot's `Close`). -/
+/-- (hraft_robust, R2) The latest snapshot's index (`0`: none). The log store's lower bound `lo` stays at
+most one above it (a compaction deletes up to a snapshot closed before; an install's discard up to its own);
+the frontier `c` may run ahead (the configurations answer raises it before the snapshot's `Close`). -/
 def latIdxD (lat : SnapLatest) : Nat :=
   match lat with
   | none => 0
   | some (m, _) => uint.nat m.Index'
+
+/-- (hraft_robust, R4b) The latest snapshot's index is at least `x` (persistent). -/
+def latLb (rc : RCtx GF) (x : Nat) : IProp GF := monoNatLbOwn rc.dur.lat x
+
+instance latLb_persistent rc x : Persistent (latLb (GF := GF) rc x) := by
+  unfold latLb; infer_instance
 
 /-- (hraft_robust L0) **A server's state that survives a crash** (R1 §1.3): its protocol state `s`,
 its log store's state `A` (with `logCell`'s bound `lo` and compaction frontier `c`), its stable store's
@@ -1013,9 +1023,10 @@ def durBody (γ : GNames) (rc : RCtx GF) (i : SID) (X : SrvDur) : IProp GF :=
     ⌜logOk X.A X.s.log X.lo ∧ X.lo ≤ X.c + 1 ∧ voteMatches X.D X.s ∧ termDurOk X.D X.s X.tp ∧
       uint.nat X.A.ci ≤ X.s.dur.1⌝ ∗
     ⌜(∀ d, X.dp = some d → X.lo ≤ d.x) ∧
-      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.c ≤ latIdxD X.lat⌝ ∗
+      (∀ x st id, X.pend = some (x, st, id) → ∃ ℓ, X.dp = some ⟨x, st, ℓ⟩) ∧ X.lo ≤ latIdxD X.lat + 1⌝ ∗
     bootPin rc X ∗
     monoNatAuthOwn rc.dur.comp (1 : Qp).half X.c ∗ ⌜∀ d, X.dp = some d → X.c < d.x⌝ ∗
+    monoNatAuthOwn rc.dur.lat 1 (latIdxD X.lat) ∗
     latestDur γ rc i X.lat X.pend X.dp ∗ ghostVar rc.dur.pend (1 : Qp).half X.pend ∗
     tpRes γ X.tp ∗ dpRes γ i X.s X.dp)
 
@@ -1246,11 +1257,14 @@ instance raftImm_persistent r i : Persistent (raftImm (GF := GF) r i) := by
 /-! ### The stores' window families (hraft_robust, R3 Q2) -/
 
 /-- (hraft_robust) The log store write `op` that the pending step `p` at state `s` makes (its `StoreLogs`
-or `DeleteRange`; `False` for a step that is not a log write). -/
+or `DeleteRange`; `False` for a step that is not a log write). A follower's append may re-store, from
+`prev + k + 1`, entries the protocol log already has (R4a: `appendEntries` compares with the raw last log
+index, below the snapshot's after a restart over a compacted log); they equal the log's. -/
 def pendLogOk (s : SState) : Pend → LogOp → Prop
   | .app es, op => op = .store (s.log.length + 1) es
   | .cfg e _ _, op => op = .store (s.log.length + 1) [e]
-  | .fstore prev _ ents _ j _, op => op = .store (prev + j + 1) (ents.drop j)
+  | .fstore prev _ ents _ j _, op => ∃ k, k ≤ j ∧ op = .store (prev + k + 1) (ents.drop k) ∧
+      ∀ m, k ≤ m → m < j → ent s.log (prev + m + 1) = ents[m]?
   | .trunc prev _ _ _ j, op => op = .del (prev + 1 + j) s.log.length
   | .discard _, op => ∃ mx, op = .del 1 mx
   | _, _ => False
@@ -1268,7 +1282,7 @@ frontier) lends only the frontier's bound. (Pre-model writes, `BootstrapCluster`
 R5/the kit.) -/
 def logWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : LogOp) : IProp GF :=
   iprop((∃ (s : SState) (p : Pend), ⌜pendLogOk s p op⌝ ∗ winRes γ rc i s p) ∨
-    (∃ mn mx : Nat, ⌜op = .del mn mx⌝ ∗ compLb rc mx))
+    (∃ mn mx : Nat, ⌜op = .del mn mx⌝ ∗ compLb rc mx ∗ latLb rc mx))
 
 /-- (hraft_robust) **Raft's window family for its stable store** (`isStableStore`'s `Ws`): the vote's second
 write and the term writes lend `winRes`; the vote's first write (`LastVoteCand`) lends nothing. -/
@@ -1278,9 +1292,10 @@ def stWin (γ : GNames) (rc : RCtx GF) (i : SID) (op : StableOp) : IProp GF :=
 
 /-- (hraft_robust) **Raft's close obligation for its snapshot store** (`isSnapStore`'s `Qc`): the closed
 snapshot's facts (`latestOk`) and its index durable at `i` or installed while `i` followed (what
-`latestDur` keeps). Persistent facts only, so the FSM's `Persist` can be given it from `snapP`. -/
+`latestDur` keeps), given the bytes' bound (the store has it from its Go slice: its commit and its crash
+lemma; R4b). Persistent facts only, so the FSM's `Persist` can be given it from `snapP`. -/
 def snapWin (γ : GNames) (rc : RCtx GF) (i : SID) (m : SnapshotMeta) (b : List w8) : IProp GF :=
-  iprop(latestOk γ rc (some (m, b)) ∗
+  iprop(⌜b.length < 2 ^ 63⌝ -∗ latestOk γ rc (some (m, b)) ∗
     (durLb γ i (uint.nat m.Index') ∨ snapFollow γ i (uint.nat m.Index') (uint.nat m.Term')))
 
 /-- `isRaft`'s interface values and their contracts. (Stage 3: the log store over a partial map,
