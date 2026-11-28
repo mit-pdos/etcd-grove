@@ -1,5 +1,5 @@
 /-
-Ported from dsverify-lab examples/hraft/proof/HrVerify/Proof/github_com/hashicorp/raft/Raft__appendEntries.lean (241f27e).
+(hraft_robust R4a: over the crash views; wip.) Ported from dsverify-lab examples/hraft/proof/HrVerify/Proof/github_com/hashicorp/raft/Raft__appendEntries.lean (241f27e).
 -/
 /-
 The proof of `raft.(*Raft).appendEntries`: the protocol steps of a follower handling a valid
@@ -31,6 +31,7 @@ public import Dsverify.Spec.github_com.hashicorp.raft.Raft__processLogs
 public import Dsverify.Spec.github_com.hashicorp.raft.Raft__setLastContact
 public import Dsverify.Spec.github_com.hashicorp.raft.RPC__Respond
 public import Dsverify.Proof.github_com.hashicorp.raft.handlers.Base
+public import Dsverify.Proof.github_com.hashicorp.raft.DurHelpers
 public import Dsverify.Proof.github_com.hashicorp.raft.handlers.CfgLog
 public import Perennial.Spec.sync.atomic.Bool__Load
 
@@ -233,33 +234,31 @@ theorem cfgFacts_step_cfg (γ : GNames) (L : RLog) (n a T : Nat) (cfg ccfg c : C
     rw [Nat.add_sub_cancel]; exact H.1
   rw [H.1]; iexact Hp
 
-/- hraft_robust L0: statement obsolete (its stage restates or deletes it)
 /-- Reassembling `mainOwnAt` from the leader arm and the configurations' facts. -/
 theorem mainOwnAt_ae (r : Loc) (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState) (st : w32)
-    (a : Nat) (sst : StableAbs) (cfg ccfg : Configuration) (cidx li : w64) (lch : Loc)
-    (γl : ChanNames) (bs : List Bool) (c : Nat) (hvm : voteMatches sst s)
+    (a : Nat) (sst : StableAbs) (g : w64) (cfg ccfg : Configuration) (cidx li : w64) (lch : Loc)
+    (γl : ChanNames) (bs : List Bool) (c : Nat) (hvm : voteMatches sst s) (hg : uint.nat g ≤ s.dur.1)
     (ha : a ≤ s.dur.1 ∧ s.cidx ≤ a) (hc : c ≤ a)
     (hcap : sint.Z γl.chanCap = 1 ∧ bs.length ≤ 1) :
-    srvOwn γ i s ∗ durView γ i (1 : Qp).half s.dur.1 ∗ rc.ownS sst ∗
+    srvV rc s ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc sst g ∗
       ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
       ghostVar rc.names.state (1 : Qp).half st ∗ stArm γ i st s.term s.log s.cidx a cidx li ∗
       monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
       fsmProd γ rc a ∗ r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg li ∗
       cfgFacts γ s.log s.log.length a s.term cfg ccfg cidx li ∗
       r.[Raft, go!"leaderCh"] ↦□ lch ∗ isChan lch γl Bool ∗
-      ownChan γl Bool (.Buffered bs) ∗ ghostVar rc.names.logPend (1 : Qp).half ([] : RLog) ∗
+      ownChan γl Bool (.Buffered bs) ∗
       verifyRegistry γ rc i ∗
       ghostVar rc.dur.pend (1 : Qp).half (none : Option (Nat × Nat × GoString)) ∗
-      monoNatAuthOwn rc.dur.comp 1 c ⊢ mainOwnAt r γ rc i s st := by
-  iintro ⟨Hs, Hdv, HS, Hll, Hst, Hstl, Happ, Hprod, Hcfgs, Hcf, #Hlch, #Hlchan, Hlown, Hpend, Hvreg, Hpd,
+      monoNatAuthOwn rc.dur.comp (1 : Qp).half c ⊢ mainOwnAt r γ rc i s st := by
+  iintro ⟨Hs, Hpw, HS, Hll, Hst, Hstl, Happ, Hprod, Hcfgs, Hcf, #Hlch, #Hlchan, Hlown, Hvreg, Hpd,
     Hcomp⟩
   unfold cfgFacts stArm
   icases Hcf with ⟨#H1, #H2, %H, #H3⟩
   rw [List.take_length] at H
-  iapply mainOwnAt_intro' r γ rc i s st a sst cfg ccfg cidx li lch γl bs c hvm ha hc H hcap
+  iapply mainOwnAt_intro' r γ rc i s st a sst g cfg ccfg cidx li lch γl bs c hvm hg ha hc H hcap
   iframe
   iframe #
--/
 
 /-- A later FSM position (`processLogs`), below the latest configuration if it is not committed. -/
 theorem cfgFacts_mono_a (γ : GNames) (L : RLog) (n a a' T : Nat) (cfg ccfg : Configuration)
@@ -372,6 +371,15 @@ theorem aeValid_lciOk (γ : GNames) (T prev pt : Nat) (ents : RLog) (lci : Nat) 
 end aeCfg
 end github_com.hashicorp.raft
 
+omit hRB in
+theorem aeValid_self_R [hRB : ReceiptBoundLe GF (2 ^ 62)] (γ : GNames) (rc : RCtx GF) (i : SID) (s : SState)
+    (prev pt : Nat) (ents : RLog) (lci j : Nat) (e : Entry) (he : ents[j]? = some e) :
+    Inv γ ∗ srvDurInv γ rc i ∗ srvV rc s ∗ leaderIs γ s.term i ∗ aeValid γ s.term prev pt ents lci ⊢
+      |NC={⊤}=> srvV rc s ∗ ⌜ent s.log (prev + 1 + j) = some e⌝ := by
+  iintro ⟨#HI, #Hd, Hs, #Hl, #Hae⟩
+  ihave #He := aeValid_ent γ s.term prev pt ents lci j e he $$ Hae
+  iapply llogIdx_leader_R γ rc i gd_top s (prev + 1 + j) e $$ [$HI $Hd $Hs $Hl $He]
+
 open github_com.hashicorp.raft.aeCfg in
 set_option maxHeartbeats 4000000 in
 theorem github_com.hashicorp.raft.Raft.appendEntries.wp_proof
@@ -399,5 +407,1018 @@ theorem github_com.hashicorp.raft.Raft.appendEntries.wp_proof
     (wp_setLastContact : github_com.hashicorp.raft.Raft.setLastContact.spec (GF := GF) (hG := hG))
     (wp_Respond : github_com.hashicorp.raft.RPC.Respond.spec (GF := GF) (hG := hG))
     (wp_Bool_Load : sync.atomic.Bool.Load.spec (GF := GF) (hG := hG)) :
-    github_com.hashicorp.raft.Raft.appendEntries.spec (GF := GF) (hG := hG) := by
-  sorry -- hraft_robust L0: re-proved by its stage (HANDOFF.md)
+    github_com.hashicorp.raft.Raft.appendEntries.spec (GF := GF) (hG := hG) :=
+  fun r γ rc i rpc p rq snd T prev pt ents lci ss γc s st tid => by
+  wp_start as ⟨#Hr, Hm, Htok, Hp, Hreq, #Hbag⟩
+  unfold mainOwnAt
+  icases Hm with ⟨%a, %sst, %cfg, %ccfg, %cidx, %cli, %lch, %γl, %bs, %cmp, Hs, Hpw, ⟨%g, HS, %Hg⟩, %Hvm, Hll, Hst, Hstl,
+    -, Hvreg, Happ, %Ha, Hprod, Hpnd, Hcomp, %Hcmp, Hcfgs, #Hcfl, #Hcfc, %Hccfg, #Hcmi, #Hlch, #Hlchan,
+    Hlown, %Hcap⟩
+  unfold aeReq
+  icases Hreq with ⟨%Hnums, #Hhdr, #Hlead, ⟨%ptrs, #Hents, %Hplen, #Hptrs⟩, #Hae, #Hss⟩
+  obtain ⟨HTe, Hpreve, Hpte, Hlcie⟩ := Hnums
+  ihave ⟨#HI, #Hvi⟩ := isRaft_proto r γ rc i $$ Hr
+  ihave #Htc := isRaft_termCell r γ rc i $$ Hr
+  ihave #Hcc := isRaft_cidxCell r γ rc i $$ Hr
+  ihave #Hdur := isRaft_durInv r γ rc i $$ Hr
+  ihave #Hsc := isRaft_stateCell r γ rc i $$ Hr
+  wp_apply wp_with_defer as %defer Hdefer
+  wp_apply wp_getRPCHeader r γ rc i $$ [$Hr] as %h0 #Hh0
+  wp_apply wp_getCurrentTerm.1 r γ rc i s $$ [$HI $Htc $Hdur $Hs] as Hs
+  wp_apply wp_getLastIndex.1 r γ rc i s a $$ [$Hr $Hll $Hs $Happ] as %li ⟨%Hli, Hll, Hs, Happ⟩
+  · ipureintro; exact Ha.1
+  irename «$r0» => Hrsp
+  iapply wp_ncfupd _ _ rfl
+  iintro Hnc
+  ihave H1 := srvV_termLb γ rc i (E := ⊤) (fun _ _ => CoPset.mem_full) s $$ [$Hdur $Hs]
+  imod H1 $$ Hnc with ⟨Hnc, Hs, #Htlb0⟩
+  ihave H2 := srvOwn_facts_R γ rc i gd_top s $$ [$HI $Hdur $Hs]
+  imod H2 $$ Hnc with ⟨Hnc, Hs, -, %Hsf⟩
+  iframe Hnc
+  imodintro
+  have Hst62 : s.term < 2 ^ 62 := Hsf.2.2.2.2.2.1
+  wp_apply wp_getCurrentTerm.1 r γ rc i s $$ [$HI $Htc $Hdur $Hs] as Hs
+  wp_if_destruct
+  · wp_apply wp_Respond rpc_ptr rpc γc _ _ _ $$ [$rpc $Hbag Hrsp] as rpc
+    · iapply aeRespP_intro $$ [$Hrsp]
+      iframe Hh0
+      isplitr
+      · iapply termOk_of_termLb γ i _ s.term (by word) $$ [$Hvi $Htlb0]
+      ileft; ipureintro; rfl
+    wp_end
+    iexists s, st
+    iframe Htok
+    isplitl
+    · ihave Hmo := mainOwnAt_intro' r γ rc i s st a sst g cfg ccfg cidx cli lch γl bs cmp Hvm Hg Ha Hcmp Hccfg Hcap
+        $$ [Hs Hpw HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hvreg Hpnd Hcomp]
+      · iframe; iframe #
+      unfold mainOwnAt
+      iexact Hmo
+    ileft; ipureintro; right; exact ⟨rfl, rfl, rfl⟩
+  ipersist r
+  ipersist a
+  ipersist resp
+  ipersist Hp
+  iStructNamed Hp
+  ihave Hrsp : (∃ rv0 : AppendEntriesResponse, «$r0_ptr» ↦ rv0 ∗
+      ⌜rv0.RPCHeader' = h0 ∧ rv0.Success' = false⌝ ∗ termOk γ (uint.nat rv0.Term')) $$ [Hrsp]
+  · iexists _; iframe Hrsp; isplitr; · ipureintro; exact ⟨rfl, rfl⟩
+    iapply termOk_of_termLb γ i _ s.term (by word) $$ [$Hvi $Htlb0]
+  icases Hrsp with ⟨%rv0, Hrsp, %Hrv0, #Hrv0t⟩
+  have HT : s.term ≤ T := by
+    rw [← HTe]; have : uint.Z (W64 (s.term : Int)) = s.term := by word
+    simp only [uint.nat]; word
+  ihave ⟨%ℓ, #Hlead_l⟩ := aeValid_leader γ T prev pt ents lci $$ Hae
+  wp_join iprop(∃ (st1 : w32) (sst1 : StableAbs) (rv : AppendEntriesResponse),
+      srvV rc { s with term := T } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ ghostVar rc.names.state (1 : Qp).half st1 ∗
+      ⌜st1 = stFollower ∨ (st1 = st ∧ T = s.term ∧ st ≠ stFollower ∧ (ℓ ≠ i → st = stCandidate))⌝ ∗
+      stArm γ i st1 T s.log s.cidx a cidx cli ∗
+      stVS rc sst1 g ∗ ⌜voteMatches sst1 { s with term := T }⌝ ∗ «$r0_ptr» ↦ rv ∗
+      ⌜rv.RPCHeader' = h0 ∧ rv.Success' = false⌝ ∗ termOk γ (uint.nat rv.Term') ∗ termLb γ i T ∗
+      rtok tid) at next with [Hs Hpw Hst Hstl HS Hrsp Htok]
+    as ⟨%st1, %sst1, %rv, Hs, Hpw, Hst, %Hcase, Hstl, HS, %Hvm1, Hrsp, %Hrv, #Hrvt, #HtlbT, Htok⟩
+  · wp_apply wp_getCurrentTerm.1 r γ rc i s $$ [$HI $Htc $Hdur $Hs] as Hs
+    wp_if_destruct
+    · -- a newer term
+      rw [show (Follower : val) = #stFollower from rfl]
+      wp_apply wp_setState r γ rc i _ stFollower s $$ [$Hr $Hst $Htok] as ⟨Hst, -, Htok⟩
+      · isplitr; · ipureintro; left; rfl
+        iapply obsArg_state γ i s stFollower (by decide)
+      ihave #HokT := termOk_of_aeValid γ T prev pt ents lci $$ Hae
+      wp_apply wp_setCurrentTerm r γ rc i s sst g rq.Term' (.set T) $$ [$Hr $Hs $Hpw $HS] as ⟨Hs, Hpw, #HtlbT, HS, -⟩
+      · isplitl []
+        · simp only [tpRes]; iexact HokT
+        · ipureintro; left; exact ⟨by rw [HTe], by rw [HTe]; exact HT⟩
+      wp_join_done
+      iexists stFollower, _, { rv0 with Term' := rq.Term' }
+      rw [HTe]
+      iframe
+      iframe HtlbT
+      isplitr
+      · ipureintro; left; rfl
+      isplitr
+      · unfold stArm; ileft; ipureintro; decide
+      isplitr
+      · ipureintro; exact voteMatches_term sst s rq.Term' T Hvm HT
+      isplitr
+      · ipureintro; exact ⟨Hrv0.1, Hrv0.2⟩
+      iapply termOk_of_termLb γ i T T (Nat.le_refl _) $$ [$Hvi $HtlbT]
+    · -- the same term: become a follower unless already one (or a transfer candidate)
+      have HTs : T = s.term := by
+        rw [← HTe]; have : uint.Z (W64 (s.term : Int)) = s.term := by word
+        simp only [uint.nat]; word
+      wp_apply wp_getState.1 r rc st $$ [$Hsc $Hst] as Hst
+      wp_if_destruct
+      · -- already a follower
+        wp_join_done
+        iexists _, sst, rv0
+        have hs : { s with term := T } = s := by rw [HTs]
+        rw [hs]
+        iframe
+        isplitr
+        · ipureintro; left; rfl
+        isplitl [Hstl]
+        · unfold stArm; rw [HTs]; iexact Hstl
+        rw [HTs]
+        iframe Htlb0 Hrv0t
+        ipureintro; exact ⟨Hvm, Hrv0⟩
+      · ihave #Hcft := isRaft_cells r γ rc i $$ Hr
+        unfold raftCells
+        icases Hcft with ⟨-, -, -, -, -, #Hcft, -⟩
+        wp_apply wp_Bool_Load
+        unfold cftCell
+        iinv Hcft with ⟨%b, Hb⟩ Hclose
+        all_goals first | exact Iris.CoPset.subseteq_top | skip
+        imod fupd_mask_subseteq (E1 := ⊤ \ ↑cftN) (E2 := ∅) Iris.Std.LawfulSet.empty_subset with Hmask
+        imodintro
+        inext
+        iexists b
+        iframe Hb
+        iintro Hb
+        imod Hmask
+        imod Hclose $$ [Hb] with -
+        · inext; iexists b; iexact Hb
+        imodintro
+        wp_auto
+        cases b
+        · -- step down
+          simp only [Bool.not_false]
+          wp_auto
+          rw [show (Follower : val) = #stFollower from rfl]
+          wp_apply wp_setState r γ rc i _ stFollower s $$ [$Hr $Hst $Htok] as ⟨Hst, -, Htok⟩
+          · isplitr; · ipureintro; left; rfl
+            iapply obsArg_state γ i s stFollower (by decide)
+          ihave #HokT := termOk_of_aeValid γ T prev pt ents lci $$ Hae
+          wp_apply wp_setCurrentTerm r γ rc i s sst g rq.Term' (.set T) $$ [$Hr $Hs $Hpw $HS] as ⟨Hs, Hpw, #HtlbT, HS, -⟩
+          · isplitl []
+            · simp only [tpRes]; iexact HokT
+            · ipureintro; left; exact ⟨by rw [HTe], by rw [HTe]; exact HT⟩
+          wp_join_done
+          iexists stFollower, _, { rv0 with Term' := rq.Term' }
+          rw [HTe]
+          iframe
+          iframe HtlbT
+          isplitr
+          · ipureintro; left; rfl
+          isplitr
+          · unfold stArm; ileft; ipureintro; decide
+          isplitr
+          · ipureintro; exact voteMatches_term sst s rq.Term' T Hvm HT
+          isplitr
+          · ipureintro; exact ⟨Hrv0.1, Hrv0.2⟩
+          iapply termOk_of_termLb γ i T T (Nat.le_refl _) $$ [$Hvi $HtlbT]
+        · -- a candidate from a leadership transfer: no step down
+          imod stateCell_val r rc st $$ [$Hsc $Hst] with ⟨Hst, %Hsv⟩
+          simp only [Bool.not_true]
+          wp_auto
+          ihave %Hcand : ⌜ℓ ≠ i → st = stCandidate⌝ $$ [Hstl]
+          · icases Hstl with (%Hnl | ⟨#Hli, -⟩)
+            · ipureintro; intro _
+              rcases Hsv with h | h | h
+              · exact absurd h Hif
+              · exact h
+              · exact absurd h Hnl
+            · rw [← HTs]
+              ihave %Heq := leaderIs_agree γ T ℓ i $$ [$Hlead_l $Hli]
+              ipureintro; intro h; exact absurd Heq h
+          wp_join_done
+          iexists st, sst, rv0
+          have hs : { s with term := T } = s := by rw [HTs]
+          rw [hs]
+          iframe
+          isplitr
+          · ipureintro; right; exact ⟨rfl, HTs, Hif, Hcand⟩
+          isplitl [Hstl]
+          · unfold stArm; rw [HTs]; iexact Hstl
+          rw [HTs]
+          iframe Htlb0 Hrv0t
+          ipureintro; exact ⟨Hvm, Hrv0⟩
+  ihave #Hcf0 := cfgFacts_init γ s.log a T s.term cfg ccfg cidx cli HT Hccfg $$ [$Hcfl $Hcfc $Hcmi]
+  ihave #Hconf := isRaft_conf r γ rc i $$ Hr
+  unfold raftConf
+  icases Hconf with ⟨%cc0, -, -, #HlcI⟩
+  -- save the leader
+  iStructNamed RPCHeader
+  ihave ⟨%xtr, %rpcCh, #Htr, #Hrpcf, #Htrans⟩ := isRaft_transport r γ rc i $$ Hr
+  unfold isTransport
+  icases Htrans with ⟨-, -, -, -, #Hdec, -⟩
+  unfold hdrOk
+  icases Hhdr with ⟨%Hpv, #Hid, #Haddr⟩
+  wp_auto
+  wp_join with [Htok]
+  · wp_apply Hdec $$ Haddr
+    iintro Haddr'
+    wp_auto
+    wp_apply wp_bytes_to_string $$ Hid as Hid'
+    wp_apply wp_setLeader r γ rc i _ _ $$ [$Hr $Htok] as Htok
+    wp_join_done
+  · wp_apply Hdec $$ Hlead
+    iintro Hlead'
+    wp_auto
+    wp_apply wp_bytes_to_string $$ Hid as Hid'
+    wp_apply wp_setLeader r γ rc i _ _ $$ [$Hr $Htok] as Htok
+    wp_join_done
+  -- the previous entry
+  ihave ⟨%xls, #Hlsf, #Hls, -⟩ := isRaft_logStore r γ rc i $$ Hr
+  unfold isLogStore
+  icases Hls with ⟨-, -, #HgetLog, #HstoreLogs, -, #HdelRange, -⟩
+  wp_join (Q := fun v => iprop(
+      (⌜v = executeVal⌝ ∗ srvV rc { s with term := T } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
+        ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
+        monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
+        «$r0_ptr» ↦ rv ∗ rtok tid ∗ ⌜prevMatch s.log prev pt⌝) ∨
+      (⌜v = returnVal #()⌝ ∗ srvV rc { s with term := T } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
+        ghostVar rc.names.lastLog (1 : Qp).half (s.log.length, lastTerm s.log) ∗
+        monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
+        «$r0_ptr» ↦ { rv with NoRetryBackoff' := true } ∗ rtok tid)))
+    at next with [Hs Hpw Hll Hrsp Htok Happ]
+  · wp_if_destruct
+    · -- prev > 0
+      wp_apply wp_getLastEntry r γ rc i { s with term := T } a $$ [$Hr $Hll $Hs $Happ]
+        as %lx %ly ⟨%Hlxy, Hll, Hs, Happ⟩
+      · ipureintro; exact Ha.1
+      simp only at Hlxy
+      wp_if_destruct
+      · -- prev is the last index
+        wp_if_destruct
+        · q_exec
+          iframe
+          ipureintro
+          right
+          constructor
+          · have := Hlxy.1; omega
+          · rw [← Hpreve, Hlxy.1, ← Hpte, Hlxy.2]; rfl
+        · q_ret; iframe
+      · -- read the previous entry from the store
+        wp_apply_core HgetLog $$ prevLog Htok
+        iapply logRead_main γ rc i { s with term := T } _ $$ Hdur Hs
+        iintro %A %HA Hs
+        unfold getLogPost
+        split
+        · -- found
+          rename_i e he
+          iintro %err ⟨%Herr, %lv, Hplv, #Hlv⟩ Htok
+          unfold logIs
+          icases Hlv with ⟨%Hlvf, #Hlvd⟩
+          rw [Herr]
+          wp_auto
+          wp_if_destruct
+          · q_exec
+            iframe
+            ipureintro
+            right
+            have he' : ent s.log prev = some e := by rw [← Hpreve]; exact HA _ _ he
+            refine ⟨(ent_some_bound _ _ _ he').2, ?_⟩
+            rw [termAt_of_ent he', ← Hpte, ← Hlvf.2.1, Hif]
+          · q_ret; iframe
+        · -- not found
+          iintro %err ⟨%Herr, -, %lv, Hplv⟩ Htok
+          cases err with
+          | nil => exact absurd rfl Herr
+          | ok ee =>
+            wp_auto
+            q_ret; iframe
+    · -- prev = 0
+      q_exec
+      iframe
+      ipureintro
+      left
+      rw [← Hpreve]; word
+  rename_i v
+  iintro (⟨%Hv, Hs, Hpw, Hll, Happ, Hrsp, Htok, %Hpm⟩ | ⟨%Hv, Hs, Hpw, Hll, Happ, Hrsp, Htok⟩)
+  rotate_left
+  · -- the previous entry did not match: respond (failure)
+    subst Hv
+    wp_auto
+    wp_apply wp_Respond rpc_ptr rpc γc _ _ _ $$ [$rpc $Hbag Hrsp] as rpc
+    · iapply aeRespP_intro $$ [$Hrsp]
+      iframe Hrvt
+      isplitr
+      · ileft; ipureintro; exact Hrv.2
+      rw [Hrv.1]; unfold hdrOk; iexact Hh0
+    iapply HΦ
+    iexists { s with term := T }, st1
+    iframe Htok
+    isplitl [Hs HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hpw Hvreg Hpnd Hcomp]
+    · ihave Hmo := mainOwnAt_ae r γ rc i { s with term := T } st1 a sst1 g cfg ccfg cidx cli lch γl bs cmp Hvm1 Hg
+        Ha Hcmp Hcap $$ [Hs HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hpw Hvreg Hpnd Hcomp]
+      · iframe; iframe #
+      unfold mainOwnAt
+      iexact Hmo
+    iapply ae_post γ i ℓ st st1 s { s with term := T } T Hcase rfl (fun _ _ => rfl) $$ Hlead_l
+  subst Hv
+  -- the new entries
+  ihave %Hentslen := ownSlice_len _ _ _ $$ Hents
+  wp_auto
+  wp_join (Q := fun v => iprop(
+      (⌜v = executeVal⌝ ∗ ∃ (L' : RLog) (d' : Nat × Nat) (g' : w64) (cfg' ccfg' : Configuration) (cidx' li' : w64),
+        srvV rc { s with term := T, log := L', dur := d' } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
+        stVS rc sst1 g' ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜s.dur.1 ≤ d'.1 ∧ uint.nat g' ≤ d'.1⌝ ∗
+        ghostVar rc.names.lastLog (1 : Qp).half (L'.length, lastTerm L') ∗
+        «$r0_ptr» ↦ rv ∗ rtok tid ∗ r.[Raft, go!"configurations"] ↦ configurations.mk ccfg' cidx' cfg' li' ∗
+        cfgFacts γ L' L'.length a T cfg' ccfg' cidx' li' ∗
+        ⌜prevMatch L' prev pt ∧ matchedUpTo L' prev ents ents.length ∧
+          (st1 ≠ stFollower → ℓ = i → L' = s.log ∧ cidx' = cidx ∧ li' = cli)⌝) ∨
+      (⌜v = returnVal #()⌝ ∗ ∃ (L' : RLog) (d' : Nat × Nat) (g' : w64) (cfg' ccfg' : Configuration) (cidx' li' : w64),
+        srvV rc { s with term := T, log := L', dur := d' } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
+        stVS rc sst1 g' ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ ⌜s.dur.1 ≤ d'.1 ∧ uint.nat g' ≤ d'.1⌝ ∗
+        ghostVar rc.names.lastLog (1 : Qp).half (L'.length, lastTerm L') ∗
+        «$r0_ptr» ↦ rv ∗ rtok tid ∗ r.[Raft, go!"configurations"] ↦ configurations.mk ccfg' cidx' cfg' li' ∗
+        cfgFacts γ L' L'.length a T cfg' ccfg' cidx' li' ∗
+        ⌜st1 ≠ stFollower → ℓ = i → L' = s.log ∧ cidx' = cidx ∧ li' = cli⌝)))
+    at next with [Hs Hpw HS Happ Hll Hrsp Htok Hcfgs]
+  · wp_if_destruct
+    · wp_apply wp_getLastLog.1 r γ rc i _ _ $$ [$Hr $Hll] as %lx %ly ⟨%Hlxy, Hll⟩
+      rename_i newEntries_ptr i_ptr gi_ptr
+      ihave %Hentswf := ownSlice_wf _ _ _ $$ Hents
+      wp_join (Q := fun v => iprop(
+          (⌜v = executeVal⌝ ∗ ∃ ns : GoSlice, newEntries_ptr ↦ ns ∗ rtok tid ∗
+            ghostVar rc.dur.pw 1 (none : Option Pend) ∗ stVS rc sst1 g ∗
+            monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗
+            ((⌜ns = slice.nil⌝ ∗ srvV rc { s with term := T } ∗
+               ⌜matchedUpTo s.log prev ents ents.length⌝ ∗
+               r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg cli) ∨
+             (∃ (j : Nat) (L' : RLog) (cfg' ccfg' : Configuration) (cidx' li' : w64),
+                ⌜ns = slice.slice rq.Entries' Loc (W64 j) rq.Entries'.len ∧
+                j < ents.length ∧ L'.length = prev + j ∧ prevMatch L' prev pt ∧
+                matchedUpTo L' prev ents j ∧ s.dur.1 < prev + 1 + j ∧
+                ¬ (st1 ≠ stFollower ∧ ℓ = i)⌝ ∗
+                srvV rc { s with term := T, log := L' } ∗
+                r.[Raft, go!"configurations"] ↦ configurations.mk ccfg' cidx' cfg' li' ∗
+                cfgFacts γ L' L'.length a T cfg' ccfg' cidx' li'))) ∨
+          (⌜v = returnVal #()⌝ ∗ srvV rc { s with term := T } ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗
+            stVS rc sst1 g ∗ monoNatAuthOwn rc.dur.applied (1 : Qp).half a ∗ rtok tid ∗
+            r.[Raft, go!"configurations"] ↦ configurations.mk ccfg cidx cfg cli)))
+        at next with [-Hll Hrsp]
+      · irename : (gi_ptr ↦ (Perennial.zero_val w64 : w64) : IProp GF) => Hgi
+        ihave HI : (∃ (k : w64) (ev : Loc) (gv : w64), "i" ∷ i_ptr ↦ k ∗ "entry" ∷ entry_ptr ↦ ev ∗
+            "Hgi" ∷ gi_ptr ↦ gv ∗
+            "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z rq.Entries'.len ∧
+              matchedUpTo s.log prev ents (sint.nat k)⌝ : IProp GF) $$ [i entry Hgi]
+        · iexists W64 0, _, _
+          iframe
+          ipureintro
+          refine ⟨by decide, by word, ?_⟩
+          exact matched_zero _ _ _
+        wp_for HI
+        wp_if_destruct
+        · simp only [Hk.1, Hif, _root_.and_self, ↓reduceIte]
+          have hkl : sint.nat k < ptrs.length := by rw [Hentslen.1]; word
+          obtain ⟨pk, Hpk_lookup⟩ : ∃ pk, ptrs[sint.nat k]? = some pk :=
+            ⟨_, List.getElem?_eq_getElem hkl⟩
+          wp_apply wp_load_slice_index rq.Entries' (sint.Z k) ptrs _ pk Hk.1 $$ [Hents] as -
+          · iframe Hents; ipureintro
+            rw [show (sint.Z k).toNat = sint.nat k from by word]; exact Hpk_lookup
+          ihave Hpk := BigSepL.bigSepL_lookup Hpk_lookup $$ Hptrs
+          icases Hpk with ⟨%e, %He, #Hlp⟩
+          unfold logPtr
+          icases Hlp with ⟨%lv, #Hlv, #Hlvi⟩
+          unfold logIs
+          icases Hlvi with ⟨%Hlvf, #Hlvd, #Hlve⟩
+          iStructNamedSuffix Hlv "_e"
+          wp_auto
+          wp_if_destruct
+          · -- past the end of the log: store from here
+            simp only [show (0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z rq.Entries'.len ∧
+                sint.Z rq.Entries'.len ≤ sint.Z rq.Entries'.cap) from ⟨Hk.1, Hk.2.1, Hentswf.2⟩,
+              _root_.and_self, ↓reduceIte]
+            by_cases Hns : st1 ≠ stFollower ∧ ℓ = i
+            · obtain ⟨Hsc1, rfl⟩ := Hns
+              ihave #Hli : leaderIs γ ({ s with term := T } : SState).term ℓ $$ [Hlead_l]
+              · iexact Hlead_l
+              iapply wp_ncfupd _ _ rfl
+              iintro Hnc
+              ihave Hncl := aeValid_self_R γ rc ℓ { s with term := T } prev pt ents lci (sint.nat k) e He $$ [$HI $Hdur $Hs $Hli $Hae]
+              imod Hncl $$ Hnc with ⟨Hnc, -, %Hent⟩
+              iframe Hnc
+              imodintro
+              have hb := (ent_some_bound _ _ _ Hent).2
+              exfalso; have h1 := Hlvf.1; have h2 := Hlxy.1; simp only at hb; word
+            wp_auto
+            wp_for_post
+            q_exec
+            iexists _
+            iframe newEntries Htok Hpw HS Happ
+            iright
+            iexists sint.nat k, s.log, cfg, ccfg, cidx, cli
+            iframe Hs Hcfgs Hcf0
+            ipureintro
+            have hlen := len_eq_of_break' s.log prev pt ents (sint.nat k) Hpm Hk.2.2
+              (by have := Hlvf.1; rw [← Hlxy.1]; word)
+            refine ⟨by congr 1; word, by rw [← Hplen, Hentslen.1]; word, hlen, Hpm, Hk.2.2, ?_, Hns⟩
+            have := Hsf.2.1; omega
+          · -- an entry the log may have: compare terms
+            rename_i storeEntry_ptr
+            wp_apply_core HgetLog $$ storeEntry Htok
+            iapply logRead_main γ rc i { s with term := T } _ $$ Hdur Hs
+            iintro %A %HA Hs
+            unfold getLogPost
+            split
+            · rename_i e2 he2
+              iintro %err ⟨%Herr, %lv2, Hplv2, #Hlv2⟩ Htok
+              unfold logIs
+              icases Hlv2 with ⟨%Hlv2f, #Hlv2d, #Hlv2e⟩
+              rw [Herr]
+              wp_auto
+              wp_if_destruct
+              · -- same term: continue
+                wp_for_post
+                iframe
+                iexists k + W64 1, _, _
+                iframe
+                ipureintro
+                have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by
+                  have := Hentslen.1; word
+                refine ⟨by word, by word, ?_⟩
+                rw [hk1]
+                have he2' : ent s.log (prev + 1 + sint.nat k) = some e2 := by
+                  rw [← Hlvf.1]; exact HA _ _ he2
+                apply matched_step _ _ _ _ Hk.2.2 (by rw [← Hplen, Hentslen.1]; word)
+                  (ent_some_bound _ _ _ he2').2
+                rw [termAt_of_ent he2']
+                have hee : ent ents (sint.nat k + 1) = some e := by
+                  simp only [ent]; simp [He]
+                rw [termAt_of_ent hee, ← Hlv2f.2.1, ← Hlvf.2.1]
+                rw [Hif]
+              · -- a conflict at prev+1+k: truncate
+                have he2' : ent s.log (prev + 1 + sint.nat k) = some e2 := by
+                  rw [← Hlvf.1]; exact HA _ _ he2
+                have hb := (ent_some_bound _ _ _ he2').2
+                have hee : ent ents (sint.nat k + 1) = some e := by
+                  simp only [ent]; simp [He]
+                have hne : termAt s.log (prev + 1 + sint.nat k) ≠ termAt ents (sint.nat k + 1) := by
+                  rw [termAt_of_ent he2', termAt_of_ent hee, ← Hlv2f.2.1, ← Hlvf.2.1]
+                  intro h; apply Hif; apply BitVec.eq_of_toNat_eq; exact h.symm
+                have hklen : sint.nat k < ents.length := by rw [← Hplen, Hentslen.1]; word
+                have hpre : prevMatch s.log prev pt ∧ matchedUpTo s.log prev ents (sint.nat k) ∧
+                    sint.nat k < ents.length ∧ prev + 1 + sint.nat k ≤ s.log.length ∧
+                    termAt s.log (prev + 1 + sint.nat k) ≠ termAt ents (sint.nat k + 1) :=
+                  ⟨Hpm, Hk.2.2, hklen, hb, hne⟩
+                by_cases Hns : st1 ≠ stFollower ∧ ℓ = i
+                · obtain ⟨Hsc1, rfl⟩ := Hns
+                  ihave #Hli : leaderIs γ ({ s with term := T } : SState).term ℓ $$ [Hlead_l]
+                  · iexact Hlead_l
+                  iapply wp_ncfupd _ _ rfl
+                  iintro Hnc
+                  ihave Hncl := aeValid_self_R γ rc ℓ { s with term := T } prev pt ents lci (sint.nat k) e He $$ [$HI $Hdur $Hs $Hli $Hae]
+                  imod Hncl $$ Hnc with ⟨Hnc, -, %Hent⟩
+                  iframe Hnc
+                  imodintro
+                  exfalso; apply hne
+                  simp only at Hent
+                  rw [termAt_of_ent Hent, termAt_of_ent hee]
+                iapply wp_ncfupd _ _ rfl
+                iintro Hnc
+                ihave Hncl := truncate_gt_dur_R γ rc i gd_top { s with term := T } prev pt ents lci (sint.nat k) hpre $$ [$HI $Hdur $Hs $Hae]
+                imod Hncl $$ Hnc with ⟨Hnc, Hs, %Hgt⟩
+                iframe Hnc
+                imodintro
+                -- the truncation point is above the committed configuration's index (cmtIdx_llog)
+                ihave #Hle : llogIdx γ ({ s with term := T } : SState).term (prev + 1 + sint.nat k) e $$ []
+                · iapply aeValid_ent γ T prev pt ents lci (sint.nat k) e He $$ Hae
+                ihave #Hcm0 : cmtIdx γ ({ s with term := T } : SState).term ({ s with term := T } : SState).log
+                    (uint.nat cidx) $$ []
+                · iapply cfgFacts_cmt γ s.log s.log.length a T cfg ccfg cidx cli $$ Hcf0
+                ihave %Hcf0p := cfgFacts_pure γ s.log s.log.length a T cfg ccfg cidx cli $$ Hcf0
+                by_cases hci : prev + 1 + sint.nat k ≤ uint.nat cidx
+                · iapply wp_ncfupd _ _ rfl
+                  iintro Hnc
+                  ihave Hncl := cmtIdx_llog_R γ rc i gd_top { s with term := T } (uint.nat cidx) (prev + 1 + sint.nat k) e hci $$ [$HI $Hdur $Hs $Hcm0 $Hle]
+                  imod Hncl $$ Hnc with ⟨Hnc, -, %Hent⟩
+                  iframe Hnc
+                  imodintro
+                  exfalso; apply hne
+                  simp only at Hent
+                  rw [termAt_of_ent Hent, termAt_of_ent hee]
+                have Hcix : uint.nat cidx < prev + 1 + sint.nat k := by omega
+                ihave Hmn : (⌜uint.nat lx < 2 ^ 64 - 1⌝ : IProp GF) $$ []
+                · ipureintro; have := Hsf.2.2.2.2.2.2.1; rw [Hlxy.1]; omega
+                ihave Hwin := deleteRange_trunc_win γ rc i { s with term := T } prev pt ents lci (sint.nat k)
+                  sst1 g hpre
+                  iprop(ghostVar rc.dur.pw 1 (none : Option Pend) ∗
+                    srvV rc { s with term := T, log := s.log.take (prev + sint.nat k) } ∗ stVS rc sst1 g)
+                  $$ HI Hdur Hpw Hs HS [Hae]
+                · simp only [pendHyps]; iexact Hae
+                ihave Hwin2 := Hwin $$ []
+                · iintro Hpw Hs HS -; imodintro; iframe
+                imod Hwin2 with ⟨HW, HAU⟩
+                have hmn : uint.nat lv.Index' = prev + 1 + sint.nat k := Hlvf.1
+                have hmx : uint.nat lx = ({ s with term := T } : SState).log.length := Hlxy.1
+                ihave HW' : logWin γ rc i (LogOp.del (uint.nat lv.Index') (uint.nat lx)) $$ [HW]
+                · rw [hmn, hmx]; iexact HW
+                wp_apply_core HdelRange $$ Hmn HW'
+                rw [hmn, hmx]
+                iintro HW Hnc
+                imod HAU $$ HW Hnc with ⟨Hnc, HAU⟩
+                iframe Hnc
+                imodintro
+                inext
+                icases HAU with ⟨%A, Hown, Hcl⟩
+                iexists A
+                iframe Hown
+                iintro %hi' Hown
+                imod Hcl $$ %hi' Hown with ⟨Hpw, Hs, HS⟩
+                imodintro
+                wp_auto
+                wp_join iprop(∃ (cfg' ccfg' : Configuration) (cidx' li' : w64),
+                    r.[Raft, go!"configurations"] ↦ configurations.mk ccfg' cidx' cfg' li' ∗
+                    cfgFacts γ (s.log.take (prev + sint.nat k)) (s.log.take (prev + sint.nat k)).length a T
+                      cfg' ccfg' cidx' li') with [Hcfgs] as ⟨%cfg', %ccfg', %cidx', %li', Hcfgs, #Hcf1⟩
+                · -- the rollback: the latest configuration becomes the committed one
+                  ihave ⟨%ssc, #Hssc, %Hssc⟩ := cfgFacts_ccfg γ s.log s.log.length a T cfg ccfg cidx cli $$ Hcf0
+                  wp_apply wp_setLatestConfiguration false r γ ccfg cfg cidx cli ccfg cidx ssc DFrac.discard null
+                    $$ [$Hcfgs $Hssc] as ⟨Hcfgs, -, -⟩
+                  · simp only [Bool.false_eq_true, ↓reduceIte]; iframe HlcI; ipureintro; exact Hssc
+                  wp_join_done
+                  iexists ccfg, ccfg, cidx, cidx
+                  iframe Hcfgs
+                  iapply cfgFacts_rollback γ s.log (prev + sint.nat k) a T cfg ccfg cidx cli (by omega)
+                    (by have := Hlvf.1; word) $$ Hcf0
+                · iexists cfg, ccfg, cidx, cli
+                  iframe Hcfgs
+                  iapply cfgFacts_trunc γ s.log (prev + sint.nat k) a T cfg ccfg cidx cli
+                    (by have := Hlvf.1; word) $$ Hcf0
+                simp only [show (0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z rq.Entries'.len ∧
+                    sint.Z rq.Entries'.len ≤ sint.Z rq.Entries'.cap) from ⟨Hk.1, Hk.2.1, Hentswf.2⟩,
+                  _root_.and_self, ↓reduceIte]
+                wp_auto
+                wp_for_post
+                q_exec
+                iexists _
+                iframe newEntries Htok Hpw HS Happ
+                iright
+                iexists sint.nat k, s.log.take (prev + sint.nat k), cfg', ccfg', cidx', li'
+                iframe Hs Hcfgs Hcf1
+                ipureintro
+                obtain ⟨h1, h2, h3⟩ := matched_trunc s.log prev pt ents (sint.nat k) Hpm Hk.2.2 hb
+                exact ⟨by congr 1; word, hklen, h3, h1, h2, Hgt, Hns⟩
+            · iintro %err ⟨%Herr, -, %lv2, Hplv2⟩ Htok
+              cases err with
+              | nil => exact absurd rfl Herr
+              | ok ee =>
+                wp_auto
+                wp_for_post
+                q_ret
+                iframe
+        · -- every entry was already in the log
+          q_exec
+          iexists _
+          iframe newEntries Htok Hpw HS Happ
+          ileft
+          iframe Hs Hcfgs
+          isplitr
+          · ipureintro; rfl
+          ipureintro
+          have : sint.nat k = ents.length := by rw [← Hplen, Hentslen.1]; word
+          rw [← this]; exact Hk.2.2
+      rename_i v2
+      iintro (⟨%Hv2, %ns, newEntries, Htok, Hpw, HS, Happ, Hns⟩ | ⟨%Hv2, Hs, Hpw, HS, Happ, Htok, Hcfgs⟩)
+      rotate_left
+      · subst Hv2
+        wp_auto
+        q_ret
+        iexists s.log, s.dur, g, cfg, ccfg, cidx, cli
+        iframe Hcf0
+        iframe
+        ipureintro; exact ⟨⟨Nat.le_refl _, Hg⟩, fun _ _ => ⟨rfl, rfl, rfl⟩⟩
+      subst Hv2
+      icases Hns with (⟨%Hns, Hs, %Hmf, Hcfgs⟩ |
+        ⟨%j, %L', %cfg', %ccfg', %cidx', %li', ⟨%Hns, %Hj, %HL', %HpL, %HmL, %Hdj, %Hnself⟩, Hs, Hcfgs, #Hcf'⟩)
+      · subst Hns
+        wp_auto
+        q_exec
+        iexists s.log, s.dur, g, cfg, ccfg, cidx, cli
+        iframe Hcf0
+        iframe
+        ipureintro; exact ⟨⟨Nat.le_refl _, Hg⟩, Hpm, Hmf, fun _ _ => ⟨rfl, rfl, rfl⟩⟩
+      subst Hns
+      ihave Hsub := (ownSlice_slice (W64 j) rq.Entries'.len rq.Entries' DFrac.discard ptrs
+        ⟨by word, by word, by word⟩).1 $$ Hents
+      icases Hsub with ⟨-, #Hsub, -⟩
+      have Hjl : j < ptrs.length := by rw [Hplen]; exact Hj
+      have hjw : sint.nat (W64 (j : Int)) = j := by rw [Hentslen.1] at Hjl; word
+      have hss : subslice (sint.nat (W64 (j : Int))) (sint.nat rq.Entries'.len) ptrs = ptrs.drop j := by
+        rw [hjw, ← Hentslen.1]; simp [subslice]
+      ihave #Hsub2 : (slice.slice rq.Entries' Loc (W64 (j : Int)) rq.Entries'.len ↦*□ ptrs.drop j : IProp GF) $$ []
+      · rw [← hss]; iexact Hsub
+      have hsslen : (slice.slice rq.Entries' Loc (W64 (j : Int)) rq.Entries'.len).len =
+          rq.Entries'.len - W64 (j : Int) := rfl
+      wp_auto
+      wp_if_destruct
+      rotate_left
+      · exfalso; rw [Hentslen.1] at Hjl; apply Hif; word
+      have Hlen' := Hentslen.1
+      rw [Hplen] at Hlen'
+      have hb1 : 0 ≤ sint.Z (rq.Entries'.len - W64 (j : Int) - W64 1) ∧
+          sint.Z (rq.Entries'.len - W64 (j : Int) - W64 1) < sint.Z (rq.Entries'.len - W64 (j : Int)) := by
+        constructor <;> word
+      rw [if_pos hb1]
+      have hNj : (sint.Z (rq.Entries'.len - W64 (j : Int) - W64 1)).toNat = ents.length - 1 - j := by word
+      obtain ⟨pL, HpLk⟩ : ∃ pL, ptrs[ents.length - 1]? = some pL :=
+        ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      wp_apply wp_load_slice_index _ _ (ptrs.drop j) _ pL hb1.1 $$ [Hsub2] as -
+      · iframe Hsub2; ipureintro; rw [hNj, List.getElem?_drop, ← HpLk]; congr 1; omega
+      ihave HpLp := BigSepL.bigSepL_lookup HpLk $$ Hptrs
+      icases HpLp with ⟨%eL, %HeL, #HlpL⟩
+      unfold logPtr
+      icases HlpL with ⟨%lvL, #HlvL, #HlviL⟩
+      unfold logIs
+      icases HlviL with ⟨%HlvLf, #HlvLd, #HlvLe⟩
+      iStructNamedSuffix HlvL "_L"
+      wp_auto
+      wp_apply wp_min
+      wp_apply wp_tryStageCommitIndex r γ rc i _ sst1 g $$ [$Hr $HS] as ⟨%g', HS, %Hg'⟩
+      ihave #Hpd := ptrs_drop ptrs ents prev j $$ [Hptrs]
+      · unfold logPtr logIs; iexact Hptrs
+      unfold logPtr logIs
+      iapply wp_ncfupd _ _ rfl
+      iintro Hnc
+      ihave Hncl := srvOwn_facts_R γ rc i gd_top _ $$ [$HI $Hdur $Hs]
+      imod Hncl $$ Hnc with ⟨Hnc, Hs, -, %HsfL⟩
+      iframe Hnc
+      imodintro
+      have hLb : L'.length < 2 ^ 62 := HsfL.2.2.2.2.2.2.1
+      have hEb : ents.length < 2 ^ 63 := by rw [← Hplen, Hentslen.1]; word
+      -- the staged commit index: unchanged (`lc = none`), or the request's, learnt with the entries
+      obtain ⟨lc, hlcpre, hlcn, hlcs⟩ : ∃ lc : Option Nat,
+          (∀ v, lc = some v → v ≤ prev + ents.length ∧ 0 < Min.min lci v) ∧
+          (lc = none → uint.nat g' ≤ s.dur.1) ∧ (∀ v, lc = some v → uint.nat g' ≤ Min.min lci v) := by
+        by_cases hgd : uint.nat g' ≤ s.dur.1
+        · exact ⟨none, ⟨fun _ h => by simp at h, fun _ => hgd, fun _ h => by simp at h⟩⟩
+        · have hg'c : g' ≠ g := fun h => hgd (h ▸ Hg)
+          have hc := Hg'.resolve_right hg'c
+          have hmin : uint.nat g' = Min.min lci (prev + ents.length) := by
+            show uint.nat g' = Nat.min lci (prev + ents.length)
+            rw [hc, ← Hlcie]; have := HlvLf.1; split <;> (simp only [Nat.min_def]; split <;> word)
+          refine ⟨some (prev + ents.length), ⟨fun v hv => ?_, fun h => by simp at h, fun v hv => ?_⟩⟩
+          · simp only [Option.some.injEq] at hv; subst hv
+            refine ⟨Nat.le_refl _, ?_⟩; omega
+          · simp only [Option.some.injEq] at hv; subst hv; omega
+      ihave Hwin := storeLogs_fstore_win γ rc i { s with term := T, log := L' } prev pt ents lci j lc sst1 g'
+          ⟨HpL, HmL, Or.inl ⟨Hj, HL'⟩, hlcpre⟩ ⟨hlcn, hlcs⟩
+          iprop(∃ d : Nat × Nat, ghostVar rc.dur.pw 1 (none : Option Pend) ∗
+            srvV rc { s with term := T, log := L' ++ ents.drop j, dur := d } ∗ stVS rc sst1 g' ∗
+            ⌜s.dur.1 ≤ d.1 ∧ uint.nat g' ≤ d.1⌝)
+          $$ HI Hdur Hpw Hs HS [Hae]
+      · simp only [pendHyps]; iexact Hae
+      ihave Hwin2 := Hwin $$ []
+      · iintro %d Hpw Hs HS %hd -
+        imodintro; iexists d; iframe; ipureintro; exact ⟨hd.1, hd.2.1⟩
+      imod Hwin2 with ⟨HW, HAU⟩
+      rw [show prev + j + 1 = prev + 1 + j by omega]
+      have hEb : ents.length < 2 ^ 63 := by rw [← Hplen, Hentslen.1]; word
+      ihave Hpre : (⌜1 ≤ prev + 1 + j ∧ (ptrs.drop j).length = (ents.drop j).length ∧
+          prev + 1 + j + (ents.drop j).length < 2 ^ 64⌝ : IProp GF) $$ []
+      · ipureintro; simp [Hplen]; omega
+      wp_apply_core HstoreLogs $$ Hpre Hsub2 Hpd HW
+      iintro HW Hnc
+      imod HAU $$ HW Hnc with ⟨Hnc, HAU⟩
+      iframe Hnc
+      imodintro
+      inext
+      icases HAU with ⟨%A, Hown, Hcl⟩
+      iexists A
+      iframe Hown
+      iintro Hown
+      imod Hcl $$ Hown with ⟨%d, Hpw, Hs, HS, %hd⟩
+      imodintro
+      iintro -
+      iapply wp_ncfupd _ _ rfl
+      iintro Hnc
+      ihave Hncl := srvOwn_facts_R γ rc i gd_top _ $$ [$HI $Hdur $Hs]
+      imod Hncl $$ Hnc with ⟨Hnc, Hs, -, %Hsf2⟩
+      iframe Hnc
+      imodintro
+      wp_auto
+      ihave %Hsub2len := ownSlice_len _ _ _ $$ Hsub2
+      ihave %Hcv := isRaft_cv r γ rc i $$ Hr
+      ihave HI2 : (∃ (m : w64) (ne : Loc) (cfgm ccfgm : Configuration) (cidxm lim : w64),
+          "i" ∷ i_ptr ↦ m ∗ "newEntry" ∷ newEntry_ptr ↦ ne ∗
+          "Hcfgs" ∷ r.[Raft, go!"configurations"] ↦ configurations.mk ccfgm cidxm cfgm lim ∗
+          "#Hcfm" ∷ cfgFacts γ (L' ++ ents.drop j) (prev + j + sint.nat m) a T cfgm ccfgm cidxm lim ∗
+          "%Hm" ∷ ⌜0 ≤ sint.Z m ∧ sint.Z m ≤ sint.Z (rq.Entries'.len - W64 (j : Int))⌝ : IProp GF)
+          $$ [i newEntry Hcfgs]
+      · iexists W64 0, _, cfg', ccfg', cidx', li'
+        iframe
+        isplitr
+        · rw [show prev + j + sint.nat (W64 0) = L'.length by rw [HL']; rfl]
+          iapply cfgFacts_append γ L' (ents.drop j) a T cfg' ccfg' cidx' li' $$ Hcf'
+        ipureintro; constructor <;> word
+      wp_for HI2
+      wp_if_destruct
+      · have hm1 : 0 ≤ sint.Z m ∧ sint.Z m < sint.Z (rq.Entries'.len - W64 (j : Int)) := ⟨Hm.1, by simpa using Hif⟩
+        rw [if_pos hm1]
+        have hml : j + sint.nat m < ptrs.length := by rw [Hplen, Hlen']; word
+        obtain ⟨pm, Hpm_lookup⟩ : ∃ pm, ptrs[j + sint.nat m]? = some pm :=
+          ⟨_, List.getElem?_eq_getElem hml⟩
+        wp_apply wp_load_slice_index _ _ (ptrs.drop j) _ pm hm1.1 $$ [Hsub2] as -
+        · iframe Hsub2; ipureintro
+          rw [show (sint.Z m).toNat = sint.nat m from by word, List.getElem?_drop]; exact Hpm_lookup
+        ihave Hpmp := BigSepL.bigSepL_lookup Hpm_lookup $$ Hptrs
+        icases Hpmp with ⟨%em, %Hem, %lvm, #Hlvm, %Hlvmf, #Hlvmd, #Hlvme⟩
+        have Hent := ent_store L' ents prev j (sint.nat m) HL'
+        rw [Hem] at Hent
+        have hkind2 := Hsf2.2.2.2.2.2.2.2.2 _ em Hent
+        have hn1 : prev + 1 + j + sint.nat m = (prev + j + sint.nat m) + 1 := by omega
+        rw [hn1] at Hent
+        have hnL := (ent_some_bound _ _ _ Hent).2
+        have hnb : prev + j + sint.nat m + 1 < 2 ^ 64 := by have := Hsf2.2.2.2.2.2.2.1; simp only at hnL this; omega
+        have hm1' : sint.nat (m + W64 1) = sint.nat m + 1 := by word
+        have ht := Hlvmf.2.2
+        have hty23 : lvm.Type' ≠ W8 2 ∧ lvm.Type' ≠ W8 3 := by
+          simp only [kCommand, kNoop, kBarrier, kConfig] at hkind2
+          refine ⟨?_, ?_⟩ <;> intro h <;> rw [h] at ht <;> simp at ht <;> omega
+        by_cases hk : em.kind = kConfig
+        · -- a configuration entry: the latest becomes the committed configuration, the entry the latest
+          have hcv := Hsf2.2.2.2.2.2.2.2.1 _ em Hent hk
+          obtain ⟨ss, hd, hss⟩ := cfgDec_valid γ.srvs em.data (by rw [← Hcv]; exact hcv.1)
+          iapply wp_ncfupd _ _ rfl
+          iintro Hnc
+          ihave Hncl := cfgPrevCommitted_R γ rc i gd_top { s with term := T, log := L' ++ ents.drop j, dur := d } (prev + j + sint.nat m + 1) em Hent hk $$ [$HI $Hdur $Hs]
+          imod Hncl $$ Hnc with ⟨Hnc, Hs, #Hpc⟩
+          iframe Hnc
+          imodintro
+          wp_apply wp_processConfigurationLogEntry false r γ pm lvm DFrac.discard ccfgm cfgm cidxm lim null
+            $$ [$Hlvm $Hcfgs] as ⟨-, Hpost⟩
+          · isplitr; · ipureintro; exact hty23
+            iright
+            isplitr
+            · iexists ss; rw [← hd]; iframe Hlvmd; ipureintro; exact hss
+            simp only [Bool.false_eq_true, ↓reduceIte]; iexact HlcI
+          icases Hpost with (⟨%Hne, -⟩ | ⟨%c, %ss', ⟨%Hty, %Hss'⟩, Hcfgs, #Hd', Hcs, -⟩)
+          · exfalso; apply Hne; simp only [kConfig] at hk; rw [hk] at ht; word
+          wp_for_post_core
+          imod ownSlice_persist $$ Hcs with #Hcs
+          ihave %hd' := ownSlice_agree _ _ _ _ _ $$ Hlvmd Hd'
+          ihave #Hcf2 := cfgFacts_step_cfg γ (L' ++ ents.drop j) (prev + j + sint.nat m) a T cfgm ccfgm c
+            cidxm lim em ss' Hent hk hd' Hss' (by have := Ha.1; omega) hnb $$ [Hcfm Hcs Hpc]
+          · iframe Hcfm Hcs
+            simp only [Nat.add_sub_cancel]
+            iexact Hpc
+          have hix : lvm.Index' = W64 ((prev + j + sint.nat m + 1 : Nat) : Int) := by
+            have := Hlvmf.1; word
+          try wp_auto
+          iframe
+          iexists m + W64 1, _, c, cfgm, lim, lvm.Index'
+          iframe
+          rw [hm1', hix, show prev + j + (sint.nat m + 1) = prev + j + sint.nat m + 1 by omega]
+          iframe Hcf2
+          ipureintro; constructor <;> word
+        · wp_apply wp_processConfigurationLogEntry false r γ pm lvm DFrac.discard ccfgm cfgm cidxm lim null
+            $$ [$Hlvm $Hcfgs] as ⟨-, Hpost⟩
+          · isplitr; · ipureintro; exact hty23
+            ileft; ipureintro
+            intro h; apply hk; rw [h] at ht; simp only [kConfig]; word
+          icases Hpost with (⟨%Hne, Hcfgs⟩ | ⟨%c, %ss', ⟨%Hty, -⟩, -⟩)
+          rotate_left
+          · exfalso; apply hk; rw [Hty] at ht; simp only [kConfig]; word
+          ihave #Hcf2 := cfgFacts_step_other γ (L' ++ ents.drop j) (prev + j + sint.nat m) a T cfgm ccfgm
+            cidxm lim em Hent hk $$ Hcfm
+          wp_for_post
+          iframe
+          iexists m + W64 1, _, cfgm, ccfgm, cidxm, lim
+          iframe
+          rw [hm1', show prev + j + (sint.nat m + 1) = prev + j + sint.nat m + 1 by omega]
+          iframe Hcf2
+          ipureintro; constructor <;> word
+      · rw [if_pos hb1]
+        wp_apply wp_load_slice_index _ _ (ptrs.drop j) _ pL hb1.1 $$ [Hsub2] as -
+        · iframe Hsub2; ipureintro; rw [hNj, List.getElem?_drop, ← HpLk]; congr 1; omega
+        wp_apply wp_setLastLog r γ rc i _ a lvL.Index' lvL.Term' $$ [$Hr $Hll $Happ] as ⟨Hll, Happ⟩
+        · ipureintro; have := Ha.1; have := HlvLf.1; omega
+        q_exec
+        iexists L' ++ ents.drop j, d, g', cfgm, ccfgm, cidxm, lim
+        have hEL := ent_store L' ents prev j (ents.length - 1 - j) HL'
+        rw [show j + (ents.length - 1 - j) = ents.length - 1 by omega, HeL] at hEL
+        have hlenL : (L' ++ ents.drop j).length = prev + ents.length := by simp; omega
+        have hlast : lastTerm (L' ++ ents.drop j) = eL.term := by
+          unfold lastTerm; rw [hlenL]
+          rw [show prev + ents.length = prev + 1 + j + (ents.length - 1 - j) by omega]
+          exact termAt_of_ent hEL
+        rw [show (uint.nat lvL.Index', uint.nat lvL.Term') = ((L' ++ ents.drop j).length,
+            lastTerm (L' ++ ents.drop j)) by rw [hlenL, hlast, HlvLf.1, HlvLf.2.1]; congr 1; omega]
+        have hmn : prev + j + sint.nat m = (L' ++ ents.drop j).length := by
+          rw [hlenL]; have := Hm.2; have := Hlen'; word
+        rw [hmn]
+        iframe Hcfm
+        iframe
+        ipureintro
+        exact ⟨hd, (matched_store L' prev pt ents j HpL HmL HL' (by omega)).1,
+          (matched_store L' prev pt ents j HpL HmL HL' (by omega)).2,
+          fun h1 h2 => absurd ⟨h1, h2⟩ Hnself⟩
+    · q_exec
+      iexists s.log, s.dur, g, cfg, ccfg, cidx, cli
+      iframe Hcf0
+      iframe
+      ipureintro
+      refine ⟨⟨Nat.le_refl _, Hg⟩, Hpm, ?_, fun _ _ => ⟨rfl, rfl, rfl⟩⟩
+      have : ents.length = 0 := by rw [← Hplen, Hentslen.1]; word
+      rw [this]; exact matched_zero _ _ _
+  rename_i v3
+  ihave #Hlciok := aeValid_lciOk γ T prev pt ents lci $$ Hae
+  iintro (⟨%Hv3, %L5, %d5, %g5, %cfg5, %ccfg5, %cidx5, %li5, Hs, Hpw, HS, Happ, %Hd5, Hll, Hrsp, Htok, Hcfgs, #Hcf5, %Hm5⟩ |
+    ⟨%Hv3, %L5, %d5, %g5, %cfg5, %ccfg5, %cidx5, %li5, Hs, Hpw, HS, Happ, %Hd5, Hll, Hrsp, Htok, Hcfgs, #Hcf5, %Hl5⟩)
+  rotate_left
+  · -- reading the store failed: respond (failure)
+    subst Hv3
+    wp_auto
+    imod stArm_final γ i ℓ st1 T s.log L5 s.cidx s.cidx a a lci cidx cli cidx5 li5
+      (fun h1 h2 => ⟨(Hl5 h1 h2).1, (Hl5 h1 h2).2.2⟩) (Nat.le_refl _) (Or.inl rfl)
+      (Or.inl fun h1 h2 => (Hl5 h1 h2).2.1) $$ [$HI $Hlead_l $Hlciok $Hstl] with Hstl
+    wp_apply wp_Respond rpc_ptr rpc γc _ _ _ $$ [$rpc $Hbag Hrsp] as rpc
+    · iapply aeRespP_intro $$ [$Hrsp]
+      iframe Hrvt
+      isplitr
+      · ileft; ipureintro; exact Hrv.2
+      rw [Hrv.1]; unfold hdrOk; iexact Hh0
+    iapply HΦ
+    iexists { s with term := T, log := L5, dur := d5 }, st1
+    iframe Htok
+    isplitl [Hs HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hpw Hvreg Hpnd Hcomp]
+    · ihave Hmo := mainOwnAt_ae r γ rc i { s with term := T, log := L5, dur := d5 } st1 a sst1 g5 cfg5 ccfg5 cidx5 li5
+        lch γl bs cmp Hvm1 Hd5.2 ⟨Nat.le_trans Ha.1 Hd5.1, Ha.2⟩ Hcmp Hcap $$ [Hs HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hpw Hvreg Hpnd Hcomp]
+      · iframe; iframe #
+      unfold mainOwnAt
+      iexact Hmo
+    iapply ae_post γ i ℓ st st1 s { s with term := T, log := L5, dur := d5 } T Hcase rfl (fun h1 h2 => (Hl5 h1 h2).1) $$ Hlead_l
+  subst Hv3
+  wp_auto
+  wp_join iprop(∃ (d : Nat × Nat) (c : Nat) (a6 : Nat) (ccfg6 : Configuration) (cidx6 : w64),
+      srvV rc { s with term := T, log := L5, dur := d, cidx := c } ∗
+      monoNatAuthOwn rc.dur.applied (1 : Qp).half a6 ∗
+      ⌜a6 ≤ d.1 ∧ a ≤ a6 ∧ c ≤ a6 ∧ (c = s.cidx ∨ c ≤ lci) ∧ (cidx6 = cidx5 ∨ uint.nat li5 ≤ c) ∧ d5.1 ≤ d.1⌝ ∗
+      fsmProd γ rc a6 ∗
+      r.[Raft, go!"configurations"] ↦ configurations.mk ccfg6 cidx6 cfg5 li5 ∗
+      cfgFacts γ L5 L5.length a6 T cfg5 ccfg6 cidx6 li5 ∗
+      rtok tid ∗ ghostVar rc.dur.pw 1 (none : Option Pend) ∗ monoNatAuthOwn rc.dur.comp (1 : Qp).half cmp)
+    at next with [Hs Happ Hprod Hcfgs Htok Hpw Hcomp]
+    as ⟨%d6, %c6, %a6, %ccfg6, %cidx6, Hs, Happ, %Ha6, Hprod, Hcfgs, #Hcf6, Htok, Hpw, Hcomp⟩
+  · iapply wp_ncfupd _ _ rfl
+    iintro Hnc
+    ihave Hncl := srvOwn_facts_R γ rc i gd_top _ $$ [$HI $Hdur $Hs]
+    imod Hncl $$ Hnc with ⟨Hnc, Hs, -, %Hsf5⟩
+    iframe Hnc
+    imodintro
+    wp_if_destruct
+    · wp_apply wp_getCommitIndex.1 r γ rc i { s with term := T, log := L5, dur := d5 } $$ [$HI $Hcc $Hdur $Hs] as Hs
+      wp_if_destruct
+      · -- learn the commit index, up to the last index the request vouches for
+        rename_i lastVouched_ptr
+        wp_join iprop(∃ lvv : w64, lastVouched_ptr ↦ lvv ∗ ⌜uint.nat lvv = prev + ents.length⌝)
+          with [lastVouched] as ⟨%lvv, lastVouched, %Hlvv⟩
+        · have hl0 : 0 < ptrs.length := by rw [Hentslen.1]; word
+          have hb1 : 0 ≤ sint.Z (rq.Entries'.len - W64 1) ∧ sint.Z (rq.Entries'.len - W64 1) < sint.Z rq.Entries'.len := by
+            constructor <;> word
+          rw [if_pos hb1]
+          obtain ⟨pL, HpLk⟩ : ∃ pL, ptrs[ents.length - 1]? = some pL :=
+            ⟨_, List.getElem?_eq_getElem (by omega)⟩
+          wp_apply wp_load_slice_index _ _ ptrs _ pL hb1.1 $$ [Hents] as -
+          · iframe Hents; ipureintro; rw [← HpLk]; congr 1; rw [← Hplen, Hentslen.1]; word
+          ihave HpLp := BigSepL.bigSepL_lookup HpLk $$ Hptrs
+          unfold logPtr logIs
+          icases HpLp with ⟨%eL, %HeL, %lvL, #HlvL, %HlvLf, #HlvLd, #HlvLe⟩
+          iStructNamedSuffix HlvL "_L"
+          wp_auto
+          wp_join_done
+          iexists _
+          iframe
+          ipureintro; rw [HlvLf.1]; omega
+        · iexists _
+          iframe
+          ipureintro; rw [Hpreve]
+          have : ents.length = 0 := by rw [← Hplen, Hentslen.1]; word
+          omega
+        wp_apply wp_min
+        have hidx : uint.nat (if uint.Z rq.LeaderCommitIndex' ≤ uint.Z lvv then rq.LeaderCommitIndex' else lvv) =
+            Nat.min lci (prev + ents.length) := by
+          rw [← Hlcie, ← Hlvv]; split <;> (simp only [Nat.min_def]; split <;> word)
+        generalize hI : (if uint.Z rq.LeaderCommitIndex' ≤ uint.Z lvv then rq.LeaderCommitIndex' else lvv) = idx at hidx ⊢
+        iapply wp_ncfupd _ _ rfl
+        iintro Hnc
+        ihave Hlearn : (|NC={⊤}=> ∃ d : Nat × Nat, srvV rc { s with term := T, log := L5, dur := d } ∗
+            ⌜uint.nat idx ≤ d.1 ∧ d5.1 ≤ d.1⌝) $$ [Hs]
+        · by_cases h0 : 0 < Nat.min lci (prev + ents.length)
+          · iapply ncfupd_wand
+            isplitl [Hs]
+            · iapply learnCommitFollower_R γ rc i gd_top { s with term := T, log := L5, dur := d5 } prev pt ents lci
+                (prev + ents.length) ⟨Hm5.1, Hm5.2.1, Nat.le_refl _, h0⟩ $$ [$HI $Hdur $Hs $Hae]
+            iintro ⟨%d, Hs, -, %Hd⟩
+            iexists d
+            iframe
+            ipureintro; rw [hidx]
+            simp only at Hd
+            rw [Hd]; exact ⟨Nat.le_max_right _ _, Nat.le_max_left _ _⟩
+          · iintro Hnc'
+            imodintro
+            iframe Hnc'
+            iexists d5
+            iframe
+            ipureintro; rw [hidx]; exact ⟨by have := Hsf5.2.2.1; omega, Nat.le_refl _⟩
+        imod Hlearn $$ Hnc with ⟨Hnc, %d, Hs, %Hd⟩
+        iframe Hnc
+        imodintro
+        wp_apply wp_setCommitIndex r γ rc i idx
+          iprop(srvV rc { s with term := T, log := L5, dur := d, cidx := uint.nat idx }) $$ [$Hcc Hs] as Hs
+        · iintro %c0 Hc0
+          iapply ncfupd_wand
+          isplitl [Hs Hc0]
+          · iapply setCidx_R γ rc i gd_diff_cidxN { s with term := T, log := L5, dur := d } (uint.nat idx) c0 Hd.1
+              $$ [$HI $Hdur $Hs $Hc0]
+          iintro ⟨Hs, Hc0⟩
+          iframe
+        ihave %Hcf5p := cfgFacts_pure γ L5 L5.length a T cfg5 ccfg5 cidx5 li5 $$ Hcf5
+        wp_join iprop(∃ (ccfg6 : Configuration) (cidx6 : w64),
+            srvV rc { s with term := T, log := L5, dur := d, cidx := uint.nat idx } ∗
+            r.[Raft, go!"configurations"] ↦ configurations.mk ccfg6 cidx6 cfg5 li5 ∗
+            cfgFacts γ L5 L5.length (Max.max a (uint.nat idx)) T cfg5 ccfg6 cidx6 li5 ∗
+            ⌜cidx6 = cidx5 ∨ uint.nat li5 ≤ uint.nat idx⌝)
+          with [Hs Hcfgs] as ⟨%ccfg6, %cidx6, Hs, Hcfgs, #Hcf6, %Hcl6⟩
+        · -- the commit index reaches the latest configuration: it is the committed one
+          have hli : uint.nat li5 ≤ uint.nat idx := by word
+          iapply wp_ncfupd _ _ rfl
+          iintro Hnc
+          ihave Hncl := cmtIdx_dur_R γ rc i gd_top { s with term := T, log := L5, dur := d, cidx := uint.nat idx } (uint.nat li5) (by simp only; omega) $$ [$HI $Hdur $Hs]
+          imod Hncl $$ Hnc with ⟨Hnc, Hs, #Hcl⟩
+          iframe Hnc
+          imodintro
+          wp_apply wp_setCommittedConfiguration r ccfg5 cfg5 cidx5 li5 cfg5 li5 $$ [$Hcfgs] as Hcfgs
+          wp_join_done
+          iexists cfg5, li5
+          iframe Hcfgs Hs
+          isplitl
+          · iapply cfgFacts_commit γ L5 L5.length a (Max.max a (uint.nat idx)) T cfg5 ccfg5 cidx5 li5
+              $$ [$Hcf5 Hcl]
+            iexact Hcl
+          ipureintro; right; exact hli
+        · iexists ccfg5, cidx5
+          iframe Hcfgs Hs
+          isplitl
+          · iapply cfgFacts_mono_a γ L5 L5.length a (Max.max a (uint.nat idx)) T cfg5 ccfg5 cidx5 li5
+              (fun h => by word) $$ Hcf5
+          ipureintro; left; rfl
+        wp_apply wp_processLogs r γ rc i idx _ ∅ _ a cmp tid $$ [$Hr $Hs $Hprod $Happ $Htok $Hcomp]
+          as ⟨Hs, Hprod, Happ, Hcomp, Htok, -⟩
+        · isplitr; · ipureintro; exact Hd.1
+          isplitr; · ipureintro; exact Hcmp
+          isplitr; · ileft; ipureintro; exact ⟨rfl, rfl⟩
+          iapply BigSepM.bigSepM_empty.2; iempintro
+        wp_join_done
+        iexists d, uint.nat idx, Max.max a (uint.nat idx), ccfg6, cidx6
+        iframe Hcf6
+        iframe
+        ipureintro
+        refine ⟨Nat.max_le.2 ⟨by have := Ha.1; omega, Hd.1⟩, Nat.le_max_left _ _, Nat.le_max_right _ _,
+          Or.inr (by rw [hidx]; exact Nat.min_le_left _ _), Hcl6, Hd.2⟩
+      · wp_join_done
+        iexists d5, s.cidx, a, ccfg5, cidx5
+        iframe Hcf5
+        iframe
+        ipureintro; exact ⟨Nat.le_trans Ha.1 Hd5.1, Nat.le_refl _, Ha.2, Or.inl rfl, Or.inl rfl, Nat.le_refl _⟩
+    · wp_join_done
+      iexists d5, s.cidx, a, ccfg5, cidx5
+      iframe Hcf5
+      iframe
+      ipureintro; exact ⟨Nat.le_trans Ha.1 Hd5.1, Nat.le_refl _, Ha.2, Or.inl rfl, Or.inl rfl, Nat.le_refl _⟩
+  -- success: acknowledge, then respond
+  imod stArm_final γ i ℓ st1 T s.log L5 s.cidx c6 a a6 lci cidx cli cidx6 li5
+    (fun h1 h2 => ⟨(Hm5.2.2 h1 h2).1, (Hm5.2.2 h1 h2).2.2⟩) Ha6.2.1 Ha6.2.2.2.1
+    (by rcases Ha6.2.2.2.2 with h | h
+        · left; intro h1 h2; rw [h]; exact (Hm5.2.2 h1 h2).2.1
+        · right; exact h) $$ [$HI $Hlead_l $Hlciok $Hstl] with Hstl
+  wp_apply wp_setLastContact r γ rc i $$ [$Hr]
+  iapply wp_ncfupd _ _ rfl
+  iintro Hnc
+  ihave Hncl := ackFollower_R γ rc i gd_top { s with term := T, log := L5, dur := d6, cidx := c6 } prev pt ents lci ⟨Hm5.1, Hm5.2.1⟩ $$ [$HI $Hdur $Hs $Hae]
+  imod Hncl $$ Hnc with ⟨Hnc, Hs, #Hack⟩
+  iframe Hnc
+  imodintro
+  iapply wp_ncfupd _ _ rfl
+  iintro Hnc
+  ihave Hncl := srvOwn_now_R γ rc i gd_top _ ss $$ [$HI $Hdur $Hs $Hss]
+  imod Hncl $$ Hnc with ⟨Hnc, Hs, %sq, #Hsq, %Hsq⟩
+  iframe Hnc
+  imodintro
+  wp_apply wp_Respond rpc_ptr rpc γc _ _ _ $$ [$rpc $Hbag Hrsp] as rpc
+  · iapply aeRespP_intro $$ [$Hrsp]
+    iframe Hrvt
+    isplitr
+    · iright
+      isplitr
+      · iright; iexact Hack
+      unfold respWit
+      iexists sq
+      iframe Hsq
+      ipureintro; exact ⟨Hsq.1, Hsq.2.1⟩
+    rw [Hrv.1]; unfold hdrOk; iexact Hh0
+  iapply HΦ
+  iexists { s with term := T, log := L5, dur := d6, cidx := c6 }, st1
+  iframe Htok
+  isplitl [Hs HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hpw Hvreg Hpnd Hcomp]
+  · ihave Hmo := mainOwnAt_ae r γ rc i { s with term := T, log := L5, dur := d6, cidx := c6 } st1 a6 sst1 g5
+      cfg5 ccfg6 cidx6 li5 lch γl bs cmp Hvm1 (Nat.le_trans Hd5.2 Ha6.2.2.2.2.2) ⟨Ha6.1, Ha6.2.2.1⟩ (by omega) Hcap
+      $$ [Hs HS Hll Hst Hstl Happ Hprod Hcfgs Hlown Hpw Hvreg Hpnd Hcomp]
+    · iframe; iframe #
+    unfold mainOwnAt
+    iexact Hmo
+  iapply ae_post γ i ℓ st st1 s { s with term := T, log := L5, dur := d6, cidx := c6 } T Hcase rfl
+    (fun h1 h2 => (Hm5.2.2 h1 h2).1) $$ Hlead_l

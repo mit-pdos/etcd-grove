@@ -40,9 +40,9 @@ theorem github_com.hashicorp.raft.raftState.getLastSnapshot.wp_proof :
   icases HL with ⟨%x, %y, %si, %st, Hx, Hy, Hsi, Hst, Hg', #Hsnap, Hllb⟩
   wp_auto
   wp_apply (sync.Mutex.wp_Unlock _ (lastLockInv r γ rc i)) $$ [Hm Hown Hx Hy Hsi Hst Hg' Hllb]
-  · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe; iframe #
+  · iframe #; iframe; inext; iunfold lastLockInv; iexists x, y, si, st; iframe Hx Hy Hsi Hst Hg' Hllb; iexact Hsnap
   iapply HΦ
-  iexact Hsnap
+  itrivial
 
 end proof
 
