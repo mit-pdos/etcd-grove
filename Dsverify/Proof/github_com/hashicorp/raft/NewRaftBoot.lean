@@ -344,13 +344,13 @@ theorem latestDur_facts (fx : GoInterfaceOk) (lat : SnapLatest) (pend : Option (
   icases Hd with (%Hn | ⟨%m', %b', %Hmb, Hd⟩)
   · cases Hn
   cases Hmb
-  icases Hd with (#Hd | ⟨#Hsf, %Hdp, Ha⟩)
+  icases Hd with (⟨#Hd, %Hdn⟩ | ⟨#Hsf, %Hdp, Ha⟩)
   · isplitr
     · isplitr
       · dsimp only; iframe #; ipureintro; exact Hv
       iright; iexists m, b
       isplitr; · ipureintro; rfl
-      ileft; iexact Hd
+      ileft; iframe #; ipureintro; exact Hdn
     unfold latFacts; dsimp only
     iframe #
     ipureintro; exact ⟨Hv.1, Hv.2.2.2⟩
