@@ -141,6 +141,18 @@ theorem allSt_mono (am bm : GoMap) {P Q : w64 → Prop} (hq : ∀ u, Q u → P u
   ipureintro
   exact good_mono HG hq
 
+theorem allSt_mono0 (am bm : GoMap) {P Q : w64 → Prop} (hq : ∀ u, Q u → P u ∨ u = 0) :
+    allSt (GF := GF) am bm P ⊢ allSt am bm Q := by
+  unfold allSt
+  iintro ⟨%A, %B, HA, HB, HBs, %HG⟩
+  iexists A, B
+  iframe
+  ipureintro
+  refine ⟨HG.1, fun u hu => ?_⟩
+  rcases hq u hu with h | h
+  · exact HG.2 u h
+  · exact Or.inl h
+
 theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
     (wp_rvOfMsg : rvOfMsg.spec (GF := GF) (hG := hG))
     (wp_decodeWEvents : decodeWEvents.spec (GF := GF) (hG := hG))
@@ -493,7 +505,53 @@ theorem HistoryRevs.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
         iexact Hst
       ipureintro
       constructor <;> word
-    sorry
+    · have hK := Hif
+      wp_apply Hnum' $$ Hst as Hst
+      (try wp_auto)
+      wp_apply Hnum' $$ Hst as Hst
+      (try wp_auto)
+      wp_apply wp_rvOfMsg
+      (try wp_auto)
+      ipersist r
+      wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ allSt am bm (fun u => ((P2 u ∨ u = y.ErrRV') ∨
+          u = y.ListRV') ∨ u = rvOfMsgL y.ErrMsg')) at next with [Hst «in» out] as ⟨«in», out, Hst⟩
+      · (try wp_auto)
+        wp_if_destruct
+        · (try wp_auto)
+          wp_join_done
+          (try iframe)
+          iapply (allSt_mono0 am bm (P := fun u => (P2 u ∨ u = y.ErrRV') ∨ u = y.ListRV')
+            (fun u hu => hu.imp id (fun h => h.trans Hif)))
+          iexact Hst
+        · (try wp_auto)
+          wp_apply Hobj' $$ Hst as Hst
+          (try wp_auto)
+          wp_join_done
+      generalize hP3 : (fun u => ((P2 u ∨ u = y.ErrRV') ∨ u = y.ListRV') ∨ u = rvOfMsgL y.ErrMsg') = P3
+      wp_join iprop(in_ptr ↦ x ∗ out_ptr ↦ y ∗ (∃ W' : GMap w64 Bool, wm ↦$ W') ∗
+          allSt am bm (fun u => P3 u ∨ (y.Err' = W64 0 ∧ u = y.RV')))
+          at next with [Hst «in» out Hwm] as ⟨«in», out, ⟨%W1, Hwm⟩, Hst⟩
+      · (try wp_auto)
+        wp_if_destruct
+        · (try wp_auto)
+          wp_apply Hobj' $$ Hst as Hst
+          (try wp_auto)
+          ihave Hst := allSt_mono am bm (P := fun u => P3 u ∨ u = y.RV')
+            (Q := fun u => P3 u ∨ (y.Err' = W64 0 ∧ u = y.RV')) (fun u hu => hu.imp id (fun h => h.2)) $$ Hst
+          repeat' (wp_if_destruct <;> (try wp_auto))
+          all_goals (try (cases hn : x.NoOp' <;> simp only [Bool.not_true, Bool.not_false] <;>
+            (try wp_auto)))
+          all_goals first
+            | (wp_join_done; done)
+            | (wp_apply (wp_mapInsert go.uint64 wm W y.RV' true) $$ Hwm as Hwm
+               (try wp_auto)
+               wp_join_done)
+        · (try wp_auto)
+          wp_join_done
+          (try iframe)
+          iapply (allSt_mono am bm (P := P3) (fun u hu => hu.elim id (fun h => absurd h.1 Hif)))
+          iexact Hst
+      sorry
   · sorry
 
 end proof
