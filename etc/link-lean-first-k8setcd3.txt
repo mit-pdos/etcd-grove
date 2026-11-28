@@ -38,6 +38,13 @@ addConfig: configEqual
 appendHist: histLen
 advance: appendHist
 histOf: appendHist
+mix:
+strHash: mix
+storeHash: mix strHash
+pendEqual: inputEqual
+histHashes__intern: storeHash storeEqual
+histHashes__canonLocked: histHashes__intern
+histHashes__canonical: histHashes__canonLocked
 histAt:
 closure: addConfig mstep removeAt advance
 # (stage 7e-3) the model's list: `mlist`, over the store's list helpers (`@`) and the driver's
