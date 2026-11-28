@@ -60,7 +60,10 @@ theorem pfxLocal_txnOf (p : GoString) (cs : List (MCmp GoString GoString))
   refine srvOps_keys (fun k => p <+: k) _ _ _ _ ?_ c hc
   intro op hop
   apply h
-  cases txn.txnOk σ.kvs (txnOf cs t e) <;> simp_all
+  rw [List.mem_append]
+  split at hop
+  · exact Or.inl hop
+  · exact Or.inr hop
 
 /-- A delete of one key under `p` is local to `p`. -/
 theorem pfxLocal_delOp (p k : GoString) (hk : p <+: k) :
