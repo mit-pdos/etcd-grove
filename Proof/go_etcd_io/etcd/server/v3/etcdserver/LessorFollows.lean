@@ -152,7 +152,7 @@ theorem srvKVCoreM_st (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (σ : KV
     iframe Hc
     ipureintro
     refine ⟨kvModel γr.kv Lf, kvLeases γr.kv Lf, Hag.symm, fun _ => ?_⟩
-    unfold kvModel
+    rw [kvModel_offM _ Lf Hok'.1]
     exact (kvRaftOf_restorable _ _ _ Lf Hok'.1 Hok'.2.2.2.2.1.2).1
   · rw [srvKVCoreM_true]
     iintro #Hinvs Hc
@@ -206,12 +206,10 @@ theorem srvKVCoreM_nx_st (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (L1 L
       obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf hAi hp.1 hp.2.1 hp.2.2
       refine ⟨?_, ?_⟩
       · rw [← hA, (kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
-        unfold kvModel
-        exact kvRaftOf_prefix _ _ _ A' Lf hA'L
+        exact kvModel_prefix _ A' Lf hA'L
       · intro h0
-        have hx := kvRaftOf_extends γr.kv.c0 γr.kv.ch0 γr.kv.log0 A
-        have : kvRaftOf γr.kv.c0 γr.kv.ch0 γr.kv.log0 A = L := hA
-        rw [this, h0] at hx
+        have hx := kvModel_extends γr.kv A
+        rw [hA, h0] at hx
         exact Hok'.2.2.2.2.1.1 (List.prefix_nil.1 hx)
     obtain ⟨hq1, hn1⟩ := hpre A1 L1 hA1.1 HAi1 Hp1
     obtain ⟨hq2, hn2⟩ := hpre A2 L2 hA2.1 HAi2 Hp2

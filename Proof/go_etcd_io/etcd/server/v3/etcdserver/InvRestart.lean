@@ -760,7 +760,7 @@ theorem restartNames_st [GooseExts] {ρ ρ' : ReqNames} (h : restartNames ρ ρ'
 theorem restartNames_kvModel [GooseExts] {ρ ρ' : ReqNames} (h : restartNames ρ ρ') :
     kvModel ρ'.rd.kv = kvModel ρ.rd.kv := by
   obtain ⟨-, h2, h3, h4, -⟩ := h.2.1
-  funext L; unfold kvModel; rw [h2, h3, h4]
+  funext L; unfold kvModel kvFold; rw [h2, h3, h4]
 
 section restartKV
 variable [GooseExts] [GooseSemantics] [GooseInterp]

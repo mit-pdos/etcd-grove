@@ -830,7 +830,7 @@ theorem NewServer.wp_proofRG
     have hl0 : mvcc.LogNoLease ρ.rd.kv.log0 := by
       rw [Hlog0]; intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hcs
       rcases hcs with rfl | rfl <;> simp at hc
-    unfold kvModel; exact (kvRaftOf_restorable _ _ _ A Hpl0.1 hl0).1
+    rw [kvModel_offM _ A Hpl0.1]; exact (kvRaftOf_restorable _ _ _ A Hpl0.1 hl0).1
   have hpi : mvcc.pendItems (kvModel ρ.rd.kv A) [] = ∅ := by
     rw [mvcc.api.pendItems_nil]
     exact mvcc.leaseItemsOf_zero _ (mvcc.stateAfter_leaseZero _ hnl)

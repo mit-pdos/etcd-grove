@@ -1004,65 +1004,6 @@ theorem entryShapeOn_of_entryShape (lm : lease.Mode) (m : EntryModel) (h : entry
   · exact Or.inl h
   · exact Or.inr ⟨rq, hd, hid, Or.inl hs⟩
 
-/-! ### The mode-`on` model reads only the requested entries (2026-10-27) -/
-
-/-- **A requested entry's effect** on the mode-`on` model's state, above the consistent index. -/
-def kvOpOn (ch : apply.Chain) (s : OnState) (x : LogEntry) : OnState :=
-  kvEntryOn (W64 0) ch s ⟨x.term, W64 1, x.type, x.data⟩
-
-theorem kvEntryOn_above (c₀ : w64) (ch : apply.Chain) (s : OnState)
-    (m : EntryModel) (h : uint.Z c₀ < uint.Z m.index) :
-    kvEntryOn c₀ ch s m = kvOpOn ch s m.toLE := by
-  have h1 : decide (uint.Z c₀ < uint.Z m.index) = true := decide_eq_true h
-  have h2 : uint.Z (W64 0) < uint.Z (W64 1) := by decide
-  have h3 : decide (uint.Z (W64 0) < uint.Z (W64 1)) = true := by decide
-  unfold kvOpOn kvEntryOn kvEntry kvTable EntryModel.toLE
-  simp only [h, h2, h1, h3, true_and]
-
-theorem kvEntryOn_filler (c₀ : w64) (ch : apply.Chain) (s : OnState)
-    (m : EntryModel) (hf : m.toLE.isFiller) : kvEntryOn c₀ ch s m = s := by
-  obtain ⟨hd, ht⟩ := hf
-  simp only [EntryModel.toLE] at hd ht
-  unfold kvEntryOn kvEntry kvTable
-  simp [hd]
-
-theorem kvEntryOn_emptyV2 (c₀ : w64) (ch : apply.Chain) (s : OnState)
-    (m : EntryModel) (hv : m.toLE.isEmptyV2) : kvEntryOn c₀ ch s m = s := by
-  obtain ⟨-, ht⟩ := hv
-  simp only [EntryModel.toLE] at ht
-  have h0 : ¬ m.typ = W32 0 := by rw [ht]; decide
-  have h0' : ¬ (m.typ = W32 0 ∧ m.data ≠ []) := fun h => h0 h.1
-  unfold kvEntryOn kvEntry kvTable
-  simp only [if_neg h0', if_neg h0]
-
-theorem kvRaftOfOn_ops (c₀ : w64) (ch : apply.Chain) :
-    ∀ (A : List EntryModel) (s : OnState),
-      (∀ m ∈ A, uint.Z c₀ < uint.Z m.index) →
-      kvRaftOfOn c₀ ch s A = (opsOf (A.map EntryModel.toLE)).foldl (kvOpOn ch) s
-  | [], _, _ => rfl
-  | m :: A, s, h => by
-    have hA : ∀ m' ∈ A, uint.Z c₀ < uint.Z m'.index := fun m' hm' => h m' (List.mem_cons_of_mem _ hm')
-    unfold kvRaftOfOn
-    rw [List.foldl_cons]
-    by_cases hf : m.toLE.isFiller
-    · rw [kvEntryOn_filler c₀ ch s m hf]
-      have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
-        simp [opsOf, hf]
-      rw [this]
-      exact kvRaftOfOn_ops c₀ ch A s hA
-    by_cases hv : m.toLE.isEmptyV2
-    · rw [kvEntryOn_emptyV2 c₀ ch s m hv]
-      have : opsOf ((m :: A).map EntryModel.toLE) = opsOf (A.map EntryModel.toLE) := by
-        simp [opsOf, hv]
-      rw [this]
-      exact kvRaftOfOn_ops c₀ ch A s hA
-    · rw [kvEntryOn_above c₀ ch s m (h m (List.mem_cons_self ..))]
-      have : opsOf ((m :: A).map EntryModel.toLE) =
-          m.toLE :: opsOf (A.map EntryModel.toLE) := by
-        simp [opsOf, hf, hv]
-      rw [this, List.foldl_cons]
-      exact kvRaftOfOn_ops c₀ ch A _ hA
-
 end pure2
 
 section defsHF
@@ -1102,6 +1043,17 @@ lease table, from the start's auth state `st₀` (`kvInvOn`'s ghost state). (Aut
 from `ReadOn`, with the table.) -/
 @[reducible] def kvStOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) : KVState :=
   kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L)
+
+/-- **The mode-`on` model at the server's start is the KV model** (N1b-2: `kvModel` is the fold
+from `srvAuthSt0`; the twins merge in N2). -/
+theorem kvModelOn_srv (γk : KVNames) (L : List EntryModel) : kvModelOn γk srvAuthSt0 L = kvModel γk L :=
+  rfl
+
+theorem kvLeasesOn_srv (γk : KVNames) (L : List EntryModel) :
+    kvLeasesOn γk srvAuthSt0 L = kvLeases γk L := rfl
+
+theorem kvStOn_srv (γk : KVNames) (L : List EntryModel) : kvStOn γk srvAuthSt0 L = kvModelSt γk L :=
+  rfl
 
 /-- **The workload facts of the committed log in the mode `on`** (`kvWork` with `logShapeOn`). -/
 def kvWorkOn (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=

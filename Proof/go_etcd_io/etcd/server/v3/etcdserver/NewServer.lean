@@ -2508,7 +2508,7 @@ theorem NewServer.wp_proofGAtA (on cmp : Bool)
               | (simp only [bootKVOf]; rw [← Hlog0]; iexact Hkhi2)
           isplitr
           · ileft; ipureintro; simp [Hlog0, bootKVOf]
-          ipureintro; simp [kvModel, kvRaftOf_nil, Hlog0, bootKVOf]
+          ipureintro; simp [kvModel_nil, Hlog0, bootKVOf]
         ipureintro; simp [bootKVOf, Hch0, crevOf, kvCrevOf]
       ipureintro; exact ⟨Hc0, by simp [ReqNames.raft, HρRaft]⟩
     · -- (D22, 2026-10-23) the rest buckets and the members at the start: the boot state; (the

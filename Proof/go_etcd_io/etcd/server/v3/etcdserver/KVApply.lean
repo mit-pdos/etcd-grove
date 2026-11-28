@@ -288,8 +288,10 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   imod kv_log0_noLease γr.raft γr.kv $$ HkI with %Hl0
   ihave %Hl : iprop(⌜x.log = kvModel γr.kv A⌝) $$ [Ha]
   · iunfold kvAppliedL at Ha; icases Ha with ⟨-, -, -, %h⟩; ipureintro; exact h
+  have hplA : plainLogM γr.kv.cmp γr.kv.lm A := fun m' hm' => Hpl m' (List.mem_append_left _ hm')
   have hl' : kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m = kvModel γr.kv (A ++ [m]) := by
-    unfold kvModel kvLeases; rw [kvRaftOf_snoc, Hch, Hl]; rfl
+    rw [Hch, Hl, kvModel_offM γr.kv A hplA, kvLeases_offM γr.kv A hplA, kvModel_offM γr.kv _ Hpl,
+      kvRaftOf_snoc]
   imod kv_cert_step γr.raft γr.kv ⊤ (fun _ _ => CoPset.mem_full) A m x.log _ hl'
     (kvEntry_grow γr.kv.c0 x.chain _ x.log m) hlen $$ HcI Ha Hlb with Ha
   imodintro
@@ -297,9 +299,8 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   ipureintro
   refine ⟨Hlg ▸ Hpl m (by simp), Hch, ?_, Hcr, ?_⟩
   · rw [Hch, Hch0]; rfl
-  · rw [Hl]
-    exact (kvRaftOf_restorable γr.kv.c0 γr.kv.ch0 γr.kv.log0 A
-      (fun m' hm' => Hpl m' (List.mem_append_left _ hm')) Hl0).1
+  · rw [Hl, kvModel_offM γr.kv A hplA]
+    exact (kvRaftOf_restorable γr.kv.c0 γr.kv.ch0 γr.kv.log0 A hplA Hl0).1
 
 /-- The apply thread's KV log is the model of its applied raft log (unit W-M3: for the result's
 tie, `entryWit`). -/
@@ -352,9 +353,9 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames)
     ihave %HAi := srvRLogLb_idx γ A $$ HA
     obtain ⟨A', HA'L, HAA'⟩ := srv_eqv_prefix γ A L HAi Hp.1 Hp.2.1 Hp.2.2
     imodintro; iframe HL; ipureintro
-    have := (kvRaftOf_prefix γk.c0 γk.ch0 γk.log0 A' L HA'L).length_le
+    have := (kvModel_prefix γk A' L HA'L).length_le
     have he := (kvModel_eqv γ γk A A' HAA' Hok'.2.2.1).1
-    unfold kvModel at hA he ⊢; rw [← hA, he]; exact this
+    rw [← hA, he]; exact this
   imod Hp with ⟨HL, %Hle⟩
   imod Hclose $$ [HL Hσ' HG] with -
   · inext; iexists L; iframe HL Hσ' Hw HG; ipureintro; exact Hok'
@@ -364,7 +365,6 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames)
   ipureintro
   rw [← Hag]
   simp only [kvModelSt, kvStateOf_rev, kvStateOf_kvs]
-  unfold kvModel at *
   omega
 
 /-- The certificate in the apply thread's KV ghost state. -/
