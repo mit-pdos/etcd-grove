@@ -253,21 +253,21 @@ theorem metaIs_put_rt {S : Data} {m : MetaCI} {v : GoString} (h : metaIs S m) :
     metaIs (S.insert schema.metaName ((bktOf S schema.metaName).insert schema.raftTermKeyBytes v)) m := by
   unfold metaIs at *
   constructor
-  · rw [dget_put]; dsimp only; rw [if_neg (fun h' => ci_ne_rt h'.2.symm)]; exact h.1
-  · rw [dget_put]; dsimp only; rw [if_neg (fun h' => term_ne_rt h'.2.symm)]; exact h.2
+  · rw [dget_put]; (try dsimp only); rw [if_neg (fun h' => ci_ne_rt h'.2.symm)]; exact h.1
+  · rw [dget_put]; (try dsimp only); rw [if_neg (fun h' => term_ne_rt h'.2.symm)]; exact h.2
 
 /-- (keepfix (c)) The raft-term key after a put of another key of `Meta`. -/
 theorem metaRaftTermOf_put_other {S : Data} {k v : GoString} (hk : k ≠ schema.raftTermKeyBytes) :
     metaRaftTermOf (S.insert schema.metaName ((bktOf S schema.metaName).insert k v)) = metaRaftTermOf S := by
   unfold metaRaftTermOf
-  rw [dget_put]; dsimp only; rw [if_neg (fun h' => hk h'.2)]
+  rw [dget_put]; (try dsimp only); rw [if_neg (fun h' => hk h'.2)]
 
 /-- (keepfix (c)) The raft-term key after its put of `index ++ raftTerm`. -/
 theorem metaRaftTermOf_put_rt {S : Data} (k rt : w64) :
     metaRaftTermOf (S.insert schema.metaName ((bktOf S schema.metaName).insert schema.raftTermKeyBytes
       (u64Be k ++ u64Be rt))) = some (k, rt) := by
   unfold metaRaftTermOf
-  rw [dget_put]; dsimp only; rw [if_pos ⟨rfl, rfl⟩]
+  rw [dget_put]; (try dsimp only); rw [if_pos ⟨rfl, rfl⟩]
   have h8 : (u64Be k).length = 8 := u64Be_length k
   have h8' : (u64Be rt).length = 8 := u64Be_length rt
   simp only [List.length_append, h8, h8', List.take_left' h8, List.drop_left' h8, beToU64_u64Be,
@@ -330,9 +330,9 @@ instance metaRkOk_persistent (cl : Cluster) (π : ApplyPhys) (m : MetaCI) (r : O
   unfold metaRkOk; infer_instance
 
 theorem metaTMR_unfold (cl : Cluster) (π : ApplyPhys) (γ : BNames) (P : BParams) (m : MetaCI) :
-    metaTMR (GF := GF) cl π γ P m ⊣⊢
-      ∃ S : Data, hkOwn γ (hkData P S) ∗ ⌜metaIs S m⌝ ∗ metaRkOk cl π m (metaRaftTermOf S) := by
-  unfold metaTMR metaRkOk; exact .rfl
+    metaTMR (GF := GF) cl π γ P m =
+      iprop(∃ S : Data, hkOwn γ (hkData P S) ∗ ⌜metaIs S m⌝ ∗ metaRkOk cl π m (metaRaftTermOf S)) := by
+  unfold metaTMR metaRkOk; rfl
 
 /-- (keepfix (c)) The meta-keys resource agrees with the batch lock's state. -/
 theorem metaTMR_agree (cl : Cluster) (π : ApplyPhys) (γ : BNames) {P : BParams} (hP : ciKeys P) (b : Loc)
@@ -826,7 +826,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
     isplitr; · itrivial
     isplitr; · itrivial
     isplitr; · itrivial
-    ipureintro; exact ⟨Hmm, rfl, hookRun_refl P st⟩
+    ipureintro; exact ⟨Hmm, by trivial, hookRun_refl P st⟩
   iapply wp_fupd
   iapply (hSave ci γA.ci (srvCITriple0 cl) (btIface t) (hookTM γ P b st γi γt γr) (token γi) (token γt)
     (token γr) mm (metaRaftTermOf st.S)) $$
@@ -1045,7 +1045,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
     isplitr; · itrivial
     isplitr; · itrivial
     isplitr; · itrivial
-    ipureintro; exact ⟨Hmm, rfl, hookRun_refl P st⟩
+    ipureintro; exact ⟨Hmm, by trivial, hookRun_refl P st⟩
   iapply wp_fupd
   iapply (hSave ci γA.ci (srvCITriple0 cl) (btIface t) (hookTM γ P b st γi γt γr) (token γi) (token γt)
     (token γr) mm (metaRaftTermOf st.S)) $$
