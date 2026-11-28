@@ -175,6 +175,31 @@ theorem commit_peekB2 (h_vu : view_update.law (GF := GF)) (msk : AntSim.SimMask)
     iapply runLive_excl γ q
     iframe Hl Hover
 
+/-- **An alive node's view holds no `mem` record** (synchronous storage, no batching: `QueueView` over
+empty queues and no item). -/
+theorem nodeMemB2_mems_nil (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView)
+    (x : CrashNames) (g : Nat) (phs : HardStateM) (dur D : RaftState)
+    (has : γ.mode.Async' = false) (hbt : γ.mode.Batch' = false) :
+    nodeMemB2 (GF := GF) γ j n v x g phs dur D false none ⊢
+      ⌜v.mems = []⌝ ∗ nodeMemB2 γ j n v x g phs dur D false none := by
+  unfold nodeMemB2
+  iintro ⟨%items, %mhs, %rhs, %wip, %aip, %wsl, %asl, %wls, %als, %jobs, %ajobs, %ow, %oa, %hm', %rh,
+    H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, Hm, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22,
+    %Hp⟩
+  have hmn : v.mems = [] := by
+    obtain ⟨h1, -, -, -, -, h6, -, h8⟩ := Hp
+    obtain ⟨rfl, rfl, -, -⟩ := h8 has
+    have hi := h6 hbt
+    subst hi
+    have hq := (h1 rfl).1
+    simp at hq
+    exact hq
+  isplitr
+  · ipureintro; exact hmn
+  iexists items, mhs, rhs, wip, aip, wsl, asl, wls, als, jobs, ajobs, ow, oa, hm', rh
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 Hm H13 H14 H15 H16 H17 H18 H19 H20 H21 H22
+  ipureintro; exact Hp
+
 end proof
 
 end AntHarness
