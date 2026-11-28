@@ -25,6 +25,39 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-28: `walFiles` / `walRecs` -- admit histories with a saved commit above the last index, where Go's `ReadAll` differs from the model (C1)
+
+- **Spec.** `walRecs` and `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), through `srvFiles`
+  the pre of `bootstrapRestartContract` (`etcdserver/InvRestart.lean`), the statement of the interim axiom
+  `bootstrap.wp_proofRestart` (`Spec/.../etcdserver/bootstrapRestart.lean`) on branch `etcd-safe-rule41rm/2026-11-27`.
+- **Defect.** `walRecs`' `Save` law (`walRecs_saveAU`) takes any hard state, so `walRecs`, and from it `walFiles`
+  (`walRecs_closeAU`), admit WAL histories where some prefix has its commit above its last index (`walCommitLe`
+  false). On those the eager fold and `walRead` agree and `walReadFacts σ` holds, yet Go's restart read
+  (`ValidSnapshotEntries`, the newest record, `Open`, `ReadAll`) returns other entries than `σ`, so `bootOkR`'s
+  `σ` (`wal.restartOk`'s `walRecs h σ`) is false of Go there. Not reachable: in the verified programs the only
+  writer is raft's node loop through `isWalStorage`'s `Save`/`SaveSnap` laws, and raft keeps
+  `committed ≤ lastIndex` in every `Ready`; `walFiles`/`walRecs` are `@[no_expose]`, and Go's `bootstrap` is
+  unexported. The axiom's soundness rests on that invariant of the producer, which no statement records.
+- **Evidence.** The fresh review of `bootstrap.wp_proofRestart` after walfiles-fold
+  (`~/coordinator-notes/plans/review-bootstrap-restart-postDELTA8.md`, verdict sound with condition C1). Its
+  differential test `TestBrrDifferential` (copy: `~/coordinator-notes/plans/review-bootstrap-restart-postDELTA8.walread_diff_test.go.txt`,
+  run in a scratch copy of the fork's `server/storage/wal`): of 100000 random histories the Lean write laws admit,
+  29036 kept (eager fold = `walRead`, `walReadFacts`), 4 mismatches, every one with `walCommitLe` false; with only
+  `walCommitLe` histories, 7350 kept, 0 mismatches. Minimal counterexample (`TestBrrMinimal`):
+  1. `Save(hs{T1,C1}, ents 1..6)`;
+  2. `SaveSnapshot(3)` (above commit 1: the model clears the entries);
+  3. `Save(hs{T1,C4}, [])` (commit 4 above the last index 3);
+  4. `SaveSnapshot(4)`.
+  The model and `walRead` give base 4, no entries, commit 4; Go reads `err = nil`, commit 4, entries `[5 6]` (it
+  clears entries only at the start record 4, not at the earlier record 3). Not an etcd history: raft never
+  persists step 3. It is our spec gap, not a Go bug (no `issues/` or `nonissues/` file).
+- **Proposed change.** `walRecs` carries `walCommitLe` (or `WalEnc.walReadsBack`, the premise of the proved
+  real-WAL read `readAllFold_zero_eq`), and `walFiles` with it through `walRecs_closeAU`; WAL `Save`'s spec
+  (`walRecs_saveAU`) requires the hard state empty or its commit ≤ the last index after the save, which the raft
+  driver supplies (raft's `Ready` invariant). The constraint goes on the producer, not into a new law.
+- **Decision.** Land rule41rm with C1 recorded (`bootstrap.wp_proofRestart`'s docstring, `notes/audit.md`;
+  approved by the etcd_safe lead under Upamanyu's delegation, 2026-11-28); the follow-up is owned on the walfiles line.
+
 ## 2026-11-28: `walFiles` (hence `srvFiles` and `bootstrapRestartContract`) -- the files' records are only what a restart reads, not the history's eager fold
 
 - **Spec.** `walFiles` (`Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean`), the WAL part of `srvFiles`
