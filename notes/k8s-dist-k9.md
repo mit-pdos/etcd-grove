@@ -922,3 +922,46 @@ the program logic: no WP proof sees `n`, and Perennial has no step-count resourc
   `k8s.all.PkgTable`, SpecPlan's etcd3 PkgInit) at `13fef8c4ac`: passed, 12734 jobs, 0 errors, no `sorry`
   in the etcd3 modules (the warnings are the pre-existing ones: generated instances,
   `raft/v3/MemstorageApi`).
+
+## Handoff K9-19 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **`searchRun_accepts`** (`Proof/.../k8s/etcd3/SharedAccept.lean`, pure, no `sorry`): from `HWf g0`, the
+  seed's item revisions `≤ g0.st.rv`, `AnchorsOk (0 :: R.anchors.map uint.nat) xs` (`HistoryRevs`' post)
+  and `SRun g0 ⟨g0, []⟩ (xs.map plainIO) c'` (the run over the outputs' plain values, as K8's `kSpec` run
+  gives it: `step_box` reads `ansOf (plainOut y)`), `Theory.run (sharedM g0 R 2) init (xs.map box) = some
+  S`. Via `fullCompleteN` with `A = List.range (g0.st.rv + 1) ++ R.anchors`, and per step `settleL_with`
+  with Go's landings of that step (`landingsL_full_has`; `searchRunN_with`'s one `L` for the whole run
+  does not fit Go's, whose landings depend on the operation). Deviations from §2.9's draft: no
+  `R.anchors.Pairwise` premise (`dropWhile` drops only anchors below `rv`), no `RevsBelow` premise (the
+  model's run needs none). `decIO_box` moved from `Seeded__SharedModel.lean` (a proof) to
+  `SharedModelDefs.lean`.
+- **`CheckShared`** (`examples/k8s/dist`; `Spec/.../k8s/dist/CheckShared.lean`, proof beside it, no
+  `sorry`), linked (`k8s_dist.wp_CheckShared` in etcd3's `Link.lean`; list line `CheckShared:
+  Seeded__SharedModel CheckOperationsTimeout`, and `CheckOperationsTimeout: @`). Premises:
+  `Seeded.SharedModel`'s, `HistOk ops`, every operation boxed with `RevsBelow`; history `sl ↦*□ ops`
+  (the timeout check consumes its points-to, and the loop checks up to three times). Post: `res =
+  "Illegal" → mode = 2 ∧ ¬ Linearizable (sharedM g0 R 2) (histOf ops)`. New
+  `Proof/.../k8s/dist/Base.lean`: the dist package's fact (`True`: no package variable, no `init()`) and
+  its `GetIsPkgInitWf`; the dist package has no `Init`/`InitLinked` yet (K12's `Main` will need
+  `etc/gen-init.py` for it).
+- **`PastRead`, `PinnedRead`, `Seeded.Floor`**: specs as exact Lean functions (`pastReadPubL`,
+  `pinnedReadL` in `ExportL.lean`; `s.st0'.rv'`), proofs, linked.
+- **Not done (next)**: `NoForeign` and `SeedShared`'s pure half (§2.8).
+  - `NoForeign` calls `HistoryRevs`, so it takes `histCost xs ≤ 2^62` (name it `RunSizeOk`, a hypothesis,
+    below). Its post needs `R.anchors` sorted (Go tests only the last anchor `≤ m`), which
+    `HistoryRevs.spec` does not state: add `R.anchors.Pairwise (· < ·)` (or `≤`) to `HistoryRevs`' post
+    first (its proof sorts with `slices.Sort`; check Go dedups before choosing `<`).
+  - `SeedShared`'s pure half: a Lean `seedL r1 r2 : HSt` (Go's history for Puts at `r1 < r2`) with `HWf`,
+    items `≤ rv`, `rv ≥ 2` for `1 < r1 < r2 < 2^64`; `SeededAt(r1, r2)` (same construction, no
+    client) is the natural Go function to prove against it. The `cli.Put` half is K8's.
+- **Run-size bounds (D7, coordinator 2026-11-28)**: no driver cap. `RunSizeOk` stays a hypothesis until it
+  is discharged by Perennial's time receipts (`⧗ n`/`⧖ n`, `Perennial/GooseLang/Receipts.lean`,
+  `wp_go_step_receipt'`, `receipt_lt` giving `n < receiptBound GF`; the k8s specs already assume
+  `[ReceiptBoundLe GF (2^48)]`; apimodel's `nextRV` and the client's `srvLogCert` use the pattern):
+  `histCost` from one receipt per recorded operation and per encoded element (`encodeWEvents`/
+  `encodeItems` returning `⧗ |evs|`); revisions `< 2^62` from `srvLogCert`'s `⧖`, via a new K5 law.
+  Details: `notes/k8s-dist-statement-packet.md`, D7, on `k8s-dist-stmt/2026-11-28`. This supersedes
+  K9-18's recommendation (b) above. None of this session's results takes the bound yet.
+- **Merged lean** `8cd6ffac10` (clean); the Perennial pin is lean's, `e2eda8223`.
+- **Build of record** (fk-lean2, targets etcd3 `Link`, `SharedAccept`, `InitLinked`, `k8s.all.TopLevelRobustness`) at `0d3b1b5ebc`: passed, exit 0.
+- **No `sorry`**, no axiom added; no top-level statement touched.
