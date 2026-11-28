@@ -162,7 +162,7 @@ abbrev drainSyncB2.stmt : Prop :=
           ((drainMidB2 γ j n I v₁ net₁ xnet₁ ∗ drainMsgsB1 γ.toAntNames j I ∗
               ⌜v₁.pend = I.ms.filterMap (fun m => absMsgOf m.st) ∧
                 v₁.xpend = I.ms.filterMap (fun m => xmsgOf m.st)⌝) ∨
-            nodeOwnB2HD c γ j n v₁ .drained none true) -∗
+            (nodeOwnB2HD c γ j n v₁ .drained none true ∗ ⌜v₁.byE = I.v.byE⌝)) -∗
           Φ executeVal) ⊢
     WP (If (Val #b) (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.drain.syncBodyE
         np bp rdp hsp wrp rlp) (App (Val doExecute) (Val #())))

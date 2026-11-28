@@ -48,7 +48,7 @@ def drainDeadB2 (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (I : DrainIterB1) :
     n.[H.node, go!"role"] ↦ role ∗ n.[H.node, go!"hs"] ↦ hsl ∗ n.[H.node, go!"cause"] ↦ cl ∗
     pendingCause cl o ∗ n.[H.node, go!"applied"] ↦ applied ∗ n.[H.node, go!"conf"] ↦ csl ∗
     killOwn n true fuse ∗ viewFrag γ.toAntNames j v ∗ diskOwn d dk ∗
-    ⌜ViewNormal v ∧ DiskRel v dk ∧ γ.mode.Restarts' = true⌝ ∗
+    ⌜ViewNormal v ∧ DiskRel v dk ∧ γ.mode.Restarts' = true ∧ v.byE = I.v.byE⌝ ∗
     nodeStor si ms (votersW γ.toAntNames) hn ∗
     ⌜I.rs₂.storage = interface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage.ty, #si⟩⌝ ∗
     rawNode γ.raft.raftNames γ.R.md I.rn (AntSim.nodeId j) I.rs₂ (rAccepted I.r) I.qs I.ip ∗
@@ -106,7 +106,7 @@ abbrev drainAdvanceB2.stmt : Prop :=
       (∀ (v' : AntSim.NodeView) (net' : List Msg) (xnet' : List XMsg) (r' : RState),
         np ↦ n ∗ bp ↦ I.v.byE ∗ nodeExitB2 c γ q ∗
           ((nodeOwnB2 c γ j n v' (.loop net' xnet' r' []) ∗ ⌜v'.byE = I.v.byE⌝) ∨
-            nodeOwnB2HD c γ j n v' .drained none true) -∗ Φ executeVal) ⊢
+            (nodeOwnB2HD c γ j n v' .drained none true ∗ ⌜v'.byE = I.v.byE⌝)) -∗ Φ executeVal) ⊢
     WP (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.drain.tailE np bp rdp)
       {{ Φ }}
 

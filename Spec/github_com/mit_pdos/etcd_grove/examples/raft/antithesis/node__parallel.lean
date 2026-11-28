@@ -52,7 +52,7 @@ abbrev node.parallel.spec : Prop :=
       ((drainMidB2 γ j n I v₁ net₁ xnet₁ ∗ drainMsgsParB2 γ j I ∗
         ⌜v₁.pend = (I.ms.filter (fun m => !isRequestTy m.st.msg.Type')).filterMap (fun m => absMsgOf m.st) ∧
           v₁.xpend = I.ms.filterMap (fun m => xmsgOf m.st)⌝) ∨
-       nodeOwnB2HD c γ j n v₁ .drained none true) ∗
+       (nodeOwnB2HD c γ j n v₁ .drained none true ∗ ⌜v₁.byE = I.v.byE⌝)) ∗
       nodeExitB2 c γ q ∗ threadTok }}
 
 end spec

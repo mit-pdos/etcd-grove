@@ -236,7 +236,12 @@ theorem node.parallel.wp_proof
     %Hpv, #Hcs, #Hrq, %Hc0, #Hlb, #Hxlb, Hco⟩
   iunfold nodeExitB2 at Hexit
   icases Hexit with ⟨Hl, Hadd⟩
-  obtain ⟨hreach, hRO, hfull, hmok, hok⟩ := Hpure
+  obtain ⟨hROm, hfull, hok⟩ := Hpure.2
+  have hreach := Hpure.1
+  ihave #Hrm := Hlead $$ %hlead
+  ihave %Hxp := xPend_of_msgs (R := γ.R) γ.raft.raftNames γ.R.md (AntSim.nodeId j) I.r.p I.ms
+    (fun q hq x hx => (hok.2.2.2.2.2.2.2.1 q hq x hx).1) Hγ.1 Hγ.2.1 $$ Hrm
+  obtain ⟨hRO, hmok⟩ := hROm Hxp
   rw [has] at hreach
   simp only [Bool.false_eq_true, ↓reduceIte] at hreach
   have hinm := inMask_b2_run (dec := γ.dec) Hmode.2 Hb2 has hsp
@@ -603,7 +608,6 @@ theorem node.parallel.wp_proof
   unfold github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.parallel.reqE at hrq
   iapply hrq _ _ mskB2_refl hinm has hbt hok hmsgN hal
   clear hrq
-  ihave Hrm := Hlead $$ %hlead
   iframe Hpkg Hc Hn n «by» rd Hkill Hcause Hv Hpc Htlb Hmsgs Hcap Hown Hrm Hl Hadd Htok
   isplitr
   · ipureintro; exact Hb2
@@ -633,6 +637,11 @@ theorem node.parallel.wp_proof
     · exact ⟨fun e he => Hshape.1 e (h ▸ he), by rw [hv1.2.1]; exact Hvn.1.2⟩
   obtain ⟨P₂, T₂, U₂, M₂, hv2, hUM2, -, hP2⟩ := Hreq.2.2.2.2
   have hvn2 : ViewNormal v₂ := by rw [hv2]; exact viewNormal_congr hvn1 rfl rfl
+  have hby_v₂ : v₂.byE = I.v.byE := by
+    rw [hv2]
+    cases hd : d₁
+    · rw [ha1 hd]; try rfl
+    · rw [hd1 hd]; try rfl
   have hdur2 : v₂.dur = I.v.dur := by rw [hv2]; exact hv1.1
   have hRst : γ.mode.Restarts' = false → fuse = W64 0 := Hvn.2.2
   by_cases hW : HsNew I.h ∨ ¬I.es = []
@@ -711,6 +720,8 @@ theorem node.parallel.wp_proof
       #Hlb3, #Hxlb3, %Hfin⟩
     have hvn3 : ViewNormal v₃ := by
       rcases Hfin.2.2.2.1 with ⟨-, hv⟩ | ⟨-, hv⟩ | ⟨-, -, hv⟩ <;> (rw [hv]; exact viewNormal_congr hvn2 rfl rfl)
+    have hby_v₃ : v₃.byE = I.v.byE := by
+      rcases Hfin.2.2.2.1 with ⟨-, hv⟩ | ⟨-, hv⟩ | ⟨-, -, hv⟩ <;> (rw [hv]; exact hby_v₂)
     have hDR : DiskRel v₃ (if wr = true then saveW I.v.dur oh I.es else I.v.dur) := by
       rcases Hfin.2.2.2.1 with ⟨hw0, hv⟩ | ⟨-, hv⟩ | ⟨-, hw1, hv⟩
       · rw [hw0, hv]; left; rw [hdur2]; rfl
@@ -755,25 +766,27 @@ theorem node.parallel.wp_proof
         iunfold nodeExitB2
         iframe Hl Hadd Htok
         iright
-        have hdi := nodeOwnB2HD_dead_intro (GF := GF) c γ j n v₃ d I.rn ms hp cl₂ csl
-          (roleStr (roleAfter I.rs.role I.ss)) applied f₃ (saveW I.v.dur oh I.es) si
-          { I.rs₁ with unpersisted := [] } I.qs I.ip
-          (rAccepted I.r) x g I.rs₂.dur (oh.getD (HardStateM.mk I.v.dur.term I.v.dur.vote I.v.dur.commit))
-          hvn3 hDR hre Hsto hHold
-        iapply hdi
-        iframe Hd Hrn Hms Hrole Hhs Hcause Happl Hconf Hkill Hv Hdisk Hraw Hgv Hdur Htlb1 Hbud
-        isplitl [Hbr Hmeta]
-        · iunfold nodeStor
-          iframe Hbr
-          iexists γs
-          iframe Hlock Hmeta Hbridge
-          ipureintro; exact Hsz
-        isplitl [Hmem]
-        · iapply (nodeMemB2_view (GF := GF) γ j n I.v v₃ x g I.rs.phs I.rs₁.phs I.rs.dur I.rs.dur
-            I.rs₁.dur I.rs₂.dur true none has hbt (fun h => Bool.noConfusion h))
-          iapply nodeMemB2_kill
-          iexact Hmem
-        rw [Hoh1]; iexact HhsH
+        isplitl
+        · have hdi := nodeOwnB2HD_dead_intro (GF := GF) c γ j n v₃ d I.rn ms hp cl₂ csl
+            (roleStr (roleAfter I.rs.role I.ss)) applied f₃ (saveW I.v.dur oh I.es) si
+            { I.rs₁ with unpersisted := [] } I.qs I.ip
+            (rAccepted I.r) x g I.rs₂.dur (oh.getD (HardStateM.mk I.v.dur.term I.v.dur.vote I.v.dur.commit))
+            hvn3 hDR hre Hsto hHold
+          iapply hdi
+          iframe Hd Hrn Hms Hrole Hhs Hcause Happl Hconf Hkill Hv Hdisk Hraw Hgv Hdur Htlb1 Hbud
+          isplitl [Hbr Hmeta]
+          · iunfold nodeStor
+            iframe Hbr
+            iexists γs
+            iframe Hlock Hmeta Hbridge
+            ipureintro; exact Hsz
+          isplitl [Hmem]
+          · iapply (nodeMemB2_view (GF := GF) γ j n I.v v₃ x g I.rs.phs I.rs₁.phs I.rs.dur I.rs.dur
+              I.rs₁.dur I.rs₂.dur true none has hbt (fun h => Bool.noConfusion h))
+            iapply nodeMemB2_kill
+            iexact Hmem
+          rw [Hoh1]; iexact HhsH
+        ipureintro; exact hby_v₃
       · -- alive
         have hd3' : d₃ = false := by simpa using hd3
         obtain ⟨-, hv3⟩ := Hfin.2.2.1 hd3'
@@ -863,24 +876,26 @@ theorem node.parallel.wp_proof
       iunfold nodeExitB2
       iframe Hl Hadd Htok
       iright
-      have hdi := nodeOwnB2HD_dead_intro (GF := GF) c γ j n v₃ d I.rn ms hp cl₂ csl
-        (roleStr (roleAfter I.rs.role I.ss)) applied f₃ I.v.dur si I.rs₁ I.qs I.ip
-        (rAccepted I.r) x g I.rs.dur (oh.getD (HardStateM.mk I.v.dur.term I.v.dur.vote I.v.dur.commit))
-        hvn3 hDR hre Hsto Hhold
-      iapply hdi
-      iframe Hd Hrn Hms Hrole Hhs Hcause Happl Hconf Hkill Hv Hdisk Hraw Hgv Hdur Htlb1 Hbud
-      isplitl [Hbr Hmeta]
-      · iunfold nodeStor
-        iframe Hbr
-        iexists γs
-        iframe Hlock Hmeta Hbridge
-        ipureintro; exact Hsz
-      isplitl [Hmem]
-      · iapply (nodeMemB2_view (GF := GF) γ j n I.v v₃ x g I.rs.phs I.rs₁.phs I.rs.dur I.rs.dur I.rs₁.dur
-          I.rs.dur true none has hbt (fun h => Bool.noConfusion h))
-        iapply nodeMemB2_kill
-        iexact Hmem
-      rw [Hoh1]; iexact HhsH
+      isplitl
+      · have hdi := nodeOwnB2HD_dead_intro (GF := GF) c γ j n v₃ d I.rn ms hp cl₂ csl
+          (roleStr (roleAfter I.rs.role I.ss)) applied f₃ I.v.dur si I.rs₁ I.qs I.ip
+          (rAccepted I.r) x g I.rs.dur (oh.getD (HardStateM.mk I.v.dur.term I.v.dur.vote I.v.dur.commit))
+          hvn3 hDR hre Hsto Hhold
+        iapply hdi
+        iframe Hd Hrn Hms Hrole Hhs Hcause Happl Hconf Hkill Hv Hdisk Hraw Hgv Hdur Htlb1 Hbud
+        isplitl [Hbr Hmeta]
+        · iunfold nodeStor
+          iframe Hbr
+          iexists γs
+          iframe Hlock Hmeta Hbridge
+          ipureintro; exact Hsz
+        isplitl [Hmem]
+        · iapply (nodeMemB2_view (GF := GF) γ j n I.v v₃ x g I.rs.phs I.rs₁.phs I.rs.dur I.rs.dur I.rs₁.dur
+            I.rs.dur true none has hbt (fun h => Bool.noConfusion h))
+          iapply nodeMemB2_kill
+          iexact Hmem
+        rw [Hoh1]; iexact HhsH
+      ipureintro; exact hby_v₃
   · -- nothing to write
     have hWb : decide (HsNew I.h ∨ ¬I.es = []) = false := decide_eq_false hW
     simp only [not_or, Classical.not_not] at hW
@@ -924,19 +939,21 @@ theorem node.parallel.wp_proof
       iunfold nodeExitB2
       iframe Hl Hadd Htok
       iright
-      have hdi := nodeOwnB2HD_dead_intro (GF := GF) c γ j n v₂ d I.rn ms hsl cl₂ csl
-        (roleStr (roleAfter I.rs.role I.ss)) applied f₂ I.v.dur si
-        { I.rs₁ with unpersisted := [] } I.qs I.ip
-        (rAccepted I.r) x g I.rs₂.dur (HardStateM.mk I.v.dur.term I.v.dur.vote I.v.dur.commit)
-        hvn2 hDR2 hre Hsto hHold0
-      iapply hdi
-      iframe Hd Hrn Hms Hrole Hhs Hcause Happl Hconf Hkill Hv Hdisk Hraw Hgv Hdur Htlb1 Hbud Hstor
-      isplitl [Hmem]
-      · iapply (nodeMemB2_view (GF := GF) γ j n I.v v₂ x g I.rs.phs I.rs₁.phs I.rs.dur I.rs.dur
-          I.rs₁.dur I.rs₂.dur true none has hbt (fun h => Bool.noConfusion h))
-        iapply nodeMemB2_kill
-        iexact Hmem
-      iexact Hhsro
+      isplitl
+      · have hdi := nodeOwnB2HD_dead_intro (GF := GF) c γ j n v₂ d I.rn ms hsl cl₂ csl
+          (roleStr (roleAfter I.rs.role I.ss)) applied f₂ I.v.dur si
+          { I.rs₁ with unpersisted := [] } I.qs I.ip
+          (rAccepted I.r) x g I.rs₂.dur (HardStateM.mk I.v.dur.term I.v.dur.vote I.v.dur.commit)
+          hvn2 hDR2 hre Hsto hHold0
+        iapply hdi
+        iframe Hd Hrn Hms Hrole Hhs Hcause Happl Hconf Hkill Hv Hdisk Hraw Hgv Hdur Htlb1 Hbud Hstor
+        isplitl [Hmem]
+        · iapply (nodeMemB2_view (GF := GF) γ j n I.v v₂ x g I.rs.phs I.rs₁.phs I.rs.dur I.rs.dur
+            I.rs₁.dur I.rs₂.dur true none has hbt (fun h => Bool.noConfusion h))
+          iapply nodeMemB2_kill
+          iexact Hmem
+        iexact Hhsro
+      ipureintro; exact hby_v₂
     · -- alive
       have hd2' : d₂ = false := by simpa using hd2
       have hd1' : d₁ = false := by

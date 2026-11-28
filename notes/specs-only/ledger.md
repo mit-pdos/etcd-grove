@@ -7968,6 +7968,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Statement (lead-approved 2026-11-28, option (a)).** The conjunct becomes `mode.Split' = W64 0` until B2.5.
   `drainB2_of_inScope.law` stays true at `b2Scope` (`b2Scope.Split' = false`, so `InScope` gives `Split = 0`).
 - **Decision.** The Antithesis lead (2026-11-28). No axiom, no top-level premise.
+## 2026-11-28 — antithesis parity B2: the drain's dead arms keep `by`; `drainPreB2`'s Sim facts given `XPendOk` (#33)
+- **Specs.** `node.parallel.spec` (`Spec/.../examples/raft/antithesis/node__parallel.lean`), `drainSyncB2.stmt`
+  (`DrainB2Sync.lean`), `drainAdvanceB2.stmt` and `drainDeadB2` (`DrainB2Tail.lean`), `drainPreB2` (`DrainB2Phases.lean`).
+- **Defects.** (1) The dead arms (`nodeOwnB2HD … .drained none true`) said nothing of the view's `byE`, so
+  `node.drain.specB2`'s post `v'.byE = v.byE` was unprovable when the node dies in a drain. (2) `drainPreB2`'s pure part
+  asked for `ReadyOutP` (whose transfer messages are `XPendOk`: a server destination) and `DrainMsgOkB1` before the
+  write, where only raft's certificates (`Henter` at the write, `Hlead` for a leader) give `XPendOk` (a follower forwards
+  `MsgTransferLeader` to its lead hint).
+- **Statement (lead-approved 2026-11-28).** (1) Each dead arm is `nodeOwnB2HD … .drained none true ∗ ⌜v₁.byE = I.v.byE⌝`
+  (`v'` in `drainAdvanceB2.stmt`); `drainDeadB2`'s pure conjunct gains `v.byE = I.v.byE`. (2) `drainPreB2`'s pure part:
+  `((∀ x ∈ I.ms.filterMap (fun q => xmsgOf q.st), XPendOk γ.R.N (nodeId j) I.r.p x) → ReadyOutP … ∧ ∀ q ∈ I.ms,
+  DrainMsgOkB1 …) ∧ I.r.full = I.r.p.log ∧ I.OkB2 …`; `node.parallel`'s proof discharges the premise from `Hlead`
+  (`xPend_of_msgs`). (3) `node.drain.wp_proofB2` takes the batching case as `node.drain.batchB2.stmt`
+  (`DrainB2Enter.lean`: `node.drain.specB2` at `Async' = false`, `Batch' = true`).
+- **Decision.** The Antithesis lead (2026-11-28). No axiom, no top-level premise.
 ## 2026-11-23: rpc protocols of a listener's addresses (`rpcLisP`); `Server.Accept.spec` on a wildcard listener; `rpcAccepted` with a cut handshake answer; `ansPend` knows the answer was written (net/rpc model, server over HTTP)
 
 - **Specs.** `Net/Proof/net/rpc/Proto.lean` (`rpcLisP`), `Net/Spec/net/rpc/Server__Accept.lean`,
