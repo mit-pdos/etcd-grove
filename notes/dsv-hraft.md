@@ -911,4 +911,15 @@ kit's `Link` are the next batches.
   request (`admin_dep`), its call; post `False`), `remoteCheck` (remote's `Check` with `Model()`, `Codec()`, `Gen`,
   `regS_pendDec`, `regR_encOut_inj`), **`Orch`** (`Orch.spec`: from `orchShare K γp` and the codec unregistered;
   `chooseN0`, `kit_draw` with a credit, `configure`, `Register()`, `go admin()`, `remoteCheck(chooseOps())`).
+- **The start, `Start.lean`** (defs; vr's `vsrnet/Start.lean`): **`hraft_start`** (`[ReceiptBoundLe GF (2 ^ 62)]`,
+  `kit_start`'s): `regCtx -∗ ([∗list] a ∈ hraftKitAddrs, addrUnset a) ={⊤}=∗ ∃ ρ K γp, orchShare K γp ∗ ([∗list] c ∈
+  range 5, cliShare K c) ∗ ([∗list] j ∈ range' 1 6, srvShare K j)`: remote's slot map (`mapCtx_alloc`, budgets
+  `orchBud`), `kit_start seqs0` (counters at 1), `pend_alloc` over `regS`, `gprot.alloc_names` for sizes 3 and 5 (the
+  six servers, `genesisOf (bootSrvs n)`, `cfgDec allSids`), the draw's map, the frontier's list, the share tokens
+  (keys 0..6), the rpc world (`kitSSOf K0`: its services do not depend on the world, so `kitSS_of` holds by `rfl`),
+  its registry, a listener at each server address (`rpcLis_set_all`, `addrUnset_lisUnset'`: rpcdriver's, for any
+  `GF`), the configuration and client addresses' protocols, the draw's invariant undrawn (`drawInv_alloc`).
+  `cliShare K c` is `Client.spec`'s precondition but the packages' facts and the codec. Note for the top level: the
+  shares are stated over the kit's `HeapGS` (as `srvShare` is, S5d), so the start runs at some machine's `hG`; each
+  machine's share is the same proposition at its own `hG` only up to `hG.goose_globalGS` (definitional).
 - Not linked (the kit's `Link`, next batch). No axiom, `sorry` or premise.
