@@ -524,3 +524,31 @@ etcd3 package's `MDefs` cone, not the driver's `Inv.lean`.
   no `boundL`). Write `boundL` and `bound.spec`, then `target.spec`, prove both and link them; then
   `SharedModel`.
 - **No `sorry`** in built files, no axiom, no top-level statement, premise or trusted-text change.
+
+## Handoff K9-8 (2026-11-28, branch `k8s-dist-k9/2026-11-28`)
+
+- **Proved and linked**: `bound` (`4f4d028b4c`) and `target` (`ae88865065`), both in
+  `etc/link-lean-first-k8setcd3.txt` and `Link.lean`. Build of record (fk-lean2, `etcd3.Link`,
+  `etcd3.Results`): see the last line of this section.
+- **`bound`**: `boundL x y : w64` (new, `SharedLand.lean`, read off the Go; `req` is
+  `(parseRVD x.MinRV').getD 0`); `bound.spec` is `RET #(boundL x y); True`. Go's `bound` ignores
+  `parseRV`'s error and uses its `n`, so **`parseRV`'s spec now also says `n = 0` on an error**
+  (`| none => ⌜err ≠ nil⌝ ∗ errStrOk err ∗ ⌜n = W64 0⌝`, a stronger post, no premise). Its users are
+  unchanged but `versioner__ParseResourceVersion` (whose own spec keeps the old post: it drops the
+  new conjunct).
+- **`target`**: `target.spec` is `RET #t; ⌜uint.nat t = k8s_dist.targetL x y (uint.nat rv)⌝` (exact,
+  no premise: every value Go returns is a `uint64` and `out.RV - 1` runs only when `out.RV > rv`).
+  The proof file has `wp_max_u64` (the builtin `max` of two `uint64`s: `uint.nat m = max ..`),
+  `evMaxL_snoc`, and `targetL_nf`/`targetL_errNZ`/`targetL_write`/`targetL_read` (`targetL` unfolded
+  per case: `simp` turns `W64 5` into `5#64` and then misses `hk5`, so these use `rw [if_neg ..]`).
+  The range loop over the events is `shows`' loop (`i`/`ev` pointers, `t`, `some` in the invariant).
+- **Proof notes**: the `if` on `!(out.Err == ENone)` is best split by `by_cases h0` and
+  `rw [decide_eq_true h0]`/`decide_eq_false h0` before `wp_auto` (`wp_if_destruct` loses the
+  fact on one side). A `cases hS : x.Skip'` before the load does not rewrite the loaded value:
+  `wp_auto` first.
+- **Left** (step 3): `stepIdx` with `wmemo` (G11's lock, §2.6), the `*Idx` checks (`watchOkIdx`,
+  `watchListOkIdx`, `initialPrefixOkIdx`, `reliableOkIdx`, `wantEventsIdx`: each its counterpart's
+  spec, `watchOk`/... in the link list lines 86-94), `viewFrom`/`hview.at` (`at r` is `histAt h r`),
+  then `SharedModel` (§2.1).
+- **No `sorry`** in built files, no axiom, no top-level statement, premise or trusted-text change.
+- **Build of record** at `ae88865065` (FKLEAN_HOST=fk-lean2, `etcd3.Link`, `etcd3.Results`): passed, 12290 jobs.
