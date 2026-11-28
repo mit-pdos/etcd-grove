@@ -43,7 +43,7 @@ instance dobj_countable : Pos.Countable DObj :=
       exact (DObj.ext_iff' a b).2 h')
 
 section vals
-variable [GooseExts] [GoSemanticsFunctions] [GoGlobalContext]
+variable [GooseExts] [GoLocalContext] [GoSemanticsFunctions] [GoGlobalContext]
 
 /-- `watchOptions(in)`'s predicate: `predicate(in)`'s with `AllowWatchBookmarks := b`. -/
 def predWV (x : Input) (b : Bool) : k8s_io.apiserver.pkg.storage.SelectionPredicate :=

@@ -76,7 +76,10 @@ outputs.) Exclusivity per directory
 closes (R2b: `wal.Close`, `backend.Close`, axioms at the trust boundary, from what the server's
 `Save`s and the backend's commits wrote), consumed by `bootstrap`'s restart contract. A graceful
 stop in the same process: every write is visible to the next open, synced or not (the plan's
-Q4).
+Q4). (walfiles-fold, 2026-11-28) The records `σ` are also the WAL history's eager fold (`walFiles`' second
+conjunct), as a graceful stop leaves them: without it `srvFiles` admitted a WAL ending with a synced snapshot
+record above the saved commit, on which `bootstrap` succeeds while the restart contract's post (`walRecs h σ`,
+the eager fold) cannot hold (`notes/axiom-review/bootstrap-restart-eagerfold.md`).
 
 (out_size C3, 2026-11-12; freeze-c2 §4 MAJ-1, MAJ-2, MIN-3) **The WAL's files are sized**
 (`walFiles … true`). What that asserts (`walFiles`' trusted docstring): every entry record a

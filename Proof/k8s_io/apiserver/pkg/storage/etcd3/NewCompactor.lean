@@ -47,8 +47,8 @@ theorem NewCompactor.wp_proof
     (wp_runCompactLoop : compactor.runCompactLoop.spec (GF := GF) (hG := hG))
     (wp_runWatchLoop : compactor.runWatchLoop.spec (GF := GF) (hG := hG)) :
     NewCompactor.spec (GF := GF) (hG := hG) := by
-  intro _ cl ms V γk Seen recorded _ _ iv ck f hsame hcmp hcret hiv
-  wp_start as ⟨#Hcl, Hone, Hregs, #Hko, #Hwo, #Hcas, #Hkr, #Hclose⟩
+  intro _ cl K γk Seen recorded _ _ iv ck f hsame hcmp hcret hiv
+  wp_start as ⟨#Hcl, #Hko, #Hwo, #Hcas, #Hkr, #Hclose⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.features $$ []
@@ -114,15 +114,14 @@ theorem NewCompactor.wp_proof
   · iintro _; itrivial
   (try wp_auto)
   -- the loops call the client: their fresh thread tokens' level 0 (`wp_fork_level0`)
-  wp_apply wp_fork_level0 $$ [Hone Hregs Hdone]
+  wp_apply wp_fork_level0 $$ [Hdone]
   · iintro Hlt
     (try wp_auto)
     wp_apply wp_with_defer as %defer defer
     (try wp_auto)
-    wp_apply (wp_runCompactLoop c cl ms V γk Seen recorded γc sc γs hsame hcmp hcret)
-      $$ [$Hlt Hone Hregs] as ⟨Hlt, -⟩
+    wp_apply (wp_runCompactLoop c cl K γk Seen recorded γc sc γs hsame hcmp hcret)
+      $$ [$Hlt] as ⟨Hlt, -⟩
     · iframe #
-      iframe
     (try wp_auto)
     wp_apply sync.join.WaitGroup.wp_Done iprop(True) _ $$ [Hdone]
     · iframe #; iframe
@@ -178,7 +177,7 @@ theorem NewCompactor.wp_proof
       (try wp_auto)
       wp_apply wp_with_defer as %defer defer
       (try wp_auto)
-      wp_apply (wp_runWatchLoop c cl (ms.map client.SrvAt.addr) V γk recorded γc sc γs) $$ [$Hlt]
+      wp_apply (wp_runWatchLoop c cl K γk recorded γc sc γs) $$ [$Hlt]
         as ⟨Hlt, -⟩
       · iframe #
       (try wp_auto)

@@ -129,7 +129,7 @@ instance isFSM_persistent x γ i fsmOwn respP snapP :
 /-- The FSM's dynamic type does not implement `BatchingFSM` (so `runFSM`'s type assertion fails): a
 fact about the client's type. (Stage 4, REPL4-1: it implements `ConfigurationStore`, `isFSM`'s
 `StoreConfiguration` row; stage 3: it implemented neither.) -/
-def fsmNotBatching [GoSemanticsFunctions] (x : GoInterfaceOk) : Prop :=
+def fsmNotBatching [GoLocalContext] [GoSemanticsFunctions] (x : GoInterfaceOk) : Prop :=
   go.typeSetContains x.ty BatchingFSM.ty = false ∧ go.typeSetContains x.ty ConfigurationStore.ty = true
 
 theorem isFSM_respP_persistent (x : GoInterfaceOk) (γ : GNames) (i : SID)

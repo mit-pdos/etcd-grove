@@ -64,11 +64,11 @@ abbrev Apply.spec : Prop :=
   c.S = driverSpec → c.pathPrefix = go!"/registry" → c.resourcePrefix = go!"/objs" →
   c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
-  threadBound GF ≤ 2 ^ 30 - 1 → (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  threadBound GF ≤ 2 ^ 30 - 1 → c.K.live →
   uint.nat g0.st.rv ≤ g0.hist.length →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 -∗
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 -∗
-    k8s.isStore sp c -∗ ([∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv) -∗ ⌜c.ms ≠ []⌝ -∗
+    k8s.isStore sp c -∗ ([∗list] γv ∈ c.K.kvs, kInv γ c g0 γv) -∗ ⌜c.K.kvs ≠ []⌝ -∗
     isCache c tbl -∗ rangeStreamOff -∗
     kInv γ c g0 γk -∗ storeWatchOk sp c driverW γk -∗ watchListOn -∗
     iprop(∀ i : GoInterface,

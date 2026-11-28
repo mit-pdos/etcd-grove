@@ -116,14 +116,14 @@ def casPost (γk : KVNames) (Seen : IProp GF) (recorded : w64 → IProp GF) (ev 
 
 /-- **The compactor's contract** (persistent; the caller's, see the file header): given `ev = 0` or
 `Seen`, and a revision `rev` it may write (`revOk`), the round's transaction's atomic update at each
-member, fired at most once, whose result gives `casPost`. -/
-def casOk (ms : List (client.SrvAt GF)) (γk : KVNames) (Seen : IProp GF)
+of the client's KVs `ks`, fired at most once, whose result gives `casPost`. -/
+def casOk (ks : List KVNames) (γk : KVNames) (Seen : IProp GF)
     (recorded : w64 → IProp GF) : IProp GF :=
   iprop(□ ∀ (ev rev : w64), (⌜ev = W64 0⌝ ∨ Seen) -∗ revOk γk rev -∗
-      [∧list] x ∈ ms, kvOpAu1 x.γr.kv (.txn (casTxn ev rev)) (casPost γk Seen recorded ev rev))
+      [∧list] γ ∈ ks, kvOpAu1 γ (.txn (casTxn ev rev)) (casPost γk Seen recorded ev rev))
 
-instance casOk_persistent (ms : List (client.SrvAt GF)) (γk : KVNames) (Seen : IProp GF)
-    (recorded : w64 → IProp GF) : Persistent (casOk ms γk Seen recorded) := by
+instance casOk_persistent (ks : List KVNames) (γk : KVNames) (Seen : IProp GF)
+    (recorded : w64 → IProp GF) : Persistent (casOk ks γk Seen recorded) := by
   unfold casOk; infer_instance
 
 /-- **A value the compactors' key may hold**: `FormatInt(c, 10)` of a recorded `c`, reached or `0`. -/

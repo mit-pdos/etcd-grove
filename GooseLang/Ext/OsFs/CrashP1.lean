@@ -33,7 +33,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-- The Linux file extension's semantics with crashes restricted by the premise `Q`. -/
 @[instance_reducible] def osFsSemWith (Q : OsState → OsState → Prop) : ExtSemantics osFsExt where
-  step := OsStep
+  step := fun _ => OsStep
   crash st st' := OsCrash st st' ∧ Q st st'
 
 /-! ## The crash interpretation -/

@@ -12,13 +12,15 @@ with its callees' results, in dependency order (`theorem <pre>.wp_<f> : <pre>.<f
 * a spec of the other package: its result in that package's Link;
 * a spec of Perennial (`Perennial/Spec/<pkg>/`): `Perennial.Proof.<pkg>.Link`'s result;
 * a spec of this repository's main tree (`Spec/<pkg>/`): the result `<pre>.wp_<f>` declared in
-  `Proof/<pkg>/Link.lean`, or `<G>.wp_proof` of `Proof/<pkg>/<F>.lean` taking no hypothesis;
+  `Proof/<pkg>/Link.lean`, or `<G>.wp_proof` of `Proof/<pkg>/<F>.lean` applied to its callees'
+  Perennial results (`io.Copy_Discard.wp_proof sync.Pool.wp_Get sync.Pool.wp_Put`);
 * `(name : <G>.spec_<v> ...)`, a variant of a callee's spec (`fmt.Errorf.spec_tnErr`): the theorem
   `<result of G>_<v>` (`fmt.wp_Errorf_tnErr`) of a shared Proof file of the package. (The lab's were
   axioms; here they must be theorems: an axiom is refused.)
 
-The results are declared in `Perennial.EtcdGrove.dsvhraft` (every Link's results are under
-`Perennial.EtcdGrove`, etc/proof_roots.py); a callee's result outside it is written from the root
+The results are declared in `Perennial.EtcdGrove` (every Link's results are under it,
+etc/proof_roots.py), named by the package's qualifier (`raft.Raft.wp_run`,
+`snapstore.Store.wp_Create`: etc/verified-code.py's reading); a callee's result outside it is written from the root
 (`_root_.Perennial.fmt.wp_Errorf`).
 
 A callee in `PENDING` has no result yet: the proofs that need it (transitively) are left out of the
@@ -48,10 +50,7 @@ EXT_SPECS = [("perennial", os.path.join(PERENNIAL, "Perennial", "Spec"), PERENNI
 # the proved packages (directories under SPEC/PROOF); the kit (raft/examples/hraftnet) has its own
 PACKAGES = ["raft", os.path.join("raft", "examples", "snapstore")]
 # callees with no result yet (notes/dsv-hraft.md, P5): the proofs reaching them are not linked
-PENDING = {
-    # `Spec/io/Copy.lean`: being proved over Perennial's io.Copy (branch hraft-iocopy/2026-11-27)
-    "io.Copy", "io.Copy_Discard",
-}
+PENDING = set()
 
 NAME = r"[A-Za-z_«][A-Za-z0-9_'.«»!?]*"
 SPEC_DECL = re.compile(r"^\s*(?:@\[[^\]]*\]\s*)?(?:abbrev|def)\s+(" + NAME + r")\.spec\b", re.M)
@@ -181,6 +180,20 @@ def check_file_name(path, name, pkg):
             f"function)", pkg)
 
 
+# a result of the packages' own, named by the package's qualifier (`raft.Raft.wp_run`,
+# `snapstore.Store.wp_Create`), as etc/verified-code.py reads a Link's results
+OWN_PREFIXES = [("github_com.hashicorp.raft.examples.snapstore.", "snapstore."),
+                ("github_com.hashicorp.raft.", "raft.")]
+
+
+def own_result(spec):
+    r = result_name(spec)
+    for long, short in OWN_PREFIXES:
+        if r.startswith(long):
+            return short + r[len(long):]
+    return r
+
+
 def result_name(spec):
     cs = components(spec)
     # `wp_` + a quoted keyword is an ordinary identifier (`sort.«Sort»` -> `sort.wp_Sort`)
@@ -213,39 +226,52 @@ def link_path(pkg):
 
 
 def ext_specs():
-    """Specs of other libraries: name -> (kind, module of the result, the result's term)."""
-    ext = {}
+    """Specs of other libraries: name -> (kind, modules of the result, the result's term)."""
+    ext, main = {}, []
     for kind, base, _ in EXT_SPECS:
         for path in lean_files(base):
             text = open(path, encoding="utf-8").read()
             names = SPEC_DECL.findall(text)
-            if len(names) != 1:
+            # Perennial: one spec per file; the main tree's may hold a few (`Spec/io/Copy.lean`)
+            if (len(names) != 1 if kind == "perennial" else not names):
                 continue
-            name = names[0]
-            if name in ext:
-                continue  # Perennial's first
             if kind == "main" and re.search(r"^namespace EtcdGrove\b", text, re.M):
                 continue  # `Perennial.EtcdGrove.<name>`, not the name a hraft proof writes
             pkg = os.path.relpath(os.path.dirname(path), base)
-            mpkg = ".".join(pkg.split(os.sep))
-            if kind == "perennial":
-                ext[name] = (kind, "Perennial.Proof." + mpkg + ".Link", "_root_.Perennial." + result_name(name))
-                continue
-            # the main tree: the package's Link, or a function's proof without hypotheses
-            res = result_name(name)
-            lk = os.path.join(ROOT, "Proof", pkg, "Link.lean")
-            if os.path.exists(lk) and re.search(r"^theorem\s+" + re.escape(res) + r"\b",
-                                                open(lk, encoding="utf-8").read(), re.M):
-                ext[name] = (kind, "Proof." + mpkg + ".Link", res)
-                continue
-            pf = os.path.join(ROOT, "Proof", os.path.relpath(path, base))
-            if os.path.exists(pf):
-                t = open(pf, encoding="utf-8").read()
-                d = re.search(r"^\s*theorem\s+" + re.escape(name) + r"\.wp_proof\b", t, re.M)
-                if d and not HYP.search(proof_signature(t, d.start())):
-                    ext[name] = (kind, module_of(pf), name + ".wp_proof")
+            for name in names:
+                if name in ext or any(m[0] == name for m in main):
+                    continue  # Perennial's first
+                if kind == "perennial":
+                    ext[name] = (kind, ["Perennial.Proof." + ".".join(pkg.split(os.sep)) + ".Link"],
+                                 "_root_.Perennial." + result_name(name))
+                else:
+                    main.append((name, pkg, path, base))
+    # the main tree's (in `namespace Perennial`): the package's Link's result, or the function's
+    # proof `<G>.wp_proof` of `Proof/<pkg>/<F>.lean` applied to its callees' Perennial results
+    for name, pkg, path, base in main:
+        res = result_name(name)
+        lk = os.path.join(ROOT, "Proof", pkg, "Link.lean")
+        if os.path.exists(lk) and re.search(r"^theorem\s+" + re.escape(res) + r"\b",
+                                            open(lk, encoding="utf-8").read(), re.M):
+            ext[name] = ("main", ["Proof." + ".".join(pkg.split(os.sep)) + ".Link"], "_root_.Perennial." + res)
+            continue
+        pf = os.path.join(ROOT, "Proof", os.path.relpath(path, base))
+        if os.path.exists(pf):
+            t = open(pf, encoding="utf-8").read()
+            d = re.search(r"^\s*theorem\s+" + re.escape(name) + r"\.wp_proof\b", t, re.M)
+            if d:
+                sig = proof_signature(t, d.start())
+                callees = [m.group(2) for m in HYP.finditer(sig)]
+                if VARIANT_HYP.search(sig) or any(ext.get(c, ("",))[0] != "perennial" for c in callees):
+                    ext[name] = ("main", None, None)  # a callee this script does not resolve
                     continue
-            ext[name] = (kind, None, None)  # no result (yet)
+                mods = [module_of(pf)] + [m for c in callees for m in ext[c][1]]
+                term = "_root_.Perennial." + name + ".wp_proof"
+                if callees:
+                    term = "(" + " ".join([term] + [ext[c][2] for c in callees]) + ")"
+                ext[name] = ("main", mods, term)
+                continue
+        ext[name] = ("main", None, None)  # no result (yet)
     return ext
 
 
@@ -398,9 +424,9 @@ def generate():
                     cpkg = specs[callee][0]
                     if cpkg != pkg:
                         imports.add(module_of(link_path(cpkg)))
-                    args.append(result_name(callee))
+                    args.append(own_result(callee))
                 elif callee in ext and ext[callee][1]:
-                    imports.add(ext[callee][1])
+                    imports.update(ext[callee][1])
                     args.append(ext[callee][2])
                 else:
                     err(f"{rel(path)}: hypothesis `{hname}`: `{callee}.spec` has no result"
@@ -427,7 +453,7 @@ def generate():
         # the results under `Perennial.EtcdGrove`, as every Link's (etc/proof_roots.py); the
         # callees' results outside it are written from the root, so that a name of `EtcdGrove`'s
         # (`EtcdGrove.fmt.wp_Errorf`) never captures one of Perennial's
-        lines += ["", "namespace EtcdGrove.dsvhraft"]
+        lines += ["", "namespace EtcdGrove"]
 
         def own_vars(n):
             return [v for v in proofs[n][2] if v.startswith("variable ")]
@@ -468,9 +494,9 @@ def generate():
             lines += vs
             for n in ns:
                 args = "".join(" " + a for a in args_of[n])
-                lines += ["", f"theorem {result_name(n)} : {n}.spec (GF := GF) (hG := hG) :=",
+                lines += ["", f"theorem {own_result(n)} : {n}.spec (GF := GF) (hG := hG) :=",
                           f"  {n}.wp_proof{args}"]
-        lines += ["", "end link", "", "end EtcdGrove.dsvhraft", "", "end Perennial", ""]
+        lines += ["", "end link", "", "end EtcdGrove", "", "end Perennial", ""]
         outputs[link_path(pkg)] = "\n".join(lines)
     return outputs, skipped
 

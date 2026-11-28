@@ -915,7 +915,7 @@ def k8sWatch [Pos.Countable Obj] (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (w
 /-- **The caller's read update at every member and at the watch's KV** (persistent): `Q` fires at the
 state each linearizable read (`Get`, the client watch's responses) reads. -/
 def readAus (c : StoreCfg GF Obj) (γk : KVNames) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(kvReadAu γk Q ∗ [∗list] x ∈ c.ms, kvReadAu x.γr.kv Q)
+  iprop(kvReadAu γk Q ∗ [∗list] γv ∈ c.K.kvs, kvReadAu γv Q)
 
 instance readAus_persistent (c : StoreCfg GF Obj) (γk : KVNames) (Q : KVState → IProp GF) :
     Persistent (readAus c γk Q) := by

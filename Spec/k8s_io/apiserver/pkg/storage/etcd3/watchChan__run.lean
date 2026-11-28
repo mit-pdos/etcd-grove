@@ -44,7 +44,7 @@ abbrev watchChan.run.spec : Prop :=
   (∀ lb σ, Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ kvWritesDec c σ ∧
     kvRevFits σ.rev⌝) →
   (∀ lb lb' σ σ', Q lb σ ∗ Q lb' σ' ⊢ ⌜kvSameHist σ σ'⌝) →
-  (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  c.K.live →
   (m.bmReq = true → m.forceInit = true) →
   (c.pathPrefix ++ c.resourcePrefix).length ≤ opKeyMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ rangeStreamOff ∗

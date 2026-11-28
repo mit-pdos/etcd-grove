@@ -42,13 +42,48 @@ instance isGrpcRpcMd_persistent {Req Rep : ProtoMsg GF} (addr name : GoString)
 
 /-- An entry of the table `a` serves registers its method. -/
 theorem isGrpcRpcMd_of_addr {Req Rep : ProtoMsg GF} (a name : GoString) (Svc : GrpcSvc GF)
-    [hX : HasExt netExt] [π : NetProtoGS] [σ : NetSlotGS] (Spec : GrpcSpecMd Req Rep)
-    (h : Svc name = some (.unary ⟨Req.wire, Rep.wire, Spec⟩)) :
+    [hX : HasExt netExt] [π : NetProtoGS] [σ : NetSlotGS] (Spec : GrpcSpecMd Req Rep) (nr : Bool)
+    (h : Svc name = some (.unary ⟨Req.wire, Rep.wire, Spec, nr⟩)) :
     grpcAddrAt (Gg := hG.goose_globalGS) a Svc ⊢ isGrpcRpcMd a name Spec := by
   iintro #Ha
   unfold isGrpcRpcMd
   iexists hX, π, σ
-  iapply (grpcSvcAt_of_addr (Gg := hG.goose_globalGS) a name Svc ⟨Req.wire, Rep.wire, Spec⟩ h) $$ Ha
+  iapply (grpcSvcAt_of_addr (Gg := hG.goose_globalGS) a name Svc ⟨Req.wire, Rep.wire, Spec, nr⟩ h) $$ Ha
+
+/-- **The unary method `name` at `addr` never refuses** (persistent): `addr`'s service table has a
+flagged unary entry for `name` (`grpcSvcNRAt`, `GrpcEntry.nr`, no heap). -/
+@[no_expose] def isGrpcRpcNR (addr name : GoString) : IProp GF :=
+  iprop(∃ (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
+    grpcSvcNRAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr name)
+
+instance isGrpcRpcNR_persistent (addr name : GoString) : Persistent (isGrpcRpcNR (GF := GF) addr name) := by
+  unfold isGrpcRpcNR; infer_instance
+
+/-- A flagged entry of the table `a` serves registers its method as never refusing. -/
+theorem isGrpcRpcNR_of_addr (a name : GoString) (Svc : GrpcSvc GF)
+    [hX : HasExt netExt] [π : NetProtoGS] [σ : NetSlotGS] (e : GrpcEntry GF)
+    (h : Svc name = some (.unary e)) (hnr : e.nr = true) :
+    grpcAddrAt (Gg := hG.goose_globalGS) a Svc ⊢ isGrpcRpcNR a name := by
+  iintro #Ha
+  unfold isGrpcRpcNR
+  iexists hX, π, σ
+  iapply (grpcSvcNRAt_of_addr (Gg := hG.goose_globalGS) a name Svc e h hnr) $$ Ha
+
+/-- **The unary method `name` of every server at `addrs` never refuses** (persistent; as
+`isGrpcRpcsMd`). -/
+@[reducible] def isGrpcRpcsNR : List GoString → GoString → IProp GF
+  | [], _ => iprop(True)
+  | [a], name => isGrpcRpcNR a name
+  | a :: b :: rest, name => iprop(isGrpcRpcNR a name ∗ isGrpcRpcsNR (b :: rest) name)
+
+instance isGrpcRpcsNR_persistent (addrs : List GoString) (name : GoString) :
+    Persistent (isGrpcRpcsNR (GF := GF) addrs name) := by
+  induction addrs with
+  | nil => unfold isGrpcRpcsNR; infer_instance
+  | cons a rest ih =>
+    cases rest with
+    | nil => unfold isGrpcRpcsNR; infer_instance
+    | cons b bs => unfold isGrpcRpcsNR; infer_instance
 
 /-- **The method `name` of the server at `addr` meets `Spec`** (persistent; see the file
 header): `isGrpcRpcMd` at the plain spec (`GrpcSpec.md`). -/
@@ -223,12 +258,12 @@ theorem grpcMethodOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInte
 /-- **The entry of Go's configuration for `name` at the message models `Req`, `Rep`** (heap-dependent:
 for one process, whose start sets the table): a caller's
 precondition is some spec `S` that a handler registered under `name` meets as a run
-(`grpcRunOkMd`), with `S`'s precondition. -/
+(`grpcRunOkMd`), with `S`'s precondition. Not flagged as never refusing (`GrpcEntry.nr`). -/
 def grpcGoEntry (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface)) (name : GoString)
     (Req Rep : ProtoMsgT GF) : GrpcEntry GF :=
   ⟨Req.toProtoMsg.wire, Rep.toProtoMsg.wire, fun md m Φ Ψe =>
     iprop(∃ (mh : GoFunc) (srv : GoInterface) (S : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg),
-      ⌜(name, mh, srv) ∈ regs⌝ ∗ □ grpcRunOkMd #mh srv ics S ∗ S md m Φ Ψe)⟩
+      ⌜(name, mh, srv) ∈ regs⌝ ∗ □ grpcRunOkMd #mh srv ics S ∗ S md m Φ Ψe), false⟩
 
 /-- **Go's configuration as a service table** (one process): an entry for each
 registered unary method `tys` gives message models for (`tys`: the program's unary methods by full
@@ -751,7 +786,13 @@ status (`rpc_util.go:1132-1156`: it passes only `nil` and `io.EOF` through; ever
 through it, `withRetry`, `models/grpc/stream.go:668`, or is a status error grpc makes, `getTransportConn`'s,
 `ErrClientConnClosing`, the metadata check's). What a caller that tells grpc's errors apart needs (the
 gRPC driver's `errOk`). And it meets the contract of a call that fails at once (`grpcInvokerDone`: a
-closed connection, a context canceled with `Canceled`). -/
+closed connection, a context canceled with `Canceled`).
+
+Since grpc-nr-e (2026-11-27, `notes/grpc-nr-e.md`) the error is also not a refusal when the method's
+entry is flagged as never refusing at every address of the connection (`isGrpcRpcsNR`, the tables'
+`GrpcEntry.nr`). True of grpc-go v1.84: a flagged entry's runs, interceptors included, return `nil` or
+a non-refusal (`grpcServesEnt`, an obligation of whoever serves the table), grpc forwards a server's
+status unchanged, and its own errors carry grpc's messages (as for `noRefusalAt` above). -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop) (inv : GoFunc) :
     IProp GF :=
   iprop((□ ∀ (method : GoString) (Req Rep : ProtoMsgT GF)
@@ -775,6 +816,7 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop) 
             ∃ d : GoString, go_etcd_io.etcd.cache.v3.descIs err d ∗
             ⌜(kvMethod method ∧ ∀ a ∈ addrs, noRefusalAt a) →
               d ∉ go_etcd_io.etcd.cache.v3.refusalDescs⌝ ∗
+            (isGrpcRpcsNR addrs method -∗ ⌜d ∉ go_etcd_io.etcd.cache.v3.refusalDescs⌝) ∗
             (⌜d ∈ handlerDescs⌝ -∗ Ψe d))) }}) ∗
     grpcInvokerDone conn Ok inv)
 

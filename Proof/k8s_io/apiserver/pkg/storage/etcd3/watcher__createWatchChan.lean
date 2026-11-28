@@ -45,7 +45,7 @@ theorem watcher.createWatchChan.wp_proof
   wp_start as ⟨#Hst, #Hsw, #Hwp, #Hctx, #Hmd, #Hsel⟩
   ihave #Hst' := Hst
   iunfold isStore at Hst'
-  icases Hst' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hco, -⟩
+  icases Hst' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hco, -⟩
   iunfold contractOk at Hco
   icases Hco with ⟨-, -, #Hver, #Htr, -, -, -⟩
   ihave #Hsw' := Hsw

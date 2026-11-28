@@ -213,13 +213,19 @@ of base at least `i`. -/
 member `id` of the cluster `cid`** (exclusive, timeless): the durable state `d` all synced, its name
 durable, the generation's lock free (`walUnlockedTok`) and the call permission's half of the directory's
 root back (what `WAL.Close` returns), what a restart reads from it `σ` (`walRead`), its metadata
-`walMetaEnc id cid`; `sized` as `walRecs`'. Until L3 an axiom (with `walFiles_timeless`). -/
+`walMetaEnc id cid`; `sized` as `walRecs`'. Until L3 an axiom (with `walFiles_timeless`).
+(walfiles-fold, 2026-11-28) **`σ` is also the history's eager fold** (`walFoldChkFrom walFresh`, every snapshot
+record applied, as `walRecs`): the files a graceful `Close` leaves (`walRecs_closeAU`). Without it the files
+admitted a history ending with a synced snapshot record above the saved commit, which `walRead` drops and the
+eager fold applies, so the restart contract (`bootstrapRestartContract`, whose post is `walRecs h σ`) was false
+of them; etcd's graceful runs never write it (`notes/axiom-review/bootstrap-restart-eagerfold.md`). -/
 @[no_expose] def walFiles (a : WalA GF) (id cid : w64) (σ : StorContents) (sized : Bool := false) :
     IProp GF :=
   letI := a.ext; letI := a.semOk; letI := a.has; letI := a.W
   iprop(∃ d : WalDur, WalFs.walDiskAt a.dir d ∗ WalFs.walSyncedLb a.dir d.H.length ∗ WalFs.walNamed a.dir ∗
     WalFs.walUnlockedTok ∗ Fs.osCallPerm (Fs.callKey a.R a.dir) (1 : Qp).half ∗
-    ⌜walRead (walSrvHist d.H) = some σ ∧ d.metadata = walMetaEnc id cid ∧ d.sized = true ∧
+    ⌜walRead (walSrvHist d.H) = some σ ∧ walFoldChkFrom walFresh (walSrvHist d.H) = some σ ∧
+      d.metadata = walMetaEnc id cid ∧ d.sized = true ∧
       (sized = true → walEntsSized d.H)⌝)
 
 /-- **The right to close the WAL `h` with its files kept** (exclusive): layer 1's purge right
@@ -576,7 +582,7 @@ theorem walRecs_closeAU (h : WalH GF) (σ : StorContents) (sized : Bool) (id cid
     iexists d
     iframe Hd Hs Hn Hu Hp
     ipureintro
-    refine ⟨?_, hf.2.1.trans hm, hf.2.2.1, hf.2.2.2⟩
+    refine ⟨?_, hf.1, hf.2.1.trans hm, hf.2.2.1, hf.2.2.2⟩
     exact walRead_of_fold hf.1 hb
 
 /-- **What a restart reads from closed files is consecutive from its base, and its snapshot record is

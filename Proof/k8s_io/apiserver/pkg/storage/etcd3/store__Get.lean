@@ -59,16 +59,16 @@ theorem store.Get.wp_proof
     (wp_String : «attribute».String.spec (GF := GF) (hG := hG))
     (wp_Int : «attribute».Int.spec (GF := GF) (hG := hG))
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG))
-    (wp_Record : metrics.OperationLatencyTracker.Record.spec (GF := GF) (hG := hG))
-    (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
+    (wp_Record : metrics.OperationLatencyTracker.Record.spec (GF := GF) (hG := hG)) :
     store.Get.spec (GF := GF) (hG := hG) := by
   intro _ Obj _ sp c ci cd key opts out o0 rv0 k n Q hQ
   wp_start as ⟨Hlt, #Hst, %Hpre, #Hctx, #Hce, #Hk8, Hout, Hau⟩
   obtain ⟨hk, hkl, hrv⟩ := Hpre
   ihave #Hst0 := Hst
   iunfold isStore at Hst
-  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, #Hcon, -⟩
+  icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc, #Hkcl, #Hcon, -⟩
+  iunfold k8sClient at Hkcl
+  icases Hkcl with ⟨%hK, #Hkh⟩
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
   · iPkgInit
   ihave #Pat : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.«attribute» $$ []
@@ -122,9 +122,9 @@ theorem store.Get.wp_proof
     (m := go!"Get")]
   wp_call
   (try wp_auto)
-  wp_apply (kubernetes.Client.Get.latest wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
+  wp_apply (hK.getLatest (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-      c.ms c.V ci' cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hlt Hau]
+      ci' cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ [Hlt Hau]
     as %resp %gerr ⟨Hlt, Hget⟩
   · iframe #
     iframe Hlt

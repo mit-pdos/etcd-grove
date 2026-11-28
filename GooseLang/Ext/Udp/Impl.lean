@@ -209,7 +209,7 @@ end step
 
 /-- U7. A crash drops the sockets; U8, the initial states. -/
 instance udp_semantics : ExtSemantics udpExt where
-  step := UdpStep
+  step := fun _ => UdpStep
   crash L L' := L' = { L with socks := ∅ }
   initLocal L _ := L.init
   initGlobal g := g.init
