@@ -433,22 +433,22 @@ theorem rwInv_maker (γc γt γp : GName) (c : StoreCfg GF Obj) (key : GoString)
     (step : KSt Obj → KSt Obj) (hand : KVState → Bool) (hok : HandOk c key step hand)
     (W : IProp GF) [Timeless W] (Φ : KVState → IProp GF) :
     rwInv γc γt γp c key hand W Φ ∗ dghostVar γp (DFrac.own 1) (none : Option (w64 × w64)) ∗
-      □ ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c step W Φ) ⊢
-      (iprop(∀ R m, |==> □ [∧list] x ∈ c.ms,
+      □ ([∗list] γv ∈ c.K.kvs, k8sAuRW γv c step W Φ) ⊢
+      (iprop(∀ R m, |==> □ [∧list] γv ∈ c.K.kvs,
         ⌜rdQ γc γp c key hand R m = fun _ => iprop(True)⌝ ∨
-          kvReadAu x.γr.kv (rdQ γc γp c key hand R m)) : IProp GF) := by
+          kvReadAu γv (rdQ γc γp c key hand R m)) : IProp GF) := by
   iintro ⟨#Hc, Hp, #Haus⟩ %R %m
   imod dghostVar_update (some (R, m)) γp none $$ Hp with Hp
   imod dghostVar_persist γp 1 _ $$ Hp with #Hp
   imodintro
   imodintro
   refine BigAndL.bigAndL_intro fun k x hk => ?_
-  have hx : x ∈ c.ms := List.mem_of_getElem? hk
+  have hx : x ∈ c.K.kvs := List.mem_of_getElem? hk
   iintro ⟨⟨#Hc, #Haus⟩, #Hp⟩
   iright
-  iapply rwInv_readAu x.γr.kv γc γt γp c key step hand hok W Φ R m
+  iapply rwInv_readAu x γc γt γp c key step hand hok W Φ R m
   iframe Hc Hp
-  iapply (BigSepL.bigSepL_mem (Φ := fun x : client.SrvAt GF => k8sAuRW x.γr.kv c step W Φ)
+  iapply (BigSepL.bigSepL_mem (Φ := fun x : KVNames => k8sAuRW x c step W Φ)
     hx) $$ Haus
 
 /-- **After the response at `σ`**: the caller's result at a state with `σ`'s item and revision, if

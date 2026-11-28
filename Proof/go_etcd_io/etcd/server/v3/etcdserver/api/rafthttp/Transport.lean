@@ -37,7 +37,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etc
 /-- **A method-set premise** (as `ErrorStringLeaf`; stage 6c): `*peer` implements `Pausable` (it
 has `Pause` and `Resume`, `peer.go`): what `CutPeer`'s and `MendPeer`'s `p.(Pausable)` reads.
 `methodSet` is uninterpreted in the model, so the results that reach it take it as a premise. -/
-class PeerPausable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
+class PeerPausable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   pausable : go.typeSetContains (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty)
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Pausable.ty = true
 

@@ -117,7 +117,7 @@ theorem swift.cmdStr_inj : Function.Injective swift.cmdStr := by
   rw [BitVec.toInt_inj.mp h1, BitVec.toInt_inj.mp h2]
 
 section sprintf
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [go.string ↓u go.string]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] [go.string ↓u go.string]
 
 theorem swift.IntArgValue.uniq_int32 [go.IntoValInj w32] (n : w32) :
     ∀ z', fmt.IntArgValue (interface.mk go.int32 #n) z' → z' = sint.Z n := by

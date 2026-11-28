@@ -29,7 +29,7 @@ open Iris Iris.BI Iris.ProofMode _root_.Perennial.go_etcd_io.etcd.pkg.v3
 
 
 section pure
-variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 theorem traceutil.fieldsWf_iff_mem {l : List traceutil.Field} :
     traceutil.fieldsWf l ↔ ∀ f ∈ l, traceutil.fieldsWf [f] := by

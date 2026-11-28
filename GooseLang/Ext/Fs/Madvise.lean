@@ -31,7 +31,7 @@ theorem wp_osMadviseG (addr : Loc) (len adv : w64) (hadv : adv.toNat ≤ 3) (hE 
     (hP : ∀ st Γb Γm Γf Γt h, osWorld (L := L) st Γb Γm Γf Γt h -∗ P -∗ ⌜R st⌝)
     (hR : ∀ h st e' h' st', R st →
       FsStepV "Madvise" (PairV (#addr) (PairV (#len) (#adv))) h st () e' h' st' () →
-      ExtSemantics.step (E := fsExt) "Madvise" (PairV (#addr) (PairV (#len) (#adv))) h st () e' h' st' () →
+      ExtSemantics.step (E := fsExt) GoLocalContext.typeFns "Madvise" (PairV (#addr) (PairV (#len) (#adv))) h st () e' h' st' () →
       ∀ e : w64, e' = Val (#e) → Ψ e)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ P -∗ (∀ e : w64, ⌜Ψ e⌝ -∗ P -∗ Φ (#e)) -∗

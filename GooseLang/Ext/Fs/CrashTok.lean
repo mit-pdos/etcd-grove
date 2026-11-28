@@ -361,7 +361,7 @@ instance fs_crash_interp : ExtCrashInterp fsExt where
 
 /-- The Linux file extension's semantics with crashes restricted by the premise `Q`. -/
 @[instance_reducible] def fsSemWith (Q : OsState → OsState → Prop) : ExtSemantics fsExt where
-  step := FsStep
+  step := fun _ => FsStep
   crash st st' := OsCrash st st' ∧ Q st st'
 
 /-- The crash interpretation under the premise `Q`. -/

@@ -70,8 +70,8 @@ theorem wp_fs_postSh (o : String) (v : val) (hv : v.isPanic = false) (R : Roots)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜QP st⌝)
     (Ψ : val → Prop)
-    (hΨ : ∀ h st g e' h' st' g', QP st → FsTreeWf st → st.fs.roots = R →
-      ExtSemantics.step (E := fsExt) o v h st g e' h' st' g' → ∃ r, e' = Val r ∧ Ψ r)
+    (hΨ : ∀ {tf : GoTypeFns} h st g e' h' st' g', QP st → FsTreeWf st → st.fs.roots = R →
+      ExtSemantics.step (E := fsExt) tf o v h st g e' h' st' g' → ∃ r, e' = Val r ∧ Ψ r)
     (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osSharedInv (L := L) R -∗ F -∗
       (F -∗ WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ r, ⌜Ψ r⌝ -∗ Φ r }}) -∗
@@ -113,7 +113,7 @@ theorem wp_fs_postSh (o : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   isplitr
   · ipureintro; exact Hred
   iintro %e₂ %σ₂ %eₜ %Hstep Hcred
-  obtain ⟨h, g, h', σ', g', Hst⟩ := extOp_step_inv (X := fsExt) o v hv Hstep
+  obtain ⟨tf, h, g, h', σ', g', Hst⟩ := extOp_step_inv (X := fsExt) o v hv Hstep
   obtain ⟨r, rfl, hr⟩ := hΨ _ _ _ _ _ _ _ hR.1 hR.2.1 hR.2.2 Hst
   ihave H := H $$ %(Val r) %σ₂ %eₜ %Hstep Hcred
   iapply step_fupdN_wand $$ H

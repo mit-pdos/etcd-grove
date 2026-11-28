@@ -44,7 +44,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std
 namespace models_lab
 
 section pure
-variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- `t` implements neither `fmt.Formatter` nor `fmt.GoStringer`: `fmt` calls no `Format` or
 `GoString` of a value of type `t`. -/

@@ -44,7 +44,7 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 (`fmt.PureArgsWf`), as the trace's logger formats them with `%v` (the real `fmt.Sprintf`'s
 verified subset; until 2026-11-24 `fmt.ArgsWf`, the trusted model's premise, which also admitted
 floats and method-less named types: `notes/specs-only/ledger.md`). -/
-def traceutil.fieldsWf [GoSemanticsFunctions] (fs : List traceutil.Field) : Prop :=
+def traceutil.fieldsWf [GoLocalContext] [GoSemanticsFunctions] (fs : List traceutil.Field) : Prop :=
   fmt.PureArgsWf (fs.map traceutil.Field.Value')
 
 /-- A slice of fields, owned with its capacity, its values formattable. -/
@@ -110,7 +110,7 @@ theorem traceutil.ownFields_nil : ⊢ traceutil.ownFields (GF := GF) slice.nil :
   intro ii h
   simp at h
 
-theorem traceutil.fieldsWf_append [GoSemanticsFunctions] {l1 l2 : List traceutil.Field} (h1 : traceutil.fieldsWf l1)
+theorem traceutil.fieldsWf_append [GoLocalContext] [GoSemanticsFunctions] {l1 l2 : List traceutil.Field} (h1 : traceutil.fieldsWf l1)
     (h2 : traceutil.fieldsWf l2) : traceutil.fieldsWf (l1 ++ l2) := by
   unfold traceutil.fieldsWf fmt.PureArgsWf at *
   intro ii h
@@ -119,14 +119,14 @@ theorem traceutil.fieldsWf_append [GoSemanticsFunctions] {l1 l2 : List traceutil
   · exact h1 ii h
   · exact h2 ii h
 
-theorem traceutil.fieldsWf_of_mem [GoSemanticsFunctions] {l : List traceutil.Field} {f : traceutil.Field}
+theorem traceutil.fieldsWf_of_mem [GoLocalContext] [GoSemanticsFunctions] {l : List traceutil.Field} {f : traceutil.Field}
     (h : traceutil.fieldsWf l) (hm : f ∈ l) : traceutil.fieldsWf [f] := by
   unfold traceutil.fieldsWf fmt.PureArgsWf at *
   intro ii hi
   simp only [List.map_cons, List.map_nil, List.mem_singleton] at hi
   exact h ii (by rw [hi]; exact List.mem_map_of_mem hm)
 
-theorem traceutil.fieldsWf_set [GoSemanticsFunctions] {l : List traceutil.Field}
+theorem traceutil.fieldsWf_set [GoLocalContext] [GoSemanticsFunctions] {l : List traceutil.Field}
     {f : traceutil.Field} (i : Nat) (h : traceutil.fieldsWf l) (hf : traceutil.fieldsWf [f]) :
     traceutil.fieldsWf (l.set i f) := by
   unfold traceutil.fieldsWf fmt.PureArgsWf at *
@@ -138,10 +138,10 @@ theorem traceutil.fieldsWf_set [GoSemanticsFunctions] {l : List traceutil.Field}
   · subst hg
     exact hf ii (by rw [← he]; simp)
 
-theorem traceutil.fieldsWf_nil [GoSemanticsFunctions] : traceutil.fieldsWf [] := by
+theorem traceutil.fieldsWf_nil [GoLocalContext] [GoSemanticsFunctions] : traceutil.fieldsWf [] := by
   intro ii h; simp at h
 
-theorem traceutil.fieldsWf_cons_string [GoSemanticsFunctions]
+theorem traceutil.fieldsWf_cons_string [GoLocalContext] [GoSemanticsFunctions]
     (k x : GoString) (fs : List traceutil.Field) (h : traceutil.fieldsWf fs) :
     traceutil.fieldsWf ({ Key' := k, Value' := interface.mkOk go.string #x } :: fs) := by
   intro ii hi
@@ -149,7 +149,7 @@ theorem traceutil.fieldsWf_cons_string [GoSemanticsFunctions]
   · rw [hi]; exact ⟨_, .str _ _ _ .nil⟩
   · exact h ii hi
 
-theorem traceutil.fieldsWf_cons_int [GoSemanticsFunctions]
+theorem traceutil.fieldsWf_cons_int [GoLocalContext] [GoSemanticsFunctions]
     (k : GoString) (x : GoInterface) (z : Int) (hz : _root_.Perennial.fmt.IntArg x z)
     (fs : List traceutil.Field) (h : traceutil.fieldsWf fs) :
     traceutil.fieldsWf ({ Key' := k, Value' := x } :: fs) := by
@@ -158,7 +158,7 @@ theorem traceutil.fieldsWf_cons_int [GoSemanticsFunctions]
   · rw [hi]; exact ⟨_, .int _ _ _ _ hz .nil⟩
   · exact h ii hi
 
-theorem traceutil.fieldsWf_cons_bool [GoSemanticsFunctions] (k : GoString)
+theorem traceutil.fieldsWf_cons_bool [GoLocalContext] [GoSemanticsFunctions] (k : GoString)
     (b : Bool) (fs : List traceutil.Field) (h : traceutil.fieldsWf fs) :
     traceutil.fieldsWf ({ Key' := k, Value' := interface.mkOk go.bool #b } :: fs) := by
   intro ii hi
